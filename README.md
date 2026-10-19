@@ -3,13 +3,22 @@
 Jurno reads a broker trade history (CSV) and shows where you make and lose money.
 The file stays in the browser. Jurno keeps the last file in `localStorage`.
 
-## Run
+## Layout
+
+| Path | Contents |
+| --- | --- |
+| `apps/web` | Front end (Vite, React) |
+| `apps/auth` | Auth service (Better Auth) |
+| `crates/engine` | Rust analytics engine |
+| `crates/api` | Rust HTTP API |
+| `docs/architecture.md` | Service contract: routes, tables, types |
+
+## Run the front end
 
 ```bash
+cd apps/web
 npm install
 npm run dev      # http://localhost:5173
-npm run build
-npm run lint
 ```
 
 ## Input
@@ -46,15 +55,15 @@ The test assumes each trade is independent. A skipped trade does not change late
 
 | Path | Contents |
 | --- | --- |
-| `src/lib/trades/` | Pure data logic: parse, group, timezone, stats, simulations, optimizer |
-| `src/lib/insights.ts` | Notes generated from the stats |
-| `src/lib/share-card.ts` | Draws the share card on a canvas |
-| `src/lib/format.ts`, `storage.ts` | Formatters and safe `localStorage` |
-| `src/hooks/` | `useTradeFile`, `useFilters`, `useTheme` |
-| `src/components/charts/` | Chart components (Recharts) |
-| `src/components/dashboard/` | Dashboard cards, tables and the tab views in `views/` |
-| `src/components/upload/`, `layout/`, `brand/` | Welcome screen, header, logo |
-| `src/components/ui/` | shadcn/ui primitives |
+| `apps/web/src/lib/trades/` | Pure data logic: parse, group, timezone, stats, simulations, optimizer |
+| `apps/web/src/lib/insights.ts` | Notes generated from the stats |
+| `apps/web/src/lib/share-card.ts` | Draws the share card on a canvas |
+| `apps/web/src/lib/format.ts`, `storage.ts` | Formatters and safe `localStorage` |
+| `apps/web/src/hooks/` | `useTradeFile`, `useFilters`, `useTheme` |
+| `apps/web/src/components/charts/` | Chart components (Recharts) |
+| `apps/web/src/components/dashboard/` | Dashboard cards, tables and the tab views in `views/` |
+| `apps/web/src/components/upload/`, `layout/`, `brand/` | Welcome screen, header, logo |
+| `apps/web/src/components/ui/` | shadcn/ui primitives |
 
 See [docs/saas-plan.md](docs/saas-plan.md) for the plan to add accounts, storage and billing.
 

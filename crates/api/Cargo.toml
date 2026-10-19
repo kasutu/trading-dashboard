@@ -1,0 +1,8 @@
+[package]
+name = "api"
+description = "Jurno HTTP API"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+engine = { path = "../engine" }

@@ -1,0 +1,134 @@
+// Mirror of the API contract. Source of truth: crates/engine/src/lib.rs and docs/architecture.md.
+// Change them together.
+
+export type Field =
+  | "ticket"
+  | "openTime"
+  | "closeTime"
+  | "side"
+  | "lots"
+  | "symbol"
+  | "openPrice"
+  | "closePrice"
+  | "stopLoss"
+  | "takeProfit"
+  | "commission"
+  | "swap"
+  | "profit"
+  | "closeReason"
+
+export const REQUIRED_FIELDS: Field[] = ["openTime", "closeTime", "profit"]
+
+export type ColumnMapping = {
+  /** Field -> CSV header text */
+  columns: Partial<Record<Field, string>>
+  /** IANA timezone of the timestamps in the file */
+  timestampsTz: string
+}
+
+export type Side = "buy" | "sell"
+
+export type Trade = {
+  ticket: string
+  open: string // ISO 8601, UTC
+  close: string
+  side: Side
+  lots: number
+  symbol: string
+  openPrice: number
+  closePrice: number
+  sl: number | null
+  tp: number | null
+  commission: number
+  swap: number
+  profit: number
+  net: number
+  reason: string
+}
+
+export type LocalTrade = Trade & { day: string; hour: number; weekday: number; durationMin: number }
+
+export type Group = {
+  key: string
+  trades: number
+  wins: number
+  net: number
+  winRate: number
+  avg: number
+  grossWin: number
+  grossLoss: number
+}
+
+export type Summary = Group & {
+  losses: number
+  avgWin: number
+  avgLoss: number
+  payoff: number
+  /** null = infinite */
+  profitFactor: number | null
+  maxDd: number
+  maxLossStreak: number
+  days: number
+  tradesPerDay: number
+  medianDurationMin: number
+  bestTrade: number
+  worstTrade: number
+}
+
+export type EquityPoint = { n: number; time: number; equity: number; drawdown: number; net: number }
+export type DayBucket = { key: string; days: number; net: number; avgPerDay: number; greenDays: number }
+export type CapRow = { key: string; cap: number; net: number; trades: number }
+export type LimitRow = { key: string; limit: number; net: number; trades: number; stoppedDays: number }
+export type AfterLoss = { windowMin: number; after: Group; other: Group }
+
+export type Rules = { skipHours: number[]; skipWeekdays: number[]; cap: number | null; lossLimit: number | null }
+export type Merged = { trades: number; net: number; winRate: number }
+export type FocusItem = { kind: "hour" | "weekday" | "symbol" | "duration"; keys: string[]; fit: Merged; test: Merged }
+export type Comparison = { actual: Group; withRules: Group }
+export type ComparePoint = { key: string; actual: number; rules: number }
+
+export type Optimization = {
+  focus: FocusItem[]
+  rules: Rules
+  tested: number
+  splitDay: string
+  trainDays: [string, string]
+  testDays: [string, string]
+  train: Comparison
+  test: Comparison
+  all: Comparison
+  curve: ComparePoint[]
+}
+
+export type Analytics = {
+  period: [string, string]
+  symbols: string[]
+  summary: Summary
+  curve: EquityPoint[]
+  daily: Group[]
+  byHour: Group[]
+  byWeekday: Group[]
+  heatmap: Group[][]
+  byDuration: Group[]
+  byLots: Group[]
+  byReason: Group[]
+  bySymbol: Group[]
+  bySide: Group[]
+  nthTrade: Group[]
+  dayBuckets: DayBucket[]
+  capSim: CapRow[]
+  lossLimitSim: LimitRow[]
+  afterLoss: AfterLoss
+  optimization: Optimization | null
+}
+
+export type AnalyticsResponse = Analytics | { empty: true }
+
+export type Me = { id: string; username: string; plan: "free" | "espresso" | "latte" }
+export type Account = { id: string; name: string; broker: string | null; currency: string; createdAt: string; trades: number }
+export type Import = { id: string; fileName: string; added: number; duplicates: number; skipped: number; createdAt: string }
+export type SavedMapping = { id: string; name: string; mapping: ColumnMapping; createdAt: string }
+export type TradePage = { rows: LocalTrade[]; total: number }
+
+export type Range = "7" | "30" | "90" | "all"
+export type Filters = { range: Range; symbol: string; side: Side | "all"; tz: string }

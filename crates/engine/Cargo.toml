@@ -1,0 +1,10 @@
+[package]
+name = "engine"
+description = "Jurno analytics engine: CSV mapping, parsing and trade statistics"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
