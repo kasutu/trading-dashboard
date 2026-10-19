@@ -3,10 +3,12 @@
 use std::collections::HashMap;
 
 use crate::stats::{
-    by_duration, by_hour, by_symbol, by_weekday, daily, group, loss_limit_sim, net, per_day, round2, sum_net, Ts,
-    WEEKDAYS,
+    by_duration, by_hour, by_symbol, by_weekday, daily, group, loss_limit_sim, net, per_day,
+    round2, sum_net, Ts, WEEKDAYS,
 };
-use crate::{ComparePoint, Comparison, FocusItem, FocusKind, Group, LocalTrade, Merged, Optimization, Rules};
+use crate::{
+    ComparePoint, Comparison, FocusItem, FocusKind, Group, LocalTrade, Merged, Optimization, Rules,
+};
 
 /// An hour or weekday needs this many trades before we skip or pick it.
 const MIN_TRADES: u32 = 5;
@@ -15,7 +17,12 @@ const TRAIN_SHARE: f64 = 0.7;
 const MIN_KEEP: f64 = 0.4;
 
 fn no_rules() -> Rules {
-    Rules { skip_hours: vec![], skip_weekdays: vec![], cap: None, loss_limit: None }
+    Rules {
+        skip_hours: vec![],
+        skip_weekdays: vec![],
+        cap: None,
+        loss_limit: None,
+    }
 }
 
 /// Trades you would have taken under the rules. `days` comes from `per_day`.
@@ -57,8 +64,10 @@ fn fit(train: &Ts) -> (Rules, u32) {
         let s = Skip::Weekday(WEEKDAYS.iter().position(|w| *w == g.key).unwrap_or(0) as u32);
         (g, s)
     });
-    let mut candidates: Vec<(Group, Skip)> =
-        hours.chain(weekdays).filter(|(g, _)| g.trades >= MIN_TRADES && g.net < 0.0).collect();
+    let mut candidates: Vec<(Group, Skip)> = hours
+        .chain(weekdays)
+        .filter(|(g, _)| g.trades >= MIN_TRADES && g.net < 0.0)
+        .collect();
     candidates.sort_by(|a, b| a.0.net.total_cmp(&b.0.net));
 
     let mut bases = vec![no_rules()];
@@ -79,13 +88,28 @@ fn fit(train: &Ts) -> (Rules, u32) {
     let mut tested = 0;
     for base in &bases {
         let filtered = apply_rules(&days, base);
-        let max_per_day = per_day(&filtered).iter().map(Vec::len).max().unwrap_or(0).max(1) as u32;
+        let max_per_day = per_day(&filtered)
+            .iter()
+            .map(Vec::len)
+            .max()
+            .unwrap_or(0)
+            .max(1) as u32;
         let caps = std::iter::once(None).chain((1..=max_per_day).rev().map(Some));
-        let limits: Vec<Option<f64>> =
-            std::iter::once(None).chain(loss_limit_sim(&filtered).iter().rev().map(|l| Some(l.limit))).collect();
+        let limits: Vec<Option<f64>> = std::iter::once(None)
+            .chain(
+                loss_limit_sim(&filtered)
+                    .iter()
+                    .rev()
+                    .map(|l| Some(l.limit)),
+            )
+            .collect();
         for cap in caps {
             for &loss_limit in &limits {
-                let r = Rules { cap, loss_limit, ..base.clone() };
+                let r = Rules {
+                    cap,
+                    loss_limit,
+                    ..base.clone()
+                };
                 let kept = apply_rules(&days, &r);
                 tested += 1;
                 if kept.len() < min_kept {
@@ -108,7 +132,11 @@ fn merge(gs: &[Group]) -> Merged {
     Merged {
         trades,
         net: round2(gs.iter().map(|g| g.net).sum()),
-        win_rate: if trades > 0 { wins as f64 / trades as f64 } else { 0.0 },
+        win_rate: if trades > 0 {
+            wins as f64 / trades as f64
+        } else {
+            0.0
+        },
     }
 }
 
@@ -125,8 +153,10 @@ fn focus(train: &Ts, test: &Ts) -> Vec<FocusItem> {
     kinds
         .into_iter()
         .filter_map(|(kind, by, top)| {
-            let mut picks: Vec<Group> =
-                by(train).into_iter().filter(|g| g.trades >= MIN_TRADES && g.net > 0.0).collect();
+            let mut picks: Vec<Group> = by(train)
+                .into_iter()
+                .filter(|g| g.trades >= MIN_TRADES && g.net > 0.0)
+                .collect();
             picks.sort_by(|a, b| b.net.total_cmp(&a.net));
             picks.truncate(top);
             if picks.is_empty() {
@@ -136,8 +166,16 @@ fn focus(train: &Ts, test: &Ts) -> Vec<FocusItem> {
             if kind == FocusKind::Hour {
                 keys.sort_by_key(|k| k.parse::<u32>().unwrap_or(0));
             }
-            let tested: Vec<Group> = by(test).into_iter().filter(|g| keys.contains(&g.key)).collect();
-            Some(FocusItem { kind, keys, fit: merge(&picks), test: merge(&tested) })
+            let tested: Vec<Group> = by(test)
+                .into_iter()
+                .filter(|g| keys.contains(&g.key))
+                .collect();
+            Some(FocusItem {
+                kind,
+                keys,
+                fit: merge(&picks),
+                test: merge(&tested),
+            })
         })
         .collect()
 }
@@ -160,20 +198,34 @@ pub fn optimize(ts: &Ts) -> Option<Optimization> {
     }
     let split_at = (day_keys.len() as f64 * TRAIN_SHARE).floor() as usize;
     let split_day = day_keys[split_at];
-    let train: Vec<&LocalTrade> = ts.iter().copied().filter(|t| t.day.as_str() < split_day).collect();
-    let test: Vec<&LocalTrade> = ts.iter().copied().filter(|t| t.day.as_str() >= split_day).collect();
+    let train: Vec<&LocalTrade> = ts
+        .iter()
+        .copied()
+        .filter(|t| t.day.as_str() < split_day)
+        .collect();
+    let test: Vec<&LocalTrade> = ts
+        .iter()
+        .copied()
+        .filter(|t| t.day.as_str() >= split_day)
+        .collect();
     let (rules, tested) = fit(&train);
 
     // Cumulative daily net, actual vs with rules
-    let ruled: HashMap<String, f64> =
-        daily(&apply_rules(&per_day(ts), &rules)).into_iter().map(|d| (d.key, d.net)).collect();
+    let ruled: HashMap<String, f64> = daily(&apply_rules(&per_day(ts), &rules))
+        .into_iter()
+        .map(|d| (d.key, d.net))
+        .collect();
     let (mut a, mut b) = (0.0, 0.0);
     let curve = daily(ts)
         .into_iter()
         .map(|d| {
             a += d.net;
             b += ruled.get(&d.key).copied().unwrap_or(0.0);
-            ComparePoint { key: d.key, actual: round2(a), rules: round2(b) }
+            ComparePoint {
+                key: d.key,
+                actual: round2(a),
+                rules: round2(b),
+            }
         })
         .collect();
 
@@ -186,7 +238,10 @@ pub fn optimize(ts: &Ts) -> Option<Optimization> {
         tested,
         split_day: split_day.to_string(),
         train_days: [day_keys[0].to_string(), day_keys[split_at - 1].to_string()],
-        test_days: [split_day.to_string(), day_keys[day_keys.len() - 1].to_string()],
+        test_days: [
+            split_day.to_string(),
+            day_keys[day_keys.len() - 1].to_string(),
+        ],
         curve,
     })
 }

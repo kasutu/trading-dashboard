@@ -382,7 +382,6 @@ async fn trades_round_trip_through_the_table() {
 const WINNING: &str = include_str!("../../engine/tests/fixtures/exness-winning.csv");
 
 #[tokio::test]
-#[ignore = "needs engine"]
 async fn presets_are_public() {
     let t = setup().await;
     let (s, v) = t.send(Method::GET, "/api/presets", None, None).await;
@@ -391,7 +390,6 @@ async fn presets_are_public() {
 }
 
 #[tokio::test]
-#[ignore = "needs engine"]
 async fn import_counts_added_and_duplicates() {
     let t = setup().await;
     let id = t.new_account().await;
@@ -420,7 +418,6 @@ async fn import_counts_added_and_duplicates() {
 }
 
 #[tokio::test]
-#[ignore = "needs engine"]
 async fn import_parse_errors_are_422() {
     let t = setup().await;
     let id = t.new_account().await;
@@ -438,7 +435,6 @@ async fn import_parse_errors_are_422() {
 }
 
 #[tokio::test]
-#[ignore = "needs engine"]
 async fn analytics_and_trades() {
     let t = setup().await;
     let id = t.new_account().await;

@@ -333,7 +333,10 @@ pub fn analyze(trades: &[Trade], filters: &Filters) -> Option<Analytics> {
     use stats::*;
     let mut sorted: Vec<&Trade> = trades.iter().collect();
     sorted.sort_by_key(|t| t.open);
-    let symbols = by_count(group_by(sorted.iter().map(|t| (t.symbol.clone(), t.net)), &[]));
+    let symbols = by_count(group_by(
+        sorted.iter().map(|t| (t.symbol.clone(), t.net)),
+        &[],
+    ));
 
     let local = select(&sorted, filters);
     let ts: Vec<&LocalTrade> = local.iter().collect();
@@ -401,10 +404,12 @@ pub fn filter_trades<'a>(
     to: Option<&str>,
 ) -> Vec<LocalTrade<'a>> {
     let mut sorted: Vec<&Trade> = trades.iter().collect();
-    sorted.sort_by(|a, b| b.open.cmp(&a.open));
+    sorted.sort_by_key(|t| std::cmp::Reverse(t.open));
     select(&sorted, filters)
         .into_iter()
-        .filter(|t| from.is_none_or(|f| t.day.as_str() >= f) && to.is_none_or(|d| t.day.as_str() <= d))
+        .filter(|t| {
+            from.is_none_or(|f| t.day.as_str() >= f) && to.is_none_or(|d| t.day.as_str() <= d)
+        })
         .collect()
 }
 

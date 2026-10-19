@@ -29,7 +29,10 @@ pub fn exness_mapping() -> ColumnMapping {
     .into_iter()
     .map(|(f, h)| (f, h.to_string()))
     .collect();
-    ColumnMapping { columns, timestamps_tz: "UTC".into() }
+    ColumnMapping {
+        columns,
+        timestamps_tz: "UTC".into(),
+    }
 }
 
 pub fn parse_csv(text: &str, mapping: &ColumnMapping) -> Result<ParseOutput, ParseError> {
@@ -44,7 +47,9 @@ pub fn parse_csv(text: &str, mapping: &ColumnMapping) -> Result<ParseOutput, Par
         .map_err(|_| ParseError::BadTimezone(mapping.timestamps_tz.clone()))?;
 
     let csv_err = |e: csv::Error| ParseError::Csv(e.to_string());
-    let mut rdr = csv::ReaderBuilder::new().flexible(true).from_reader(text.as_bytes());
+    let mut rdr = csv::ReaderBuilder::new()
+        .flexible(true)
+        .from_reader(text.as_bytes());
     let headers: Vec<String> = rdr
         .headers()
         .map_err(csv_err)?
@@ -61,7 +66,9 @@ pub fn parse_csv(text: &str, mapping: &ColumnMapping) -> Result<ParseOutput, Par
             Some(i) => {
                 idx.insert(*f, i);
             }
-            None if Field::REQUIRED.contains(f) => return Err(ParseError::MissingColumn(name.clone())),
+            None if Field::REQUIRED.contains(f) => {
+                return Err(ParseError::MissingColumn(name.clone()))
+            }
             None => {}
         }
     }
@@ -80,7 +87,10 @@ pub fn parse_csv(text: &str, mapping: &ColumnMapping) -> Result<ParseOutput, Par
         return Err(ParseError::NoTrades);
     }
     trades.sort_by_key(|t| t.open);
-    Ok(ParseOutput { trades, skipped_rows })
+    Ok(ParseOutput {
+        trades,
+        skipped_rows,
+    })
 }
 
 /// One CSV row as a trade, or None when a required value is missing or invalid.
@@ -96,9 +106,15 @@ fn row<'r>(get: impl Fn(Field) -> &'r str, tz: Tz) -> Option<Trade> {
     };
     let ticket = match get(Field::Ticket) {
         "" => {
-            let key = [Field::OpenTime, Field::CloseTime, Field::Symbol, Field::Lots, Field::Profit]
-                .map(&get)
-                .join("|");
+            let key = [
+                Field::OpenTime,
+                Field::CloseTime,
+                Field::Symbol,
+                Field::Lots,
+                Field::Profit,
+            ]
+            .map(&get)
+            .join("|");
             format!("{:016x}", fnv1a(key.as_bytes()))
         }
         t => t.to_string(),
@@ -129,7 +145,9 @@ fn num(s: &str) -> Option<f64> {
 
 /// FNV-1a, 64 bit. Stable across runs and platforms.
 fn fnv1a(bytes: &[u8]) -> u64 {
-    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, &b| (h ^ b as u64).wrapping_mul(0x0100_0000_01b3))
+    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, &b| {
+        (h ^ b as u64).wrapping_mul(0x0100_0000_01b3)
+    })
 }
 
 /// `YYYY-MM-DD HH:MM[:SS[.fff]]`, `T` or space separator, `.` allowed in the date (MT5),
@@ -146,7 +164,10 @@ pub(crate) fn parse_time(s: &str, tz: Tz) -> Option<DateTime<Utc>> {
         .or_else(|_| NaiveDateTime::parse_from_str(&text, "%Y-%m-%d %H:%M"))
         .ok()?;
     match offset {
-        Some(secs) => FixedOffset::east_opt(secs)?.from_local_datetime(&ndt).single().map(|d| d.to_utc()),
+        Some(secs) => FixedOffset::east_opt(secs)?
+            .from_local_datetime(&ndt)
+            .single()
+            .map(|d| d.to_utc()),
         // ponytail: a time inside a DST gap does not exist and makes the row invalid;
         // an ambiguous time (DST end) takes the earlier instant.
         None => tz.from_local_datetime(&ndt).earliest().map(|d| d.to_utc()),
@@ -182,7 +203,14 @@ mod tests {
     }
 
     fn basic(tz: &str) -> ColumnMapping {
-        mapping(&[(Field::OpenTime, "Open"), (Field::CloseTime, "Close"), (Field::Profit, "Profit")], tz)
+        mapping(
+            &[
+                (Field::OpenTime, "Open"),
+                (Field::CloseTime, "Close"),
+                (Field::Profit, "Profit"),
+            ],
+            tz,
+        )
     }
 
     fn utc(s: &str) -> DateTime<Utc> {
@@ -204,7 +232,10 @@ mod tests {
         ] {
             assert_eq!(parse_time(s, tz), Some(want), "{s}");
         }
-        assert_eq!(parse_time("2024.01.02 10:00:00.250", tz), Some(utc("2024-01-02T10:00:00.250Z")));
+        assert_eq!(
+            parse_time("2024.01.02 10:00:00.250", tz),
+            Some(utc("2024-01-02T10:00:00.250Z"))
+        );
         assert_eq!(parse_time("not a date", tz), None);
         assert_eq!(parse_time("2024-13-02 10:00:00", tz), None);
     }
@@ -250,7 +281,13 @@ mod tests {
         assert_ne!(a.trades[0].ticket, a.trades[1].ticket);
         assert_eq!(a.trades[0].ticket.len(), 16);
         // FNV-1a 64 of "2024-01-02 10:00:00|2024-01-02 10:30:00|||5"
-        assert_eq!(a.trades[0].ticket, format!("{:016x}", fnv1a(b"2024-01-02 10:00:00|2024-01-02 10:30:00|||5")));
+        assert_eq!(
+            a.trades[0].ticket,
+            format!(
+                "{:016x}",
+                fnv1a(b"2024-01-02 10:00:00|2024-01-02 10:30:00|||5")
+            )
+        );
         assert_eq!(fnv1a(b""), 0xcbf29ce484222325);
         assert_eq!(fnv1a(b"a"), 0xaf63dc4c8601ec8c);
     }
@@ -274,13 +311,22 @@ mod tests {
 
     #[test]
     fn errors() {
-        let m = mapping(&[(Field::OpenTime, "Open"), (Field::CloseTime, "Close")], "UTC");
-        assert_eq!(parse_csv("Open,Close\n", &m), Err(ParseError::MissingMapping(Field::Profit)));
+        let m = mapping(
+            &[(Field::OpenTime, "Open"), (Field::CloseTime, "Close")],
+            "UTC",
+        );
+        assert_eq!(
+            parse_csv("Open,Close\n", &m),
+            Err(ParseError::MissingMapping(Field::Profit))
+        );
 
         // Optional column missing: ignored. Required column missing: error.
         let mut m = basic("UTC");
         m.columns.insert(Field::Symbol, "Instrument".into());
-        assert_eq!(parse_csv("Open,Close,Profit\n", &m), Err(ParseError::NoTrades));
+        assert_eq!(
+            parse_csv("Open,Close,Profit\n", &m),
+            Err(ParseError::NoTrades)
+        );
         let mut m = basic("UTC");
         m.columns.insert(Field::Profit, "PnL".into());
         assert_eq!(
@@ -293,7 +339,13 @@ mod tests {
             Err(ParseError::BadTimezone("Mars/Base".into()))
         );
 
-        assert_eq!(parse_csv("Open,Close,Profit\n", &basic("UTC")), Err(ParseError::NoTrades));
-        assert_eq!(parse_csv("Open,Close,Profit\nx,y,z\n", &basic("UTC")), Err(ParseError::NoTrades));
+        assert_eq!(
+            parse_csv("Open,Close,Profit\n", &basic("UTC")),
+            Err(ParseError::NoTrades)
+        );
+        assert_eq!(
+            parse_csv("Open,Close,Profit\nx,y,z\n", &basic("UTC")),
+            Err(ParseError::NoTrades)
+        );
     }
 }

@@ -6,7 +6,12 @@ use engine::{analyze, exness_mapping, filter_trades, parse_csv, Filters, Side};
 use serde_json::Value;
 
 fn fixture(name: &str) -> String {
-    std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures").join(name)).unwrap()
+    std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures")
+            .join(name),
+    )
+    .unwrap()
 }
 
 /// Compare recursively: keys, strings and lengths exact; numbers within 0.011
@@ -56,30 +61,58 @@ fn matches_typescript_goldens() {
         let parsed = parse_csv(&fixture(&format!("{name}.csv")), &exness_mapping()).unwrap();
         assert_eq!(parsed.skipped_rows, 0);
         for (case, range_days, symbol, tz) in cases {
-            let filters = Filters { range_days, symbol: symbol.map(Into::into), side: None, tz: tz.into() };
+            let filters = Filters {
+                range_days,
+                symbol: symbol.map(Into::into),
+                side: None,
+                tz: tz.into(),
+            };
             let got = serde_json::to_value(analyze(&parsed.trades, &filters).unwrap()).unwrap();
-            let want: Value = serde_json::from_str(&fixture(&format!("{name}.{case}.golden.json"))).unwrap();
+            let want: Value =
+                serde_json::from_str(&fixture(&format!("{name}.{case}.golden.json"))).unwrap();
             compare(&format!("{name}.{case}"), &got, &want, &mut errs);
         }
     }
-    assert!(errs.is_empty(), "{} differences:\n{}", errs.len(), errs[..errs.len().min(40)].join("\n"));
+    assert!(
+        errs.is_empty(),
+        "{} differences:\n{}",
+        errs.len(),
+        errs[..errs.len().min(40)].join("\n")
+    );
 }
 
 #[test]
 fn analyze_none_when_nothing_matches() {
     let parsed = parse_csv(&fixture("exness-winning.csv"), &exness_mapping()).unwrap();
-    let filters = Filters { range_days: None, symbol: Some("NOPE".into()), side: None, tz: "UTC".into() };
+    let filters = Filters {
+        range_days: None,
+        symbol: Some("NOPE".into()),
+        side: None,
+        tz: "UTC".into(),
+    };
     assert!(analyze(&parsed.trades, &filters).is_none());
 }
 
 #[test]
 fn filter_trades_newest_first_within_days() {
     let parsed = parse_csv(&fixture("exness-winning.csv"), &exness_mapping()).unwrap();
-    let filters = Filters { range_days: None, symbol: None, side: Some(Side::Sell), tz: "Asia/Manila".into() };
-    let rows = filter_trades(&parsed.trades, &filters, Some("2026-08-10"), Some("2026-08-20"));
+    let filters = Filters {
+        range_days: None,
+        symbol: None,
+        side: Some(Side::Sell),
+        tz: "Asia/Manila".into(),
+    };
+    let rows = filter_trades(
+        &parsed.trades,
+        &filters,
+        Some("2026-08-10"),
+        Some("2026-08-20"),
+    );
     assert!(!rows.is_empty());
     assert!(rows.windows(2).all(|w| w[0].trade.open >= w[1].trade.open));
-    assert!(rows.iter().all(|t| t.trade.side == Side::Sell && t.day.as_str() >= "2026-08-10" && t.day.as_str() <= "2026-08-20"));
+    assert!(rows.iter().all(|t| t.trade.side == Side::Sell
+        && t.day.as_str() >= "2026-08-10"
+        && t.day.as_str() <= "2026-08-20"));
     let json = serde_json::to_value(&rows[0]).unwrap();
     assert!(json.get("ticket").is_some() && json.get("durationMin").is_some());
 }

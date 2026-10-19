@@ -28,3 +28,6 @@ target
 
 # Env
 .env
+
+# Claude Code worktrees
+.claude/
