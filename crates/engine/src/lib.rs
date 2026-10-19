@@ -9,8 +9,13 @@
 
 use std::collections::BTreeMap;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Datelike, Timelike, Utc};
+use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
+
+mod optimize;
+mod parse;
+mod stats;
 
 // ---------------------------------------------------------------------------
 // Column mapping (the "universal mapper")
@@ -53,7 +58,7 @@ pub struct ColumnMapping {
 
 /// The mapping for an Exness trade history export.
 pub fn exness_mapping() -> ColumnMapping {
-    todo!("engine work")
+    parse::exness_mapping()
 }
 
 // ---------------------------------------------------------------------------
@@ -122,8 +127,7 @@ pub enum ParseError {
 /// an offset is read in `mapping.timestamps_tz`.
 /// Side: "buy"/"long" -> Buy, "sell"/"short" -> Sell (case-insensitive). Missing -> Buy.
 pub fn parse_csv(text: &str, mapping: &ColumnMapping) -> Result<ParseOutput, ParseError> {
-    let _ = (text, mapping);
-    todo!("engine work")
+    parse::parse_csv(text, mapping)
 }
 
 // ---------------------------------------------------------------------------
@@ -325,8 +329,66 @@ pub struct Analytics {
 
 /// Build the dashboard payload. None when no trades match the filters.
 pub fn analyze(trades: &[Trade], filters: &Filters) -> Option<Analytics> {
-    let _ = (trades, filters);
-    todo!("engine work")
+    use stats::*;
+    let mut sorted: Vec<&Trade> = trades.iter().collect();
+    sorted.sort_by_key(|t| t.open);
+    let symbols = by_count(group_by(sorted.iter().map(|t| (t.symbol.clone(), t.net)), &[]));
+
+    let local = select(&sorted, filters);
+    let ts: Vec<&LocalTrade> = local.iter().collect();
+    if ts.is_empty() {
+        return None;
+    }
+    let daily = daily(&ts);
+    Some(Analytics {
+        period: [daily[0].key.clone(), daily[daily.len() - 1].key.clone()],
+        symbols: symbols.into_iter().map(|g| g.key).collect(),
+        summary: summary(&ts),
+        curve: equity_curve(&ts),
+        daily,
+        by_hour: by_hour(&ts),
+        by_weekday: by_weekday(&ts),
+        heatmap: heatmap(&ts),
+        by_duration: by_duration(&ts),
+        by_lots: by_lots(&ts),
+        by_reason: by_reason(&ts),
+        by_symbol: by_symbol(&ts),
+        by_side: by_side(&ts),
+        nth_trade: nth_trade(&ts),
+        day_buckets: day_buckets(&ts),
+        cap_sim: cap_sim(&ts),
+        loss_limit_sim: loss_limit_sim(&ts),
+        after_loss: after_loss(&ts),
+        optimization: optimize::optimize(&ts),
+    })
+}
+
+/// The trades in `sorted` that match the filters, localized, order kept.
+fn select<'a>(sorted: &[&'a Trade], filters: &Filters) -> Vec<LocalTrade<'a>> {
+    // The API validates tz; fall back to UTC rather than fail.
+    let tz: Tz = filters.tz.parse().unwrap_or(Tz::UTC);
+    let from = filters.range_days.and_then(|days| {
+        let last = sorted.iter().map(|t| t.close).max()?;
+        Some(last - chrono::Duration::days(days.into()))
+    });
+    sorted
+        .iter()
+        .filter(|t| {
+            from.is_none_or(|f| t.open >= f)
+                && filters.symbol.as_ref().is_none_or(|s| t.symbol == *s)
+                && filters.side.is_none_or(|s| t.side == s)
+        })
+        .map(|&t| {
+            let open = t.open.with_timezone(&tz);
+            LocalTrade {
+                trade: t,
+                day: open.format("%Y-%m-%d").to_string(),
+                hour: open.hour(),
+                weekday: open.weekday().num_days_from_monday(),
+                duration_min: (t.close - t.open).num_milliseconds() as f64 / 60_000.0,
+            }
+        })
+        .collect()
 }
 
 /// Trades that match the filters, localized, newest first. Used by the trades table
@@ -337,8 +399,12 @@ pub fn filter_trades<'a>(
     from: Option<&str>,
     to: Option<&str>,
 ) -> Vec<LocalTrade<'a>> {
-    let _ = (trades, filters, from, to);
-    todo!("engine work")
+    let mut sorted: Vec<&Trade> = trades.iter().collect();
+    sorted.sort_by(|a, b| b.open.cmp(&a.open));
+    select(&sorted, filters)
+        .into_iter()
+        .filter(|t| from.is_none_or(|f| t.day.as_str() >= f) && to.is_none_or(|d| t.day.as_str() <= d))
+        .collect()
 }
 
 /// A trade with its open time resolved in the filter timezone.

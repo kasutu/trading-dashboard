@@ -1,0 +1,3333 @@
+{
+ "period": [
+  "2026-09-02",
+  "2026-09-30"
+ ],
+ "symbols": [
+  "XAUUSD",
+  "BTCUSD",
+  "EURUSD"
+ ],
+ "summary": {
+  "key": "all",
+  "trades": 67,
+  "wins": 29,
+  "net": -321.9,
+  "winRate": 0.43283582089552236,
+  "avg": -4.8,
+  "grossWin": 460.05,
+  "grossLoss": -781.95,
+  "losses": 38,
+  "avgWin": 15.86,
+  "avgLoss": -20.58,
+  "payoff": 0.7709241485146551,
+  "maxLossStreak": 6,
+  "days": 19,
+  "tradesPerDay": 3.526315789473684,
+  "medianDurationMin": 13.683333333333334,
+  "profitFactor": 0.5883368501822367,
+  "maxDd": -414.19,
+  "bestTrade": 48.34,
+  "worstTrade": -56.69
+ },
+ "curve": [
+  {
+   "n": 1,
+   "time": 1788356042000,
+   "equity": -37.85,
+   "drawdown": -37.85,
+   "net": -37.85
+  },
+  {
+   "n": 2,
+   "time": 1788380649000,
+   "equity": -50.22,
+   "drawdown": -50.22,
+   "net": -12.37
+  },
+  {
+   "n": 3,
+   "time": 1788421531000,
+   "equity": -79.09,
+   "drawdown": -79.09,
+   "net": -28.87
+  },
+  {
+   "n": 4,
+   "time": 1788427934000,
+   "equity": -91.87,
+   "drawdown": -91.87,
+   "net": -12.78
+  },
+  {
+   "n": 5,
+   "time": 1788512439000,
+   "equity": -118.91,
+   "drawdown": -118.91,
+   "net": -27.04
+  },
+  {
+   "n": 6,
+   "time": 1788530988000,
+   "equity": -111.16,
+   "drawdown": -111.16,
+   "net": 7.75
+  },
+  {
+   "n": 7,
+   "time": 1788535013000,
+   "equity": -116.49,
+   "drawdown": -116.49,
+   "net": -5.33
+  },
+  {
+   "n": 8,
+   "time": 1788855470000,
+   "equity": -134.1,
+   "drawdown": -134.1,
+   "net": -17.61
+  },
+  {
+   "n": 9,
+   "time": 1788885713000,
+   "equity": -141.26,
+   "drawdown": -141.26,
+   "net": -7.16
+  },
+  {
+   "n": 10,
+   "time": 1788899937000,
+   "equity": -150.13,
+   "drawdown": -150.13,
+   "net": -8.87
+  },
+  {
+   "n": 11,
+   "time": 1788899945000,
+   "equity": -154.83,
+   "drawdown": -154.83,
+   "net": -4.7
+  },
+  {
+   "n": 12,
+   "time": 1788947698000,
+   "equity": -211.52,
+   "drawdown": -211.52,
+   "net": -56.69
+  },
+  {
+   "n": 13,
+   "time": 1788947774000,
+   "equity": -209.8,
+   "drawdown": -209.8,
+   "net": 1.72
+  },
+  {
+   "n": 14,
+   "time": 1788966819000,
+   "equity": -191.28,
+   "drawdown": -191.28,
+   "net": 18.52
+  },
+  {
+   "n": 15,
+   "time": 1788968164000,
+   "equity": -201.55,
+   "drawdown": -201.55,
+   "net": -10.27
+  },
+  {
+   "n": 16,
+   "time": 1788985637000,
+   "equity": -233.93,
+   "drawdown": -233.93,
+   "net": -32.38
+  },
+  {
+   "n": 17,
+   "time": 1788986370000,
+   "equity": -247.27,
+   "drawdown": -247.27,
+   "net": -13.34
+  },
+  {
+   "n": 18,
+   "time": 1789047810000,
+   "equity": -222.5,
+   "drawdown": -222.5,
+   "net": 24.77
+  },
+  {
+   "n": 19,
+   "time": 1789048928000,
+   "equity": -235.62,
+   "drawdown": -235.62,
+   "net": -13.12
+  },
+  {
+   "n": 20,
+   "time": 1789113480000,
+   "equity": -247.27,
+   "drawdown": -247.27,
+   "net": -11.65
+  },
+  {
+   "n": 21,
+   "time": 1789116620000,
+   "equity": -243.27,
+   "drawdown": -243.27,
+   "net": 4
+  },
+  {
+   "n": 22,
+   "time": 1789119462000,
+   "equity": -236.1,
+   "drawdown": -236.1,
+   "net": 7.17
+  },
+  {
+   "n": 23,
+   "time": 1789159009000,
+   "equity": -265.5,
+   "drawdown": -265.5,
+   "net": -29.4
+  },
+  {
+   "n": 24,
+   "time": 1789159781000,
+   "equity": -299.58,
+   "drawdown": -299.58,
+   "net": -34.08
+  },
+  {
+   "n": 25,
+   "time": 1789401406000,
+   "equity": -283.19,
+   "drawdown": -283.19,
+   "net": 16.39
+  },
+  {
+   "n": 26,
+   "time": 1789457494000,
+   "equity": -282.45,
+   "drawdown": -282.45,
+   "net": 0.74
+  },
+  {
+   "n": 27,
+   "time": 1789463849000,
+   "equity": -270.5,
+   "drawdown": -270.5,
+   "net": 11.95
+  },
+  {
+   "n": 28,
+   "time": 1789479343000,
+   "equity": -303.27,
+   "drawdown": -303.27,
+   "net": -32.77
+  },
+  {
+   "n": 29,
+   "time": 1789480806000,
+   "equity": -332.86,
+   "drawdown": -332.86,
+   "net": -29.59
+  },
+  {
+   "n": 30,
+   "time": 1789482637000,
+   "equity": -367.78,
+   "drawdown": -367.78,
+   "net": -34.92
+  },
+  {
+   "n": 31,
+   "time": 1789483671000,
+   "equity": -414.19,
+   "drawdown": -414.19,
+   "net": -46.41
+  },
+  {
+   "n": 32,
+   "time": 1789485781000,
+   "equity": -390.61,
+   "drawdown": -390.61,
+   "net": 23.58
+  },
+  {
+   "n": 33,
+   "time": 1789485971000,
+   "equity": -393.31,
+   "drawdown": -393.31,
+   "net": -2.7
+  },
+  {
+   "n": 34,
+   "time": 1789640588000,
+   "equity": -361.11,
+   "drawdown": -361.11,
+   "net": 32.2
+  },
+  {
+   "n": 35,
+   "time": 1789665960000,
+   "equity": -357.19,
+   "drawdown": -357.19,
+   "net": 3.92
+  },
+  {
+   "n": 36,
+   "time": 1789718351000,
+   "equity": -386.06,
+   "drawdown": -386.06,
+   "net": -28.87
+  },
+  {
+   "n": 37,
+   "time": 1789738353000,
+   "equity": -337.72,
+   "drawdown": -337.72,
+   "net": 48.34
+  },
+  {
+   "n": 38,
+   "time": 1789738695000,
+   "equity": -328.28,
+   "drawdown": -328.28,
+   "net": 9.44
+  },
+  {
+   "n": 39,
+   "time": 1789739551000,
+   "equity": -334.33,
+   "drawdown": -334.33,
+   "net": -6.05
+  },
+  {
+   "n": 40,
+   "time": 1789740235000,
+   "equity": -341.82,
+   "drawdown": -341.82,
+   "net": -7.49
+  },
+  {
+   "n": 41,
+   "time": 1789753153000,
+   "equity": -355.88,
+   "drawdown": -355.88,
+   "net": -14.06
+  },
+  {
+   "n": 42,
+   "time": 1789980757000,
+   "equity": -331.54,
+   "drawdown": -331.54,
+   "net": 24.34
+  },
+  {
+   "n": 43,
+   "time": 1790069739000,
+   "equity": -321.52,
+   "drawdown": -321.52,
+   "net": 10.02
+  },
+  {
+   "n": 44,
+   "time": 1790092645000,
+   "equity": -308.53,
+   "drawdown": -308.53,
+   "net": 12.99
+  },
+  {
+   "n": 45,
+   "time": 1790093966000,
+   "equity": -303.04,
+   "drawdown": -303.04,
+   "net": 5.49
+  },
+  {
+   "n": 46,
+   "time": 1790096369000,
+   "equity": -292.92,
+   "drawdown": -292.92,
+   "net": 10.12
+  },
+  {
+   "n": 47,
+   "time": 1790153679000,
+   "equity": -313.86,
+   "drawdown": -313.86,
+   "net": -20.94
+  },
+  {
+   "n": 48,
+   "time": 1790155997000,
+   "equity": -272.14,
+   "drawdown": -272.14,
+   "net": 41.72
+  },
+  {
+   "n": 49,
+   "time": 1790177375000,
+   "equity": -309.46,
+   "drawdown": -309.46,
+   "net": -37.32
+  },
+  {
+   "n": 50,
+   "time": 1790183493000,
+   "equity": -305.46,
+   "drawdown": -305.46,
+   "net": 4
+  },
+  {
+   "n": 51,
+   "time": 1790197792000,
+   "equity": -297.6,
+   "drawdown": -297.6,
+   "net": 7.86
+  },
+  {
+   "n": 52,
+   "time": 1790243721000,
+   "equity": -279.39,
+   "drawdown": -279.39,
+   "net": 18.21
+  },
+  {
+   "n": 53,
+   "time": 1790257739000,
+   "equity": -277.39,
+   "drawdown": -277.39,
+   "net": 2
+  },
+  {
+   "n": 54,
+   "time": 1790258062000,
+   "equity": -294.73,
+   "drawdown": -294.73,
+   "net": -17.34
+  },
+  {
+   "n": 55,
+   "time": 1790263195000,
+   "equity": -325.62,
+   "drawdown": -325.62,
+   "net": -30.89
+  },
+  {
+   "n": 56,
+   "time": 1790348920000,
+   "equity": -320.32,
+   "drawdown": -320.32,
+   "net": 5.3
+  },
+  {
+   "n": 57,
+   "time": 1790350757000,
+   "equity": -279.92,
+   "drawdown": -279.92,
+   "net": 40.4
+  },
+  {
+   "n": 58,
+   "time": 1790582601000,
+   "equity": -303.88,
+   "drawdown": -303.88,
+   "net": -23.96
+  },
+  {
+   "n": 59,
+   "time": 1790588567000,
+   "equity": -318.91,
+   "drawdown": -318.91,
+   "net": -15.03
+  },
+  {
+   "n": 60,
+   "time": 1790606964000,
+   "equity": -299.85,
+   "drawdown": -299.85,
+   "net": 19.06
+  },
+  {
+   "n": 61,
+   "time": 1790613912000,
+   "equity": -307.81,
+   "drawdown": -307.81,
+   "net": -7.96
+  },
+  {
+   "n": 62,
+   "time": 1790629575000,
+   "equity": -335.74,
+   "drawdown": -335.74,
+   "net": -27.93
+  },
+  {
+   "n": 63,
+   "time": 1790670370000,
+   "equity": -365.6,
+   "drawdown": -365.6,
+   "net": -29.86
+  },
+  {
+   "n": 64,
+   "time": 1790692831000,
+   "equity": -343.89,
+   "drawdown": -343.89,
+   "net": 21.71
+  },
+  {
+   "n": 65,
+   "time": 1790694360000,
+   "equity": -345.13,
+   "drawdown": -345.13,
+   "net": -1.24
+  },
+  {
+   "n": 66,
+   "time": 1790777511000,
+   "equity": -348.24,
+   "drawdown": -348.24,
+   "net": -3.11
+  },
+  {
+   "n": 67,
+   "time": 1790782861000,
+   "equity": -321.9,
+   "drawdown": -321.9,
+   "net": 26.34
+  }
+ ],
+ "daily": [
+  {
+   "key": "2026-09-02",
+   "trades": 2,
+   "wins": 0,
+   "net": -50.22,
+   "winRate": 0,
+   "avg": -25.11,
+   "grossWin": 0,
+   "grossLoss": -50.22
+  },
+  {
+   "key": "2026-09-03",
+   "trades": 2,
+   "wins": 0,
+   "net": -41.65,
+   "winRate": 0,
+   "avg": -20.82,
+   "grossWin": 0,
+   "grossLoss": -41.65
+  },
+  {
+   "key": "2026-09-04",
+   "trades": 3,
+   "wins": 1,
+   "net": -24.62,
+   "winRate": 0.3333333333333333,
+   "avg": -8.21,
+   "grossWin": 7.75,
+   "grossLoss": -32.37
+  },
+  {
+   "key": "2026-09-08",
+   "trades": 4,
+   "wins": 0,
+   "net": -38.34,
+   "winRate": 0,
+   "avg": -9.59,
+   "grossWin": 0,
+   "grossLoss": -38.34
+  },
+  {
+   "key": "2026-09-09",
+   "trades": 6,
+   "wins": 2,
+   "net": -92.44,
+   "winRate": 0.3333333333333333,
+   "avg": -15.41,
+   "grossWin": 20.24,
+   "grossLoss": -112.68
+  },
+  {
+   "key": "2026-09-10",
+   "trades": 2,
+   "wins": 1,
+   "net": 11.65,
+   "winRate": 0.5,
+   "avg": 5.83,
+   "grossWin": 24.77,
+   "grossLoss": -13.12
+  },
+  {
+   "key": "2026-09-11",
+   "trades": 5,
+   "wins": 2,
+   "net": -63.96,
+   "winRate": 0.4,
+   "avg": -12.79,
+   "grossWin": 11.17,
+   "grossLoss": -75.13
+  },
+  {
+   "key": "2026-09-14",
+   "trades": 1,
+   "wins": 1,
+   "net": 16.39,
+   "winRate": 1,
+   "avg": 16.39,
+   "grossWin": 16.39,
+   "grossLoss": 0
+  },
+  {
+   "key": "2026-09-15",
+   "trades": 8,
+   "wins": 3,
+   "net": -110.12,
+   "winRate": 0.375,
+   "avg": -13.76,
+   "grossWin": 36.27,
+   "grossLoss": -146.39
+  },
+  {
+   "key": "2026-09-17",
+   "trades": 2,
+   "wins": 2,
+   "net": 36.12,
+   "winRate": 1,
+   "avg": 18.06,
+   "grossWin": 36.12,
+   "grossLoss": 0
+  },
+  {
+   "key": "2026-09-18",
+   "trades": 6,
+   "wins": 2,
+   "net": 1.31,
+   "winRate": 0.3333333333333333,
+   "avg": 0.22,
+   "grossWin": 57.78,
+   "grossLoss": -56.47
+  },
+  {
+   "key": "2026-09-21",
+   "trades": 1,
+   "wins": 1,
+   "net": 24.34,
+   "winRate": 1,
+   "avg": 24.34,
+   "grossWin": 24.34,
+   "grossLoss": 0
+  },
+  {
+   "key": "2026-09-22",
+   "trades": 4,
+   "wins": 4,
+   "net": 38.62,
+   "winRate": 1,
+   "avg": 9.65,
+   "grossWin": 38.62,
+   "grossLoss": 0
+  },
+  {
+   "key": "2026-09-23",
+   "trades": 5,
+   "wins": 3,
+   "net": -4.68,
+   "winRate": 0.6,
+   "avg": -0.94,
+   "grossWin": 53.58,
+   "grossLoss": -58.26
+  },
+  {
+   "key": "2026-09-24",
+   "trades": 4,
+   "wins": 2,
+   "net": -28.02,
+   "winRate": 0.5,
+   "avg": -7,
+   "grossWin": 20.21,
+   "grossLoss": -48.23
+  },
+  {
+   "key": "2026-09-25",
+   "trades": 2,
+   "wins": 2,
+   "net": 45.7,
+   "winRate": 1,
+   "avg": 22.85,
+   "grossWin": 45.7,
+   "grossLoss": 0
+  },
+  {
+   "key": "2026-09-28",
+   "trades": 5,
+   "wins": 1,
+   "net": -55.82,
+   "winRate": 0.2,
+   "avg": -11.16,
+   "grossWin": 19.06,
+   "grossLoss": -74.88
+  },
+  {
+   "key": "2026-09-29",
+   "trades": 3,
+   "wins": 1,
+   "net": -9.39,
+   "winRate": 0.3333333333333333,
+   "avg": -3.13,
+   "grossWin": 21.71,
+   "grossLoss": -31.1
+  },
+  {
+   "key": "2026-09-30",
+   "trades": 2,
+   "wins": 1,
+   "net": 23.23,
+   "winRate": 0.5,
+   "avg": 11.62,
+   "grossWin": 26.34,
+   "grossLoss": -3.11
+  }
+ ],
+ "byHour": [
+  {
+   "key": "0",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "1",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "2",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "3",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "4",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "5",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "6",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "7",
+   "trades": 5,
+   "wins": 1,
+   "net": -92.61,
+   "winRate": 0.2,
+   "avg": -18.52,
+   "grossWin": 0.74,
+   "grossLoss": -93.35
+  },
+  {
+   "key": "8",
+   "trades": 6,
+   "wins": 3,
+   "net": -28.12,
+   "winRate": 0.5,
+   "avg": -4.69,
+   "grossWin": 40.29,
+   "grossLoss": -68.41
+  },
+  {
+   "key": "9",
+   "trades": 10,
+   "wins": 6,
+   "net": -0.5,
+   "winRate": 0.6,
+   "avg": -0.05,
+   "grossWin": 111.04,
+   "grossLoss": -111.54
+  },
+  {
+   "key": "10",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "11",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "12",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "13",
+   "trades": 11,
+   "wins": 4,
+   "net": -59.66,
+   "winRate": 0.36363636363636365,
+   "avg": -5.42,
+   "grossWin": 84.55,
+   "grossLoss": -144.21
+  },
+  {
+   "key": "14",
+   "trades": 9,
+   "wins": 6,
+   "net": 11.48,
+   "winRate": 0.6666666666666666,
+   "avg": 1.28,
+   "grossWin": 95.92,
+   "grossLoss": -84.44
+  },
+  {
+   "key": "15",
+   "trades": 10,
+   "wins": 4,
+   "net": 8.37,
+   "winRate": 0.4,
+   "avg": 0.84,
+   "grossWin": 96.12,
+   "grossLoss": -87.75
+  },
+  {
+   "key": "16",
+   "trades": 7,
+   "wins": 4,
+   "net": -5.65,
+   "winRate": 0.5714285714285714,
+   "avg": -0.81,
+   "grossWin": 23.53,
+   "grossLoss": -29.18
+  },
+  {
+   "key": "17",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "18",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "19",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "20",
+   "trades": 9,
+   "wins": 1,
+   "net": -155.21,
+   "winRate": 0.1111111111111111,
+   "avg": -17.25,
+   "grossWin": 7.86,
+   "grossLoss": -163.07
+  },
+  {
+   "key": "21",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "22",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  },
+  {
+   "key": "23",
+   "trades": 0,
+   "wins": 0,
+   "net": 0,
+   "winRate": 0,
+   "avg": 0,
+   "grossWin": 0,
+   "grossLoss": 0
+  }
+ ],
+ "byWeekday": [
+  {
+   "key": "Mon",
+   "trades": 7,
+   "wins": 3,
+   "net": -15.09,
+   "winRate": 0.42857142857142855,
+   "avg": -2.16,
+   "grossWin": 59.79,
+   "grossLoss": -74.88
+  },
+  {
+   "key": "Tue",
+   "trades": 19,
+   "wins": 8,
+   "net": -119.23,
+   "winRate": 0.42105263157894735,
+   "avg": -6.28,
+   "grossWin": 96.6,
+   "grossLoss": -215.83
+  },
+  {
+   "key": "Wed",
+   "trades": 15,
+   "wins": 6,
+   "net": -124.11,
+   "winRate": 0.4,
+   "avg": -8.27,
+   "grossWin": 100.16,
+   "grossLoss": -224.27
+  },
+  {
+   "key": "Thu",
+   "trades": 10,
+   "wins": 5,
+   "net": -21.9,
+   "winRate": 0.5,
+   "avg": -2.19,
+   "grossWin": 81.1,
+   "grossLoss": -103
+  },
+  {
+   "key": "Fri",
+   "trades": 16,
+   "wins": 7,
+   "net": -41.57,
+   "winRate": 0.4375,
+   "avg": -2.6,
+   "grossWin": 122.4,
+   "grossLoss": -163.97
+  }
+ ],
+ "heatmap": [
+  [
+   {
+    "key": "0-0",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-1",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-2",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-3",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-4",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-5",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-6",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-7",
+    "trades": 1,
+    "wins": 0,
+    "net": -23.96,
+    "winRate": 0,
+    "avg": -23.96,
+    "grossWin": 0,
+    "grossLoss": -23.96
+   },
+   {
+    "key": "0-8",
+    "trades": 1,
+    "wins": 1,
+    "net": 24.34,
+    "winRate": 1,
+    "avg": 24.34,
+    "grossWin": 24.34,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-9",
+    "trades": 1,
+    "wins": 0,
+    "net": -15.03,
+    "winRate": 0,
+    "avg": -15.03,
+    "grossWin": 0,
+    "grossLoss": -15.03
+   },
+   {
+    "key": "0-10",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-11",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-12",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-13",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-14",
+    "trades": 1,
+    "wins": 1,
+    "net": 19.06,
+    "winRate": 1,
+    "avg": 19.06,
+    "grossWin": 19.06,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-15",
+    "trades": 1,
+    "wins": 1,
+    "net": 16.39,
+    "winRate": 1,
+    "avg": 16.39,
+    "grossWin": 16.39,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-16",
+    "trades": 1,
+    "wins": 0,
+    "net": -7.96,
+    "winRate": 0,
+    "avg": -7.96,
+    "grossWin": 0,
+    "grossLoss": -7.96
+   },
+   {
+    "key": "0-17",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-18",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-19",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-20",
+    "trades": 1,
+    "wins": 0,
+    "net": -27.93,
+    "winRate": 0,
+    "avg": -27.93,
+    "grossWin": 0,
+    "grossLoss": -27.93
+   },
+   {
+    "key": "0-21",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-22",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "0-23",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   }
+  ],
+  [
+   {
+    "key": "1-0",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-1",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-2",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-3",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-4",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-5",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-6",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-7",
+    "trades": 1,
+    "wins": 1,
+    "net": 0.74,
+    "winRate": 1,
+    "avg": 0.74,
+    "grossWin": 0.74,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-8",
+    "trades": 3,
+    "wins": 1,
+    "net": -35.52,
+    "winRate": 0.3333333333333333,
+    "avg": -11.84,
+    "grossWin": 11.95,
+    "grossLoss": -47.47
+   },
+   {
+    "key": "1-9",
+    "trades": 1,
+    "wins": 1,
+    "net": 10.02,
+    "winRate": 1,
+    "avg": 10.02,
+    "grossWin": 10.02,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-10",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-11",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-12",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-13",
+    "trades": 2,
+    "wins": 0,
+    "net": -62.36,
+    "winRate": 0,
+    "avg": -31.18,
+    "grossWin": 0,
+    "grossLoss": -62.36
+   },
+   {
+    "key": "1-14",
+    "trades": 4,
+    "wins": 2,
+    "net": -36.04,
+    "winRate": 0.5,
+    "avg": -9.01,
+    "grossWin": 45.29,
+    "grossLoss": -81.33
+   },
+   {
+    "key": "1-15",
+    "trades": 3,
+    "wins": 1,
+    "net": 9.05,
+    "winRate": 0.3333333333333333,
+    "avg": 3.02,
+    "grossWin": 12.99,
+    "grossLoss": -3.94
+   },
+   {
+    "key": "1-16",
+    "trades": 3,
+    "wins": 2,
+    "net": 8.45,
+    "winRate": 0.6666666666666666,
+    "avg": 2.82,
+    "grossWin": 15.61,
+    "grossLoss": -7.16
+   },
+   {
+    "key": "1-17",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-18",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-19",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-20",
+    "trades": 2,
+    "wins": 0,
+    "net": -13.57,
+    "winRate": 0,
+    "avg": -6.78,
+    "grossWin": 0,
+    "grossLoss": -13.57
+   },
+   {
+    "key": "1-21",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-22",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "1-23",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   }
+  ],
+  [
+   {
+    "key": "2-0",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-1",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-2",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-3",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-4",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-5",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-6",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-7",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-8",
+    "trades": 1,
+    "wins": 0,
+    "net": -20.94,
+    "winRate": 0,
+    "avg": -20.94,
+    "grossWin": 0,
+    "grossLoss": -20.94
+   },
+   {
+    "key": "2-9",
+    "trades": 3,
+    "wins": 2,
+    "net": -13.25,
+    "winRate": 0.6666666666666666,
+    "avg": -4.42,
+    "grossWin": 43.44,
+    "grossLoss": -56.69
+   },
+   {
+    "key": "2-10",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-11",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-12",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-13",
+    "trades": 1,
+    "wins": 0,
+    "net": -37.85,
+    "winRate": 0,
+    "avg": -37.85,
+    "grossWin": 0,
+    "grossLoss": -37.85
+   },
+   {
+    "key": "2-14",
+    "trades": 2,
+    "wins": 1,
+    "net": 15.41,
+    "winRate": 0.5,
+    "avg": 7.71,
+    "grossWin": 18.52,
+    "grossLoss": -3.11
+   },
+   {
+    "key": "2-15",
+    "trades": 3,
+    "wins": 1,
+    "net": -21.25,
+    "winRate": 0.3333333333333333,
+    "avg": -7.08,
+    "grossWin": 26.34,
+    "grossLoss": -47.59
+   },
+   {
+    "key": "2-16",
+    "trades": 1,
+    "wins": 1,
+    "net": 4,
+    "winRate": 1,
+    "avg": 4,
+    "grossWin": 4,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-17",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-18",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-19",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-20",
+    "trades": 4,
+    "wins": 1,
+    "net": -50.23,
+    "winRate": 0.25,
+    "avg": -12.56,
+    "grossWin": 7.86,
+    "grossLoss": -58.09
+   },
+   {
+    "key": "2-21",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-22",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "2-23",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   }
+  ],
+  [
+   {
+    "key": "3-0",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-1",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-2",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-3",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-4",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-5",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-6",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-7",
+    "trades": 1,
+    "wins": 0,
+    "net": -28.87,
+    "winRate": 0,
+    "avg": -28.87,
+    "grossWin": 0,
+    "grossLoss": -28.87
+   },
+   {
+    "key": "3-8",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-9",
+    "trades": 3,
+    "wins": 2,
+    "net": 37.63,
+    "winRate": 0.6666666666666666,
+    "avg": 12.54,
+    "grossWin": 50.41,
+    "grossLoss": -12.78
+   },
+   {
+    "key": "3-10",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-11",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-12",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-13",
+    "trades": 4,
+    "wins": 2,
+    "net": -3.69,
+    "winRate": 0.5,
+    "avg": -0.92,
+    "grossWin": 26.77,
+    "grossLoss": -30.46
+   },
+   {
+    "key": "3-14",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-15",
+    "trades": 1,
+    "wins": 0,
+    "net": -30.89,
+    "winRate": 0,
+    "avg": -30.89,
+    "grossWin": 0,
+    "grossLoss": -30.89
+   },
+   {
+    "key": "3-16",
+    "trades": 1,
+    "wins": 1,
+    "net": 3.92,
+    "winRate": 1,
+    "avg": 3.92,
+    "grossWin": 3.92,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-17",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-18",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-19",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-20",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-21",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-22",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "3-23",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   }
+  ],
+  [
+   {
+    "key": "4-0",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-1",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-2",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-3",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-4",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-5",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-6",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-7",
+    "trades": 2,
+    "wins": 0,
+    "net": -40.52,
+    "winRate": 0,
+    "avg": -20.26,
+    "grossWin": 0,
+    "grossLoss": -40.52
+   },
+   {
+    "key": "4-8",
+    "trades": 1,
+    "wins": 1,
+    "net": 4,
+    "winRate": 1,
+    "avg": 4,
+    "grossWin": 4,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-9",
+    "trades": 2,
+    "wins": 1,
+    "net": -19.87,
+    "winRate": 0.5,
+    "avg": -9.93,
+    "grossWin": 7.17,
+    "grossLoss": -27.04
+   },
+   {
+    "key": "4-10",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-11",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-12",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-13",
+    "trades": 4,
+    "wins": 2,
+    "net": 44.24,
+    "winRate": 0.5,
+    "avg": 11.06,
+    "grossWin": 57.78,
+    "grossLoss": -13.54
+   },
+   {
+    "key": "4-14",
+    "trades": 2,
+    "wins": 2,
+    "net": 13.05,
+    "winRate": 1,
+    "avg": 6.53,
+    "grossWin": 13.05,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-15",
+    "trades": 2,
+    "wins": 1,
+    "net": 35.07,
+    "winRate": 0.5,
+    "avg": 17.54,
+    "grossWin": 40.4,
+    "grossLoss": -5.33
+   },
+   {
+    "key": "4-16",
+    "trades": 1,
+    "wins": 0,
+    "net": -14.06,
+    "winRate": 0,
+    "avg": -14.06,
+    "grossWin": 0,
+    "grossLoss": -14.06
+   },
+   {
+    "key": "4-17",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-18",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-19",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-20",
+    "trades": 2,
+    "wins": 0,
+    "net": -63.48,
+    "winRate": 0,
+    "avg": -31.74,
+    "grossWin": 0,
+    "grossLoss": -63.48
+   },
+   {
+    "key": "4-21",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-22",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "4-23",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   }
+  ],
+  [
+   {
+    "key": "5-0",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-1",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-2",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-3",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-4",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-5",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-6",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-7",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-8",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-9",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-10",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-11",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-12",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-13",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-14",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-15",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-16",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-17",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-18",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-19",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-20",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-21",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-22",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "5-23",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   }
+  ],
+  [
+   {
+    "key": "6-0",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-1",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-2",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-3",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-4",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-5",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-6",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-7",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-8",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-9",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-10",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-11",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-12",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-13",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-14",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-15",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-16",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-17",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-18",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-19",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-20",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-21",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-22",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   },
+   {
+    "key": "6-23",
+    "trades": 0,
+    "wins": 0,
+    "net": 0,
+    "winRate": 0,
+    "avg": 0,
+    "grossWin": 0,
+    "grossLoss": 0
+   }
+  ]
+ ],
+ "byDuration": [
+  {
+   "key": "< 1m",
+   "trades": 9,
+   "wins": 1,
+   "net": -122.04,
+   "winRate": 0.1111111111111111,
+   "avg": -13.56,
+   "grossWin": 10.12,
+   "grossLoss": -132.16
+  },
+  {
+   "key": "1–5m",
+   "trades": 8,
+   "wins": 3,
+   "net": -90.56,
+   "winRate": 0.375,
+   "avg": -11.32,
+   "grossWin": 39.8,
+   "grossLoss": -130.36
+  },
+  {
+   "key": "5–15m",
+   "trades": 18,
+   "wins": 4,
+   "net": -202.85,
+   "winRate": 0.2222222222222222,
+   "avg": -11.27,
+   "grossWin": 63.18,
+   "grossLoss": -266.03
+  },
+  {
+   "key": "15–60m",
+   "trades": 31,
+   "wins": 21,
+   "net": 107.61,
+   "winRate": 0.6774193548387096,
+   "avg": 3.47,
+   "grossWin": 346.95,
+   "grossLoss": -239.34
+  },
+  {
+   "key": "1–4h",
+   "trades": 1,
+   "wins": 0,
+   "net": -14.06,
+   "winRate": 0,
+   "avg": -14.06,
+   "grossWin": 0,
+   "grossLoss": -14.06
+  }
+ ],
+ "byLots": [
+  {
+   "key": "XAUUSD · 0.1",
+   "trades": 26,
+   "wins": 13,
+   "net": -24.97,
+   "winRate": 0.5,
+   "avg": -0.96,
+   "grossWin": 247.4,
+   "grossLoss": -272.37
+  },
+  {
+   "key": "XAUUSD · 0.2",
+   "trades": 17,
+   "wins": 5,
+   "net": -164.92,
+   "winRate": 0.29411764705882354,
+   "avg": -9.7,
+   "grossWin": 83.62,
+   "grossLoss": -248.54
+  },
+  {
+   "key": "XAUUSD · 0.5",
+   "trades": 24,
+   "wins": 11,
+   "net": -132.01,
+   "winRate": 0.4583333333333333,
+   "avg": -5.5,
+   "grossWin": 129.03,
+   "grossLoss": -261.04
+  }
+ ],
+ "byReason": [
+  {
+   "key": "Manual",
+   "trades": 37,
+   "wins": 19,
+   "net": -24.26,
+   "winRate": 0.5135135135135135,
+   "avg": -0.66,
+   "grossWin": 346.19,
+   "grossLoss": -370.45
+  },
+  {
+   "key": "Take profit",
+   "trades": 17,
+   "wins": 6,
+   "net": -159.5,
+   "winRate": 0.35294117647058826,
+   "avg": -9.38,
+   "grossWin": 77.11,
+   "grossLoss": -236.61
+  },
+  {
+   "key": "Stop loss",
+   "trades": 13,
+   "wins": 4,
+   "net": -138.14,
+   "winRate": 0.3076923076923077,
+   "avg": -10.63,
+   "grossWin": 36.75,
+   "grossLoss": -174.89
+  }
+ ],
+ "bySymbol": [
+  {
+   "key": "XAUUSD",
+   "trades": 67,
+   "wins": 29,
+   "net": -321.9,
+   "winRate": 0.43283582089552236,
+   "avg": -4.8,
+   "grossWin": 460.05,
+   "grossLoss": -781.95
+  }
+ ],
+ "bySide": [
+  {
+   "key": "Buy",
+   "trades": 28,
+   "wins": 15,
+   "net": 30.7,
+   "winRate": 0.5357142857142857,
+   "avg": 1.1,
+   "grossWin": 273.03,
+   "grossLoss": -242.33
+  },
+  {
+   "key": "Sell",
+   "trades": 39,
+   "wins": 14,
+   "net": -352.6,
+   "winRate": 0.358974358974359,
+   "avg": -9.04,
+   "grossWin": 187.02,
+   "grossLoss": -539.62
+  }
+ ],
+ "nthTrade": [
+  {
+   "key": "1",
+   "trades": 19,
+   "wins": 9,
+   "net": -96.07,
+   "winRate": 0.47368421052631576,
+   "avg": -5.06,
+   "grossWin": 133.69,
+   "grossLoss": -229.76
+  },
+  {
+   "key": "2",
+   "trades": 17,
+   "wins": 11,
+   "net": 103.97,
+   "winRate": 0.6470588235294118,
+   "avg": 6.12,
+   "grossWin": 221.12,
+   "grossLoss": -117.15
+  },
+  {
+   "key": "3",
+   "trades": 11,
+   "wins": 5,
+   "net": -43.19,
+   "winRate": 0.45454545454545453,
+   "avg": -3.93,
+   "grossWin": 59.68,
+   "grossLoss": -102.87
+  },
+  {
+   "key": "4",
+   "trades": 9,
+   "wins": 2,
+   "net": -106.18,
+   "winRate": 0.2222222222222222,
+   "avg": -11.8,
+   "grossWin": 14.12,
+   "grossLoss": -120.3
+  },
+  {
+   "key": "5",
+   "trades": 6,
+   "wins": 1,
+   "net": -127.5,
+   "winRate": 0.16666666666666666,
+   "avg": -21.25,
+   "grossWin": 7.86,
+   "grossLoss": -135.36
+  },
+  {
+   "key": "6",
+   "trades": 3,
+   "wins": 1,
+   "net": -3.82,
+   "winRate": 0.3333333333333333,
+   "avg": -1.27,
+   "grossWin": 23.58,
+   "grossLoss": -27.4
+  },
+  {
+   "key": "7",
+   "trades": 1,
+   "wins": 0,
+   "net": -46.41,
+   "winRate": 0,
+   "avg": -46.41,
+   "grossWin": 0,
+   "grossLoss": -46.41
+  },
+  {
+   "key": "8",
+   "trades": 1,
+   "wins": 0,
+   "net": -2.7,
+   "winRate": 0,
+   "avg": -2.7,
+   "grossWin": 0,
+   "grossLoss": -2.7
+  }
+ ],
+ "dayBuckets": [
+  {
+   "key": "1–2",
+   "days": 8,
+   "net": 65.56,
+   "avgPerDay": 8.2,
+   "greenDays": 6
+  },
+  {
+   "key": "3–5",
+   "days": 8,
+   "net": -186.21,
+   "avgPerDay": -23.28,
+   "greenDays": 1
+  },
+  {
+   "key": "6–10",
+   "days": 3,
+   "net": -201.25,
+   "avgPerDay": -67.08,
+   "greenDays": 1
+  }
+ ],
+ "capSim": [
+  {
+   "key": "1",
+   "cap": 1,
+   "net": -96.07,
+   "trades": 19
+  },
+  {
+   "key": "2",
+   "cap": 2,
+   "net": 7.9,
+   "trades": 36
+  },
+  {
+   "key": "3",
+   "cap": 3,
+   "net": -35.29,
+   "trades": 47
+  },
+  {
+   "key": "4",
+   "cap": 4,
+   "net": -141.47,
+   "trades": 56
+  },
+  {
+   "key": "5",
+   "cap": 5,
+   "net": -268.97,
+   "trades": 62
+  },
+  {
+   "key": "6",
+   "cap": 6,
+   "net": -272.79,
+   "trades": 65
+  },
+  {
+   "key": "7",
+   "cap": 7,
+   "net": -319.2,
+   "trades": 66
+  },
+  {
+   "key": "8",
+   "cap": 8,
+   "net": -321.9,
+   "trades": 67
+  }
+ ],
+ "lossLimitSim": [
+  {
+   "key": "$10",
+   "limit": 10,
+   "net": -133.67,
+   "trades": 32,
+   "stoppedDays": 12
+  },
+  {
+   "key": "$20",
+   "limit": 20,
+   "net": -159.06,
+   "trades": 36,
+   "stoppedDays": 12
+  },
+  {
+   "key": "$30",
+   "limit": 30,
+   "net": -190.08,
+   "trades": 54,
+   "stoppedDays": 7
+  },
+  {
+   "key": "$40",
+   "limit": 40,
+   "net": -223.98,
+   "trades": 59,
+   "stoppedDays": 6
+  },
+  {
+   "key": "$50",
+   "limit": 50,
+   "net": -258.9,
+   "trades": 60,
+   "stoppedDays": 5
+  },
+  {
+   "key": "$60",
+   "limit": 60,
+   "net": -283.03,
+   "trades": 63,
+   "stoppedDays": 3
+  },
+  {
+   "key": "$70",
+   "limit": 70,
+   "net": -283.03,
+   "trades": 63,
+   "stoppedDays": 2
+  },
+  {
+   "key": "$80",
+   "limit": 80,
+   "net": -296.37,
+   "trades": 64,
+   "stoppedDays": 2
+  },
+  {
+   "key": "$90",
+   "limit": 90,
+   "net": -319.2,
+   "trades": 66,
+   "stoppedDays": 2
+  },
+  {
+   "key": "$100",
+   "limit": 100,
+   "net": -319.2,
+   "trades": 66,
+   "stoppedDays": 1
+  },
+  {
+   "key": "$110",
+   "limit": 110,
+   "net": -321.9,
+   "trades": 67,
+   "stoppedDays": 1
+  },
+  {
+   "key": "$120",
+   "limit": 120,
+   "net": -321.9,
+   "trades": 67,
+   "stoppedDays": 0
+  }
+ ],
+ "afterLoss": {
+  "windowMin": 10,
+  "after": {
+   "key": "after",
+   "trades": 4,
+   "wins": 2,
+   "net": 9.54,
+   "winRate": 0.5,
+   "avg": 2.38,
+   "grossWin": 27.58,
+   "grossLoss": -18.04
+  },
+  "other": {
+   "key": "other",
+   "trades": 63,
+   "wins": 27,
+   "net": -331.44,
+   "winRate": 0.42857142857142855,
+   "avg": -5.26,
+   "grossWin": 432.47,
+   "grossLoss": -763.91
+  }
+ },
+ "optimization": {
+  "focus": [
+   {
+    "kind": "hour",
+    "keys": [
+     "15"
+    ],
+    "fit": {
+     "trades": 5,
+     "net": 11.08,
+     "winRate": 0.4
+    },
+    "test": {
+     "trades": 5,
+     "net": -2.71,
+     "winRate": 0.4
+    }
+   },
+   {
+    "kind": "weekday",
+    "keys": [
+     "Thu"
+    ],
+    "fit": {
+     "trades": 6,
+     "net": 6.12,
+     "winRate": 0.5
+    },
+    "test": {
+     "trades": 4,
+     "net": -28.02,
+     "winRate": 0.5
+    }
+   },
+   {
+    "kind": "duration",
+    "keys": [
+     "15–60m"
+    ],
+    "fit": {
+     "trades": 20,
+     "net": 35.07,
+     "winRate": 0.65
+    },
+    "test": {
+     "trades": 11,
+     "net": 72.54,
+     "winRate": 0.7272727272727273
+    }
+   }
+  ],
+  "rules": {
+   "skipHours": [],
+   "skipWeekdays": [
+    2
+   ],
+   "cap": 2,
+   "lossLimit": null
+  },
+  "tested": 505,
+  "splitDay": "2026-09-23",
+  "trainDays": [
+   "2026-09-02",
+   "2026-09-22"
+  ],
+  "testDays": [
+   "2026-09-23",
+   "2026-09-30"
+  ],
+  "train": {
+   "actual": {
+    "key": "actual",
+    "trades": 46,
+    "wins": 19,
+    "net": -292.92,
+    "winRate": 0.41304347826086957,
+    "avg": -6.37,
+    "grossWin": 273.45,
+    "grossLoss": -566.37
+   },
+   "withRules": {
+    "key": "rules",
+    "trades": 20,
+    "wins": 12,
+    "net": 50.31,
+    "winRate": 0.6,
+    "avg": 2.52,
+    "grossWin": 197.41,
+    "grossLoss": -147.1
+   }
+  },
+  "test": {
+   "actual": {
+    "key": "actual",
+    "trades": 21,
+    "wins": 10,
+    "net": -28.98,
+    "winRate": 0.47619047619047616,
+    "avg": -1.38,
+    "grossWin": 186.6,
+    "grossLoss": -215.58
+   },
+   "withRules": {
+    "key": "rules",
+    "trades": 8,
+    "wins": 5,
+    "net": 18.77,
+    "winRate": 0.625,
+    "avg": 2.35,
+    "grossWin": 87.62,
+    "grossLoss": -68.85
+   }
+  },
+  "all": {
+   "actual": {
+    "key": "actual",
+    "trades": 67,
+    "wins": 29,
+    "net": -321.9,
+    "winRate": 0.43283582089552236,
+    "avg": -4.8,
+    "grossWin": 460.05,
+    "grossLoss": -781.95
+   },
+   "withRules": {
+    "key": "rules",
+    "trades": 28,
+    "wins": 17,
+    "net": 69.08,
+    "winRate": 0.6071428571428571,
+    "avg": 2.47,
+    "grossWin": 285.03,
+    "grossLoss": -215.95
+   }
+  },
+  "curve": [
+   {
+    "key": "2026-09-02",
+    "actual": -50.22,
+    "rules": 0
+   },
+   {
+    "key": "2026-09-03",
+    "actual": -91.87,
+    "rules": -41.65
+   },
+   {
+    "key": "2026-09-04",
+    "actual": -116.49,
+    "rules": -60.94
+   },
+   {
+    "key": "2026-09-08",
+    "actual": -154.83,
+    "rules": -85.71
+   },
+   {
+    "key": "2026-09-09",
+    "actual": -247.27,
+    "rules": -85.71
+   },
+   {
+    "key": "2026-09-10",
+    "actual": -235.62,
+    "rules": -74.06
+   },
+   {
+    "key": "2026-09-11",
+    "actual": -299.58,
+    "rules": -81.71
+   },
+   {
+    "key": "2026-09-14",
+    "actual": -283.19,
+    "rules": -65.32
+   },
+   {
+    "key": "2026-09-15",
+    "actual": -393.31,
+    "rules": -52.63
+   },
+   {
+    "key": "2026-09-17",
+    "actual": -357.19,
+    "rules": -16.51
+   },
+   {
+    "key": "2026-09-18",
+    "actual": -355.88,
+    "rules": 2.96
+   },
+   {
+    "key": "2026-09-21",
+    "actual": -331.54,
+    "rules": 27.3
+   },
+   {
+    "key": "2026-09-22",
+    "actual": -292.92,
+    "rules": 50.31
+   },
+   {
+    "key": "2026-09-23",
+    "actual": -297.6,
+    "rules": 50.31
+   },
+   {
+    "key": "2026-09-24",
+    "actual": -325.62,
+    "rules": 70.52
+   },
+   {
+    "key": "2026-09-25",
+    "actual": -279.92,
+    "rules": 116.22
+   },
+   {
+    "key": "2026-09-28",
+    "actual": -335.74,
+    "rules": 77.23
+   },
+   {
+    "key": "2026-09-29",
+    "actual": -345.13,
+    "rules": 69.08
+   },
+   {
+    "key": "2026-09-30",
+    "actual": -321.9,
+    "rules": 69.08
+   }
+  ]
+ }
+}
