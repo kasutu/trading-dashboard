@@ -15,6 +15,29 @@ The file stays in the browser. Jurno keeps the last file in `localStorage`.
 
 ## Development
 
+You need Docker, Node 22, Rust and [just](https://github.com/casey/just).
+
+```bash
+just setup   # first run: creates .env with a secret, installs npm packages
+just dev     # Postgres, auth, API and web together. Open http://localhost:5173
+```
+
+Ctrl+C stops all of them. Run `just` to see every task:
+
+| Task | What it does |
+| --- | --- |
+| `just db`, `just auth`, `just api`, `just web` | Start one part on its own, each in its own terminal |
+| `just mock` | Web app with fake data, no backend |
+| `just plan alice espresso` | Put a user on a plan (`free`, `espresso` or `latte`) |
+| `just psql` | Open a database shell |
+| `just test` | Rust tests (with their own Postgres), web build and lint |
+| `just check` | Rust format and clippy, in Docker |
+| `just up`, `just down`, `just reset` | All services in containers, stop them, stop and delete the database |
+
+The steps below do the same by hand.
+
+### Without just
+
 You need Docker, Node 22 and Rust. Run each command from the repo root unless the step says otherwise.
 
 1. Copy the settings file and set a secret:
