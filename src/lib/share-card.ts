@@ -146,6 +146,24 @@ function curve(ctx: CanvasRenderingContext2D, values: number[], box: { x: number
   ctx.stroke()
   ctx.setLineDash([])
 
+  // Dashed lines at the highest and lowest points
+  const high = Math.max(...values), low = Math.min(...values)
+  const tags: [string, number, string][] = []
+  if (high !== low) {
+    for (const [v, label] of [[high, "High"], [low, "Low"]] as const) {
+      const y = py(v)
+      ctx.strokeStyle = tone(v) + "b3"
+      ctx.setLineDash([6, 6])
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(box.x, y)
+      ctx.lineTo(right, y)
+      ctx.stroke()
+      ctx.setLineDash([])
+      tags.push([`${label} ${money(v, true)}`, y, tone(v)])
+    }
+  }
+
   const line = new Path2D()
   pts.forEach((v, i) => (i ? line.lineTo(px(i), py(v)) : line.moveTo(px(i), py(v))))
 
@@ -164,6 +182,20 @@ function curve(ctx: CanvasRenderingContext2D, values: number[], box: { x: number
   ctx.lineWidth = 3
   ctx.lineJoin = "round"
   ctx.stroke(line)
+
+  // Tags last, so the curve never covers them
+  for (const [s, y, fill] of tags) priceTag(ctx, s, right, y, fill)
+}
+
+/** A filled tag on a price line, right-aligned to x. */
+function priceTag(ctx: CanvasRenderingContext2D, s: string, x: number, y: number, fill: string) {
+  ctx.font = `600 16px ${MONO}`
+  const w = ctx.measureText(s).width + 20
+  ctx.fillStyle = fill
+  ctx.beginPath()
+  ctx.roundRect(x - w, y - 14, w, 28, 6)
+  ctx.fill()
+  text(ctx, s, x - w / 2, y + 6, `600 16px ${MONO}`, C.bg, "center")
 }
 
 export const canvasToPng = (canvas: HTMLCanvasElement) =>
