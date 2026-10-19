@@ -11,6 +11,8 @@ pub enum Plan {
     Free,
     Espresso,
     Latte,
+    /// The creator's plan: everything, no account limit. Not sold, not on the pricing page.
+    Owner,
 }
 
 /// Analytics fields that only paid plans get: timing statistics, recommendations
@@ -33,6 +35,7 @@ impl Plan {
         match s {
             "espresso" => Self::Espresso,
             "latte" => Self::Latte,
+            "owner" => Self::Owner,
             _ => Self::Free,
         }
     }
@@ -44,6 +47,7 @@ impl Plan {
     pub fn max_accounts(self) -> i64 {
         match self {
             Self::Latte => 5,
+            Self::Owner => i64::MAX,
             _ => 1,
         }
     }

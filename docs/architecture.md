@@ -159,6 +159,8 @@ Billing (a payment provider) is not built yet. Every new user is on `free`. To p
 
 Yearly billing: 10 months' price for 12 months.
 
+There is also an `owner` plan for the creator: everything in Latte, with no account limit. It is not sold and not on the pricing page. Set it with `just owner <username>`, or in production with `update profiles set plan = 'owner' where user_id = '<user id>'`.
+
 The API enforces the limits (`crates/api/src/plan.rs`):
 
 - Analytics on Free: the server removes `byHour`, `byWeekday`, `heatmap`, `byDuration`, `nthTrade`, `dayBuckets`, `capSim`, `lossLimitSim`, `afterLoss` and `optimization`, and adds `locked: true`. The web app shows a locked panel for those views.

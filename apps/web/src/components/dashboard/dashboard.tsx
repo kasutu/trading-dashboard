@@ -47,7 +47,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
   return (
     <div className="space-y-5">
       <FilterBar filters={filters} symbols={symbols} onChange={set}>
-        {a && <ShareDialog a={a} filters={filters} footer={me?.plan !== "latte"} />}
+        {a && <ShareDialog a={a} filters={filters} footer={me?.plan !== "latte" && me?.plan !== "owner"} />}
       </FilterBar>
 
       {error && (

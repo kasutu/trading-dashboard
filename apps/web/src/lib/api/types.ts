@@ -134,7 +134,7 @@ export type Analytics = FullAnalytics | (CoreAnalytics & { locked: true })
 
 export type AnalyticsResponse = Analytics | { empty: true }
 
-export type Me = { id: string; username: string; plan: "free" | "espresso" | "latte" }
+export type Me = { id: string; username: string; plan: "free" | "espresso" | "latte" | "owner" }
 export type Account = { id: string; name: string; broker: string | null; currency: string; createdAt: string; trades: number }
 export type Import = { id: string; fileName: string; added: number; duplicates: number; skipped: number; createdAt: string }
 export type SavedMapping = { id: string; name: string; mapping: ColumnMapping; createdAt: string }

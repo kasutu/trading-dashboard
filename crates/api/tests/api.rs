@@ -522,4 +522,9 @@ async fn free_plan_limits() {
     }
     let (s, _) = t.post("/api/accounts", json!({ "name": "A6" })).await;
     assert_eq!(s, StatusCode::FORBIDDEN);
+
+    // Owner: no account limit.
+    t.set_plan("u_alice", "owner").await;
+    let (s, v) = t.post("/api/accounts", json!({ "name": "A6" })).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
 }

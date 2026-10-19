@@ -28,7 +28,8 @@ Ctrl+C stops all of them. Run `just` to see every task:
 | --- | --- |
 | `just db`, `just auth`, `just api`, `just web` | Start one part on its own, each in its own terminal |
 | `just mock` | Web app with fake data, no backend |
-| `just plan alice espresso` | Put a user on a plan (`free`, `espresso` or `latte`) |
+| `just plan alice espresso` | Put a user on a plan (`free`, `espresso`, `latte` or `owner`) |
+| `just owner alice` | Give a user the owner plan: everything, no account limit |
 | `just psql` | Open a database shell |
 | `just test` | Rust tests (with their own Postgres), web build and lint |
 | `just check` | Rust format and clippy, in Docker |
