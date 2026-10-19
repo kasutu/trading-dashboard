@@ -1,6 +1,6 @@
 import * as React from "react"
 import Papa from "papaparse"
-import { CircleCheck, FileUp, Plus } from "lucide-react"
+import { ArrowLeft, CircleCheck, FileUp, Plus } from "lucide-react"
 import { Link } from "wouter"
 import { NewAccountDialog } from "@/components/account/new-account-dialog"
 import { ColumnMapper, type CsvFile } from "@/components/import/column-mapper"
@@ -60,10 +60,11 @@ export function ImportPage({ account, onSelect }: { account: Account | null; onS
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">Import trades</h1>
-        <p className="mt-1 text-muted-foreground">
-          Into <span className="font-medium text-foreground">{account.name}</span>. Trades you already imported are not added twice.
-        </p>
+        <Link href="/" className="inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
+          <ArrowLeft className="size-4" /> {account.name}
+        </Link>
+        <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight">Import trades into {account.name}</h1>
+        <p className="mt-1 text-muted-foreground">Trades you already imported are not added twice.</p>
       </div>
 
       {result ? (

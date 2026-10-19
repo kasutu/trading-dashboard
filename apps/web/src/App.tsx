@@ -1,6 +1,5 @@
-import { Upload } from "lucide-react"
 import { Link, Redirect, Route, Switch } from "wouter"
-import { AccountSwitcher } from "@/components/account/account-switcher"
+import { AccountMenu } from "@/components/account/account-menu"
 import { AppHeader } from "@/components/layout/app-header"
 import { UserMenu } from "@/components/layout/user-menu"
 import { Button } from "@/components/ui/button"
@@ -51,10 +50,7 @@ function SignedIn({ theme }: { theme: Theme }) {
   return (
     <>
       <AppHeader dark={theme.dark} onToggleTheme={theme.toggle} compact>
-        {accounts.data && <AccountSwitcher accounts={accounts.data} account={account} onSelect={select} />}
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/import" aria-label="Import trades"><Upload /> <span className="hidden sm:inline">Import</span></Link>
-        </Button>
+        {accounts.data && <AccountMenu accounts={accounts.data} account={account} onSelect={select} />}
         <UserMenu />
       </AppHeader>
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">

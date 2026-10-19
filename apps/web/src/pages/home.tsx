@@ -1,5 +1,5 @@
-import { Plus, Upload } from "lucide-react"
-import { Link } from "wouter"
+import { Plus } from "lucide-react"
+import { AccountBar } from "@/components/account/account-bar"
 import { NewAccountDialog } from "@/components/account/new-account-dialog"
 import { Dashboard } from "@/components/dashboard/dashboard"
 import { EmptyState } from "@/components/layout/empty-state"
@@ -16,11 +16,14 @@ export function Home({ account, onSelect }: { account: Account | null; onSelect:
         </NewAccountDialog>
       </EmptyState>
     )
-  if (account.trades === 0)
-    return (
-      <EmptyState title={`No trades in ${account.name} yet`} text="Import the trade history CSV file from your broker to see your dashboard.">
-        <Button asChild><Link href="/import"><Upload /> Import trades</Link></Button>
-      </EmptyState>
-    )
-  return <Dashboard key={account.id} accountId={account.id} />
+  return (
+    <div className="space-y-5">
+      <AccountBar account={account} />
+      {account.trades === 0 ? (
+        <EmptyState title="No trades yet" text="Import the trade history CSV file from your broker to see your dashboard. Use Import trades above." />
+      ) : (
+        <Dashboard key={account.id} accountId={account.id} />
+      )}
+    </div>
+  )
 }

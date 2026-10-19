@@ -7,9 +7,19 @@ import { invalidate } from "@/hooks/use-api"
 import { api } from "@/lib/api/client"
 import type { Account } from "@/lib/api/types"
 
-/** A dialog that creates a trading account. `children` is the button that opens it. */
-export function NewAccountDialog({ onCreated, children }: { onCreated: (a: Account) => void; children: React.ReactNode }) {
-  const [open, setOpen] = React.useState(false)
+type Props = {
+  onCreated: (a: Account) => void
+  /** The button that opens the dialog. Leave out and pass `open` to open it from elsewhere, such as a menu. */
+  children?: React.ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+/** A dialog that creates a trading account. */
+export function NewAccountDialog({ onCreated, children, open: controlled, onOpenChange }: Props) {
+  const [own, setOwn] = React.useState(false)
+  const open = controlled ?? own
+  const setOpen = (o: boolean) => (onOpenChange ?? setOwn)(o)
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -36,7 +46,7 @@ export function NewAccountDialog({ onCreated, children }: { onCreated: (a: Accou
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); setError(null) }}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-md">
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1 pr-6">
