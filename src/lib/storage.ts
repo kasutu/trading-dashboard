@@ -1,0 +1,12 @@
+/** localStorage that never throws (private mode, blocked storage). */
+export const storage = {
+  get(key: string) {
+    try { return localStorage.getItem(key) } catch { return null }
+  },
+  set(key: string, value: string | null) {
+    try {
+      if (value === null) localStorage.removeItem(key)
+      else localStorage.setItem(key, value)
+    } catch { /* storage unavailable */ }
+  },
+}

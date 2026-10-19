@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trade Journal</title>
+    <meta name="description" content="Jurno reads your broker trade history and shows where you make and lose money." />
+    <title>Jurno</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400..600&family=Schibsted+Grotesk:wght@600..800&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // Set the theme before first paint to prevent a flash.
+      try {
+        const t = localStorage.getItem("jurno:theme")
+        if (t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.classList.add("dark")
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
