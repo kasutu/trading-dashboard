@@ -13,11 +13,12 @@ async fn main() {
     let pool = api::db::connect(&config.database_url)
         .await
         .unwrap_or_else(|e| fail(&format!("Cannot open the database: {e}")));
-    let listener = tokio::net::TcpListener::bind(("0.0.0.0", config.port))
+    // `[::]` accepts IPv6 (Railway private networking) and, on Linux, IPv4 too.
+    let listener = tokio::net::TcpListener::bind(("::", config.port))
         .await
         .unwrap_or_else(|e| fail(&format!("Cannot listen on port {}: {e}", config.port)));
 
-    tracing::info!("listening on 0.0.0.0:{}", config.port);
+    tracing::info!("listening on [::]:{}", config.port);
     axum::serve(listener, api::app(pool))
         .await
         .unwrap_or_else(|e| fail(&format!("Server stopped: {e}")));
