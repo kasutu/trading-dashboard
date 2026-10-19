@@ -1,6 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { money, pct, pnlClass } from "@/lib/format"
-import type { Group } from "@/lib/trades"
+import type { Group } from "@/lib/api/types"
 import { cn } from "@/lib/utils"
 
 /** Trades, win rate and net P&L for each group. */

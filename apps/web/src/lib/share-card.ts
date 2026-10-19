@@ -6,8 +6,9 @@ export type ShareData = {
   trades: number
   days: number
   winRate: number
-  profitFactor: number
-  maxDD: number
+  /** null = infinite */
+  profitFactor: number | null
+  maxDd: number
   tradesPerDay: number
   bestDay: number
   /** Cumulative net P&L, one value per closed trade. */
@@ -93,8 +94,8 @@ export function drawShareCard(canvas: HTMLCanvasElement, d: ShareData) {
   ctx.fillRect(PAD, top, CARD_W - PAD * 2, 1)
   const stats: [string, string, string][] = [
     ["Win rate", pct(d.winRate, 1), C.text],
-    ["Profit factor", Number.isFinite(d.profitFactor) ? d.profitFactor.toFixed(2) : "∞", d.profitFactor >= 1 ? C.profit : C.loss],
-    ["Max drawdown", money(d.maxDD), d.maxDD < 0 ? C.loss : C.text],
+    ["Profit factor", d.profitFactor === null ? "∞" : d.profitFactor.toFixed(2), (d.profitFactor ?? Infinity) >= 1 ? C.profit : C.loss],
+    ["Max drawdown", money(d.maxDd), d.maxDd < 0 ? C.loss : C.text],
     ["Best day", money(d.bestDay, true), tone(d.bestDay)],
     ["Trades a day", d.tradesPerDay.toFixed(1), C.text],
   ]

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { hourLabel, hourShort, money, pct, plural, pnlClass } from "@/lib/format"
-import type { Group } from "@/lib/trades"
+import type { Group } from "@/lib/api/types"
 import { cn } from "@/lib/utils"
 
 /** Weekday × hour grid. Hue shows profit or loss, strength shows size. */

@@ -1,7 +1,7 @@
 import { Area, AreaChart, CartesianGrid, ReferenceDot, ReferenceLine, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart"
 import { money, pnlClass } from "@/lib/format"
-import type { EquityPoint } from "@/lib/trades"
+import type { EquityPoint } from "@/lib/api/types"
 import { chartConfig } from "./chart-config"
 import { ChartTip } from "./chart-tip"
 

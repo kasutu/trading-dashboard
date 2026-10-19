@@ -1,22 +1,22 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { duration, money, plural, pnlClass } from "@/lib/format"
-import { formatDateTime, reasonLabel, type LocalTrade } from "@/lib/trades"
+import { useTrades } from "@/hooks/use-api"
+import type { Filters } from "@/lib/api/types"
+import { duration, formatDateTime, money, plural, pnlClass, price, reasonLabel } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { SideBadge } from "./side-badge"
 
 const PAGE_SIZE = 25
 const num = "text-right font-mono tabular-nums"
 
-/** All trades, newest first, 25 per page. */
-export function TradesTable({ ts, tz }: { ts: LocalTrade[]; tz: string }) {
+/** All trades that match the filters, newest first, 25 per page. */
+export function TradesTable({ accountId, filters }: { accountId: string; filters: Filters }) {
   const [page, setPage] = React.useState(0)
-  const sorted = React.useMemo(() => [...ts].sort((a, b) => +b.open - +a.open), [ts])
-  const pages = Math.ceil(sorted.length / PAGE_SIZE)
-  const p = Math.min(page, pages - 1)
-  const rows = sorted.slice(p * PAGE_SIZE, (p + 1) * PAGE_SIZE)
+  const { data, error } = useTrades(accountId, filters, { page, pageSize: PAGE_SIZE })
+  const pages = Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE))
+  const tz = filters.tz
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
@@ -35,16 +35,16 @@ export function TradesTable({ ts, tz }: { ts: LocalTrade[]; tz: string }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((t) => (
+          {data?.rows.map((t) => (
             <TableRow key={t.ticket}>
               <TableCell className="pl-5 text-muted-foreground">{formatDateTime(t.open, tz)}</TableCell>
               <TableCell className="font-medium">{t.symbol}</TableCell>
               <TableCell>
-                <Badge variant="outline" className={cn("capitalize", t.side === "buy" ? "text-profit" : "text-loss")}>{t.side}</Badge>
+                <SideBadge side={t.side} />
               </TableCell>
               <TableCell className={num}>{t.lots}</TableCell>
-              <TableCell className={num}>{+t.openPrice.toFixed(3)}</TableCell>
-              <TableCell className={num}>{+t.closePrice.toFixed(3)}</TableCell>
+              <TableCell className={num}>{price(t.openPrice)}</TableCell>
+              <TableCell className={num}>{price(t.closePrice)}</TableCell>
               <TableCell className={num}>{duration(t.durationMin)}</TableCell>
               <TableCell className="text-muted-foreground">{reasonLabel(t.reason)}</TableCell>
               <TableCell className={cn("pr-5", num, pnlClass(t.net))}>{money(t.net, true)}</TableCell>
@@ -52,14 +52,15 @@ export function TradesTable({ ts, tz }: { ts: LocalTrade[]; tz: string }) {
           ))}
         </TableBody>
       </Table>
+      {error && <p role="alert" className="border-t px-5 py-3 text-sm text-destructive">{error}</p>}
       <div className="flex items-center justify-between border-t px-5 py-3 text-sm text-muted-foreground">
-        <span>{plural(sorted.length, "trade")}</span>
+        <span>{data ? plural(data.total, "trade") : "Loading trades…"}</span>
         <div className="flex items-center gap-2">
-          <span>Page {p + 1} of {pages}</span>
-          <Button variant="outline" size="icon" className="size-8" disabled={p === 0} onClick={() => setPage(p - 1)} aria-label="Previous page">
+          <span>Page {page + 1} of {pages}</span>
+          <Button variant="outline" size="icon" className="size-8" disabled={page === 0} onClick={() => setPage(page - 1)} aria-label="Previous page">
             <ChevronLeft />
           </Button>
-          <Button variant="outline" size="icon" className="size-8" disabled={p >= pages - 1} onClick={() => setPage(p + 1)} aria-label="Next page">
+          <Button variant="outline" size="icon" className="size-8" disabled={page >= pages - 1} onClick={() => setPage(page + 1)} aria-label="Next page">
             <ChevronRight />
           </Button>
         </div>
