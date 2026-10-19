@@ -13,12 +13,49 @@ The file stays in the browser. Jurno keeps the last file in `localStorage`.
 | `crates/api` | Rust HTTP API |
 | `docs/architecture.md` | Service contract: routes, tables, types |
 
-## Run the front end
+## Development
+
+You need Docker, Node 22 and Rust. Run each command from the repo root unless the step says otherwise.
+
+1. Copy the settings file and set a secret:
+   ```bash
+   cp .env.example .env
+   openssl rand -base64 32   # paste the output as BETTER_AUTH_SECRET in .env
+   ```
+2. Start Postgres (port 5433):
+   ```bash
+   docker compose up -d postgres
+   ```
+3. Start the auth service. It restarts when you save a file:
+   ```bash
+   cd apps/auth && npm install && npm run dev        # port 3001
+   ```
+4. In a second terminal, start the API:
+   ```bash
+   cargo run -p api                                   # port 8080
+   ```
+   Run it again after you change Rust code.
+5. In a third terminal, start the web app. It reloads when you save a file:
+   ```bash
+   cd apps/web && npm install && npm run dev          # http://localhost:5173
+   ```
+
+Open http://localhost:5173. Vite sends `/api/auth` to the auth service and the rest of `/api` to the API.
+
+To try a paid plan, put your user on it:
 
 ```bash
-cd apps/web
-npm install
-npm run dev      # http://localhost:5173
+docker compose exec postgres psql -U jurno -d jurno -c "update profiles set plan = 'espresso' where user_id = (select id from \"user\" where username = 'yourname')"
+```
+
+To run everything in containers instead, use `docker compose up -d --build` and step 5.
+
+### Tests
+
+```bash
+docker run -d --rm -p 55432:5432 -e POSTGRES_PASSWORD=pg postgres:17
+cargo test --workspace
+cd apps/web && npm run build && npm run lint
 ```
 
 ## Input

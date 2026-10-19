@@ -3,6 +3,8 @@ use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() {
+    // Local development: read the repo's .env if there is one. Containers set real env vars.
+    dotenvy::dotenv().ok();
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| "info,tower_http=info".into()),
