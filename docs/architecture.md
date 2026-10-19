@@ -118,7 +118,7 @@ All routes are under `/api`, take and return JSON (camelCase), and need a sessio
 | Method and path | Request | Response |
 | --- | --- | --- |
 | `GET /api/health` (public) | | `{ "ok": true }` |
-| `GET /api/me` | | `{ id, username, plan }`. Creates the `profiles` row on first call. |
+| `GET /api/me` | | `{ id, username, plan }`. `username` is the form the user typed (`displayUsername`). Creates the `profiles` row on first call. |
 | `GET /api/accounts` | | `Account[]` |
 | `POST /api/accounts` | `{ name, broker?, currency? }` | `Account` |
 | `PATCH /api/accounts/:id` | `{ name?, broker?, currency? }` | `Account` |

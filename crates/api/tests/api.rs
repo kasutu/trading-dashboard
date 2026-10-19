@@ -38,10 +38,10 @@ async fn setup() -> TestApp {
 
     let pool = api::db::connect(&format!("{base}/{name}")).await.unwrap();
     for sql in [
-        r#"create table "user" ("id" text primary key, "name" text not null, "username" text)"#,
+        r#"create table "user" ("id" text primary key, "name" text not null, "username" text, "displayUsername" text)"#,
         r#"create table "session" ("id" text primary key, "token" text not null unique,
             "userId" text not null, "expiresAt" timestamptz not null)"#,
-        r#"insert into "user" values ('u_alice', 'Alice', 'alice'), ('u_bob', 'Bob', null)"#,
+        r#"insert into "user" values ('u_alice', 'Alice', 'alice', 'Alice.T'), ('u_bob', 'Bob', null, null)"#,
         r#"insert into "session" values
             ('s1', 'tok_alice', 'u_alice', now() + interval '1 day'),
             ('s2', 'tok_bob', 'u_bob', now() + interval '1 day'),
@@ -136,7 +136,7 @@ async fn me_creates_the_profile() {
     assert_eq!(s, StatusCode::OK);
     assert_eq!(
         v,
-        json!({ "id": "u_alice", "username": "alice", "plan": "free" })
+        json!({ "id": "u_alice", "username": "Alice.T", "plan": "free" })
     );
     let n: i64 = sqlx::query_scalar("select count(*) from profiles")
         .fetch_one(&t.pool)
