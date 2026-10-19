@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import type { Analytics, Filters } from "@/lib/api/types"
 import { formatPeriod } from "@/lib/format"
-import { canvasToPng, drawShareCard, loadCardFonts, type ShareData } from "@/lib/share-card"
+import { canvasToPng, drawShareCard, type ShareData } from "@/lib/share-card"
 
 function shareData(a: Analytics, f: Filters, footer: boolean): ShareData {
   const s = a.summary
@@ -34,10 +34,7 @@ export function ShareDialog({ a, filters, footer }: { a: Analytics; filters: Fil
   const data = React.useMemo(() => shareData(a, filters, footer), [a, filters, footer])
 
   React.useEffect(() => {
-    if (!canvas) return
-    let live = true
-    loadCardFonts().then(() => live && drawShareCard(canvas, data))
-    return () => { live = false }
+    if (canvas) drawShareCard(canvas, data)
   }, [canvas, data])
 
   const copy = async () => {

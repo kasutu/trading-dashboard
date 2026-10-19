@@ -33,22 +33,14 @@ const C = {
   profit: "#3cc398",
   loss: "#f06a5d",
 }
-const DISPLAY = '"Schibsted Grotesk", "Geist", sans-serif'
-const BODY = '"Geist", system-ui, sans-serif'
-const MONO = '"Geist Mono", ui-monospace, monospace'
+// SF Pro on Apple devices, the system font elsewhere. Numbers use the same font.
+const DISPLAY = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+const BODY = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+const MONO = BODY
 const PAD = 64
 const TAG_COL = 132 // right column for the high and low value tags
 
 const tone = (n: number) => (n > 0 ? C.profit : n < 0 ? C.loss : C.text)
-
-/** Wait for the web fonts, or the canvas falls back to system fonts. */
-export async function loadCardFonts() {
-  await Promise.all(
-    [`800 100px ${DISPLAY}`, `700 30px ${DISPLAY}`, `400 24px ${BODY}`, `500 30px ${MONO}`].map((f) =>
-      document.fonts.load(f).catch(() => null)
-    )
-  )
-}
 
 export function drawShareCard(canvas: HTMLCanvasElement, d: ShareData) {
   canvas.width = CARD_W * SCALE

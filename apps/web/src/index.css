@@ -52,9 +52,12 @@
 }
 
 @theme inline {
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Schibsted Grotesk", "Geist", ui-sans-serif, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, monospace;
+  /* SF Pro on Apple devices. SF Pro cannot be served from a website (Apple license),
+     so other systems use their own system font. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Numbers use SF Pro too, with tabular figures (see .font-mono below). */
+  --font-mono: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -86,5 +89,7 @@
 @layer base {
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background font-sans text-foreground antialiased; }
+  /* Numbers: same font, fixed-width digits so columns line up. */
+  .font-mono { font-variant-numeric: tabular-nums; }
 }
 
