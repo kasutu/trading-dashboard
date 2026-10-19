@@ -52,14 +52,18 @@ pub fn parse_csv(text: &str, mapping: &ColumnMapping) -> Result<ParseOutput, Par
         .map(|h| h.trim_start_matches('\u{feff}').trim().to_lowercase())
         .collect();
 
+    // A missing required column fails the import. A missing optional column is
+    // treated as unmapped, so a preset still works on a shorter export.
     let mut idx = BTreeMap::new();
     for (f, name) in &mapping.columns {
         let want = name.trim().to_lowercase();
-        let i = headers
-            .iter()
-            .position(|h| *h == want)
-            .ok_or_else(|| ParseError::MissingColumn(name.clone()))?;
-        idx.insert(*f, i);
+        match headers.iter().position(|h| *h == want) {
+            Some(i) => {
+                idx.insert(*f, i);
+            }
+            None if Field::REQUIRED.contains(f) => return Err(ParseError::MissingColumn(name.clone())),
+            None => {}
+        }
     }
 
     let mut trades = Vec::new();
@@ -273,11 +277,15 @@ mod tests {
         let m = mapping(&[(Field::OpenTime, "Open"), (Field::CloseTime, "Close")], "UTC");
         assert_eq!(parse_csv("Open,Close\n", &m), Err(ParseError::MissingMapping(Field::Profit)));
 
+        // Optional column missing: ignored. Required column missing: error.
         let mut m = basic("UTC");
         m.columns.insert(Field::Symbol, "Instrument".into());
+        assert_eq!(parse_csv("Open,Close,Profit\n", &m), Err(ParseError::NoTrades));
+        let mut m = basic("UTC");
+        m.columns.insert(Field::Profit, "PnL".into());
         assert_eq!(
             parse_csv("Open,Close,Profit\n", &m),
-            Err(ParseError::MissingColumn("Instrument".into()))
+            Err(ParseError::MissingColumn("PnL".into()))
         );
 
         assert_eq!(

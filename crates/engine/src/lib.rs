@@ -110,7 +110,8 @@ pub struct ParseOutput {
 pub enum ParseError {
     /// A required field has no column in the mapping.
     MissingMapping(Field),
-    /// A mapped header is not in the file.
+    /// The header mapped to a required field is not in the file.
+    /// (A missing optional column is ignored.)
     MissingColumn(String),
     /// The timezone name is not a valid IANA name.
     BadTimezone(String),
