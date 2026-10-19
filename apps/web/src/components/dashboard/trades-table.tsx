@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useTrades } from "@/hooks/use-api"
 import type { Filters } from "@/lib/api/types"
-import { duration, formatDateTime, money, plural, pnlClass, price, reasonLabel } from "@/lib/format"
+import { duration, formatDateTime, money, plural, pnlClass, price } from "@/lib/format"
+import { ReasonPill } from "./reason-pill"
 import { cn } from "@/lib/utils"
 import { SideBadge } from "./side-badge"
 
@@ -46,7 +47,7 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
               <TableCell className={num}>{price(t.openPrice)}</TableCell>
               <TableCell className={num}>{price(t.closePrice)}</TableCell>
               <TableCell className={num}>{duration(t.durationMin)}</TableCell>
-              <TableCell className="text-muted-foreground">{reasonLabel(t.reason)}</TableCell>
+              <TableCell><ReasonPill reason={t.reason} /></TableCell>
               <TableCell className={cn("pr-5", num, pnlClass(t.net))}>{money(t.net, true)}</TableCell>
             </TableRow>
           ))}

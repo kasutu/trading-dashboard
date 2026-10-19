@@ -62,7 +62,7 @@ function MiniBars({ bars }: { bars: Extract<Viz, { kind: "bars" }>["bars"] }) {
 function CompareBars({ rows }: { rows: Extract<Viz, { kind: "compare" }>["rows"] }) {
   const max = Math.max(1e-9, ...rows.map((r) => Math.abs(r.value)))
   // One format for all rows: compact when any value is large.
-  const fmt = (v: number) => (max >= 1000 ? `${v < 0 ? "−" : ""}$${compactMoney(Math.abs(v))}` : money(v))
+  const fmt = (v: number) => (max >= 1000 ? `${v < 0 ? "−" : v > 0 ? "+" : ""}$${compactMoney(Math.abs(v))}` : money(v, true))
   return (
     <div className="mt-2 space-y-1.5" aria-hidden>
       {rows.map((r) => (

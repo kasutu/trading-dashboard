@@ -101,6 +101,8 @@
   h1.font-display { letter-spacing: -0.03em; }
   /* Numbers: same font, fixed-width digits so columns line up. */
   .font-mono { font-variant-numeric: tabular-nums; }
+  /* A numbers app: fixed-width digits everywhere, so values never shift. */
+  body { font-variant-numeric: tabular-nums; }
 }
 
 
