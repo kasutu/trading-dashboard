@@ -87,7 +87,7 @@ export function ImportPage({ account, onSelect }: { account: Account | null; onS
           }}
           className={cn(
             "flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed bg-card px-6 py-14 text-center transition-colors",
-            over && "border-brand bg-highlight/20"
+            over && "border-foreground/40 bg-muted"
           )}
         >
           <div className="flex size-12 items-center justify-center rounded-xl bg-muted">

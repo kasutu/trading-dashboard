@@ -13,7 +13,7 @@ export function Landing() {
   return (
     <div className="mx-auto max-w-3xl pt-10 pb-16 sm:pt-16">
       <h1 className="font-display text-4xl font-extrabold tracking-tight text-balance sm:text-5xl">
-        See which habits <span className="marker">cost you money</span>.
+        See which habits cost you money.
       </h1>
       <p className="mt-4 max-w-xl text-lg text-muted-foreground">
         Import the trade history from your broker. Jurno shows where you make and lose money, by day, symbol and

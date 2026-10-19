@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Jurno: cool paper canvas, ink text, highlighter amber as the only brand color.
+/* Jurno: cool paper canvas, ink text, amber as the only brand color.
    Green and red are reserved for profit and loss. */
 :root {
   --radius: 0.75rem;
@@ -26,7 +26,6 @@
   --input: oklch(0.9 0.008 250);
   --ring: oklch(0.78 0.15 78);
   --brand: oklch(0.83 0.16 82);
-  --highlight: oklch(0.89 0.16 92 / 0.65);
   --profit: oklch(0.58 0.13 162);
   --loss: oklch(0.6 0.19 27);
   --chart-1: var(--foreground);
@@ -48,7 +47,6 @@
   --input: oklch(1 0 0 / 13%);
   --ring: oklch(0.78 0.13 80);
   --brand: oklch(0.8 0.14 80);
-  --highlight: oklch(0.76 0.14 80 / 0.34);
   --profit: oklch(0.75 0.14 162);
   --loss: oklch(0.71 0.17 25);
 }
@@ -80,7 +78,6 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-brand: var(--brand);
-  --color-highlight: var(--highlight);
   --color-profit: var(--profit);
   --color-loss: var(--loss);
   --color-chart-1: var(--chart-1);
@@ -91,11 +88,3 @@
   body { @apply bg-background font-sans text-foreground antialiased; }
 }
 
-/* Highlighter stroke behind text: the Jurno signature. */
-@utility marker {
-  padding-inline: 0.2em;
-  margin-inline: -0.2em;
-  background: linear-gradient(100deg, transparent 0.15em, var(--highlight) 0.15em calc(100% - 0.1em), transparent calc(100% - 0.1em))
-    no-repeat 0 85% / 100% 0.55em;
-  box-decoration-break: clone;
-}

@@ -5,7 +5,7 @@ import { best } from "@/lib/utils"
 export type Insight = {
   tone: "good" | "bad" | "info"
   title: string
-  /** The key number. The UI highlights it. */
+  /** The key number, shown large. */
   figure: string
   detail: string
   viz?: Viz
