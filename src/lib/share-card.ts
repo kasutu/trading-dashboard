@@ -34,6 +34,7 @@ const DISPLAY = '"Schibsted Grotesk", "Geist", sans-serif'
 const BODY = '"Geist", system-ui, sans-serif'
 const MONO = '"Geist Mono", ui-monospace, monospace'
 const PAD = 64
+const TAG_COL = 132 // right column for the high and low value tags
 
 const tone = (n: number) => (n > 0 ? C.profit : n < 0 ? C.loss : C.text)
 
@@ -127,7 +128,9 @@ function text(
 
 function curve(ctx: CanvasRenderingContext2D, values: number[], box: { x: number; y: number; w: number; h: number }, color: string) {
   const pts = [0, ...values]
-  const right = CARD_W - PAD
+  const high = Math.max(...values), low = Math.min(...values)
+  const marks = high !== low
+  const right = CARD_W - PAD - (marks ? TAG_COL : 0) // leave a column for the value tags
   const w = right - box.x
   const lo = Math.min(0, ...pts)
   const hi = Math.max(0, ...pts)
@@ -145,24 +148,6 @@ function curve(ctx: CanvasRenderingContext2D, values: number[], box: { x: number
   ctx.lineTo(right, zero)
   ctx.stroke()
   ctx.setLineDash([])
-
-  // Dashed lines at the highest and lowest points
-  const high = Math.max(...values), low = Math.min(...values)
-  const tags: [string, number, string][] = []
-  if (high !== low) {
-    for (const [v, label] of [[high, "High"], [low, "Low"]] as const) {
-      const y = py(v)
-      ctx.strokeStyle = tone(v) + "b3"
-      ctx.setLineDash([6, 6])
-      ctx.lineWidth = 1.5
-      ctx.beginPath()
-      ctx.moveTo(box.x, y)
-      ctx.lineTo(right, y)
-      ctx.stroke()
-      ctx.setLineDash([])
-      tags.push([`${label} ${money(v, true)}`, y, tone(v)])
-    }
-  }
 
   const line = new Path2D()
   pts.forEach((v, i) => (i ? line.lineTo(px(i), py(v)) : line.moveTo(px(i), py(v))))
@@ -183,19 +168,46 @@ function curve(ctx: CanvasRenderingContext2D, values: number[], box: { x: number
   ctx.lineJoin = "round"
   ctx.stroke(line)
 
-  // Tags last, so the curve never covers them
-  for (const [s, y, fill] of tags) priceTag(ctx, s, right, y, fill)
+  if (!marks) return
+  // High and low: a dot on the curve, a faint guide to the tag column, and an outlined value tag
+  for (const [v, word, above] of [[high, "High", true], [low, "Low", false]] as const) {
+    const x = px(values.indexOf(v) + 1)
+    const y = py(v)
+    const t = tone(v)
+    ctx.strokeStyle = t + "73"
+    ctx.setLineDash([3, 5])
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+    ctx.lineTo(right + 12, y)
+    ctx.stroke()
+    ctx.setLineDash([])
+
+    ctx.beginPath()
+    ctx.arc(x, y, 6, 0, Math.PI * 2)
+    ctx.fillStyle = t
+    ctx.fill()
+    ctx.lineWidth = 3
+    ctx.strokeStyle = C.bg
+    ctx.stroke()
+    text(ctx, word, x, above ? y - 16 : y + 28, `500 15px ${MONO}`, C.muted, "center")
+
+    valueTag(ctx, money(v, true), right + 16, y, t)
+  }
 }
 
-/** A filled tag on a price line, right-aligned to x. */
-function priceTag(ctx: CanvasRenderingContext2D, s: string, x: number, y: number, fill: string) {
+/** Outlined value tag, left-aligned at x and centred on y. */
+function valueTag(ctx: CanvasRenderingContext2D, s: string, x: number, y: number, color: string) {
   ctx.font = `600 16px ${MONO}`
   const w = ctx.measureText(s).width + 20
-  ctx.fillStyle = fill
   ctx.beginPath()
-  ctx.roundRect(x - w, y - 14, w, 28, 6)
+  ctx.roundRect(x, y - 15, w, 30, 7)
+  ctx.fillStyle = C.bg
   ctx.fill()
-  text(ctx, s, x - w / 2, y + 6, `600 16px ${MONO}`, C.bg, "center")
+  ctx.lineWidth = 1.5
+  ctx.strokeStyle = color + "99"
+  ctx.stroke()
+  text(ctx, s, x + w / 2, y + 6, `600 16px ${MONO}`, color, "center")
 }
 
 export const canvasToPng = (canvas: HTMLCanvasElement) =>
