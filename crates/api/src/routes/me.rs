@@ -25,11 +25,12 @@ pub async fn me(State(pool): State<PgPool>, UserId(id): UserId) -> ApiResult<Jso
     .bind(&id)
     .fetch_one(&pool)
     .await?;
-    let username: Option<String> =
-        sqlx::query_scalar(r#"select coalesce("displayUsername", "username", "name") from "user" where "id" = $1"#)
-            .bind(&id)
-            .fetch_optional(&pool)
-            .await?
-            .flatten();
+    let username: Option<String> = sqlx::query_scalar(
+        r#"select coalesce("displayUsername", "username", "name") from "user" where "id" = $1"#,
+    )
+    .bind(&id)
+    .fetch_optional(&pool)
+    .await?
+    .flatten();
     Ok(Json(Me { id, username, plan }))
 }

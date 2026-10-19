@@ -13,6 +13,7 @@ use super::analytics::parse_tz;
 use crate::auth::UserId;
 use crate::error::{ApiError, ApiResult};
 use crate::extract::Json;
+use crate::plan::Plan;
 
 const NOT_FOUND: ApiError = ApiError::NotFound("This mapping does not exist.");
 
@@ -50,6 +51,11 @@ pub async fn create(
     UserId(user): UserId,
     Json(body): Json<NewMapping>,
 ) -> ApiResult<Json<SavedMapping>> {
+    if !Plan::of(&pool, &user).await?.is_paid() {
+        return Err(ApiError::Forbidden(
+            "Saved column mappings are part of Espresso and Latte.".into(),
+        ));
+    }
     let name = body.name.trim();
     if name.is_empty() {
         return Err(ApiError::bad_request("Give the mapping a name."));

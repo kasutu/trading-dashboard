@@ -42,7 +42,7 @@ export function SummaryCard({ a, tz }: { a: Analytics; tz: string }) {
           sub={`${money(s.grossWin)} won · ${money(Math.abs(s.grossLoss))} lost`}
         />
         <Kpi
-          label="Avg win / avg loss"
+          label="Average win / loss"
           value={
             <>
               <span className="text-profit">{money(s.avgWin)}</span>

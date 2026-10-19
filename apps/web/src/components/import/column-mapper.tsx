@@ -1,10 +1,11 @@
 import * as React from "react"
 import { Check, FileText, Sparkles } from "lucide-react"
+import { Link } from "wouter"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { invalidate, useMappings } from "@/hooks/use-api"
+import { invalidate, useMappings, useMe } from "@/hooks/use-api"
 import { api } from "@/lib/api/client"
 import { REQUIRED_FIELDS, type ColumnMapping, type Field, type Import } from "@/lib/api/types"
 import { LOCAL_TZ } from "@/lib/format"
@@ -26,6 +27,7 @@ export function ColumnMapper({ file, accountId, preset, onImported, onReset }: P
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const saved = useMappings()
+  const { data: me } = useMe()
   const headers = file.headers.filter(Boolean)
   const missing = REQUIRED_FIELDS.filter((f) => !mapping.columns[f])
 
@@ -125,7 +127,13 @@ export function ColumnMapper({ file, accountId, preset, onImported, onReset }: P
 
       <MappingPreview mapping={mapping} rows={file.rows} />
 
-      <SaveMapping mapping={mapping} />
+      {me?.plan === "free" ? (
+        <p className="text-sm text-muted-foreground">
+          To save this mapping for the next file, use Espresso or Latte. <Link href="/pricing" className="underline underline-offset-4">See plans</Link>
+        </p>
+      ) : (
+        <SaveMapping mapping={mapping} />
+      )}
 
       {error && (
         <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>

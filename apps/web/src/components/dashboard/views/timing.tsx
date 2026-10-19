@@ -1,10 +1,10 @@
 import { Heatmap } from "@/components/charts/heatmap"
 import { PnlBars } from "@/components/charts/pnl-bars"
 import { Panel } from "@/components/dashboard/panel"
-import type { Analytics } from "@/lib/api/types"
+import type { FullAnalytics } from "@/lib/api/types"
 import { WEEKDAYS, hourLabel, hourShort } from "@/lib/format"
 
-export function Timing({ a }: { a: Analytics }) {
+export function Timing({ a }: { a: FullAnalytics }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">

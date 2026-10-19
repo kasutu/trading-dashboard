@@ -12,6 +12,7 @@ use super::accounts::owned_account;
 use crate::auth::UserId;
 use crate::error::{ApiError, ApiResult};
 use crate::extract::{Json, Query};
+use crate::plan::Plan;
 use crate::trade_row::load_trades;
 
 /// Query string shared by analytics and trades. Validated by [`FilterQuery::filters`].
@@ -75,9 +76,10 @@ pub async fn analytics(
     let filters = q.filters()?;
     let id = owned_account(&pool, &user, &id).await?;
     let trades = load_trades(&pool, id).await?;
+    let plan = Plan::of(&pool, &user).await?;
     let result = blocking(move || engine::analyze(&trades, &filters)).await?;
     Ok(Json(match result {
-        Some(a) => json!(a),
+        Some(a) => plan.restrict(json!(a)),
         None => json!({ "empty": true }),
     }))
 }

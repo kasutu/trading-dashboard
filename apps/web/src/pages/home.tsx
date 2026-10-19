@@ -10,7 +10,7 @@ import type { Account } from "@/lib/api/types"
 export function Home({ account, onSelect }: { account: Account | null; onSelect: (id: string) => void }) {
   if (!account)
     return (
-      <EmptyState title="Create a trading account" text="An account holds the trades of one broker account. Create one, then import your trade history.">
+      <EmptyState title="Create a trading account" text="A trading account holds the trades of one broker account. Create one, then import your trade history.">
         <NewAccountDialog onCreated={(a) => onSelect(a.id)}>
           <Button><Plus /> New account</Button>
         </NewAccountDialog>

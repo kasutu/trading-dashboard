@@ -15,6 +15,8 @@ export type ShareData = {
   curve: number[]
   period: string
   context: string
+  /** Show "Made with Jurno". Latte hides it. */
+  footer: boolean
 }
 
 export const CARD_W = 1200
@@ -109,7 +111,7 @@ export function drawShareCard(canvas: HTMLCanvasElement, d: ShareData) {
 
   // Footer
   text(ctx, d.context, PAD, CARD_H - 44, `400 18px ${BODY}`, C.muted)
-  text(ctx, "Made with Jurno", CARD_W - PAD, CARD_H - 44, `400 18px ${BODY}`, C.muted, "right")
+  if (d.footer) text(ctx, "Made with Jurno", CARD_W - PAD, CARD_H - 44, `400 18px ${BODY}`, C.muted, "right")
 }
 
 function text(

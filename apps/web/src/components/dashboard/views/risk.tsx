@@ -1,14 +1,13 @@
 import { PnlBars } from "@/components/charts/pnl-bars"
 import { BreakdownTable } from "@/components/dashboard/breakdown-table"
+import { LockedPanel } from "@/components/dashboard/locked-panel"
 import { Panel } from "@/components/dashboard/panel"
-import type { Analytics, Group } from "@/lib/api/types"
+import type { Analytics, FullAnalytics, Group } from "@/lib/api/types"
 import { money, pct, plural, pnlClass, sizeLabel } from "@/lib/format"
 import { best, cn } from "@/lib/utils"
 
 export function Risk({ a }: { a: Analytics }) {
-  const { byLots: lots, byReason: reasons, lossLimitSim: limits, afterLoss: al } = a
-  const top = best(limits)
-  const actual = a.summary.net
+  const { byLots: lots, byReason: reasons } = a
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -19,6 +18,26 @@ export function Risk({ a }: { a: Analytics }) {
         <PnlBars data={reasons} vertical height={180} />
         <BreakdownTable label="Closed by" rows={reasons} className="mt-3" />
       </Panel>
+      {a.locked ? (
+        <LockedPanel
+          title="Loss limits and trades after a loss"
+          items={["The daily loss limit that kept the most money", "How trades opened right after a loss did"]}
+          className="lg:col-span-2"
+        />
+      ) : (
+        <Simulations a={a} />
+      )}
+    </div>
+  )
+}
+
+/** Paid part of the Risk tab. */
+function Simulations({ a }: { a: FullAnalytics }) {
+  const { lossLimitSim: limits, afterLoss: al } = a
+  const top = best(limits)
+  const actual = a.summary.net
+  return (
+    <>
       {top && (
         <Panel
           title="Daily loss limit"
@@ -54,7 +73,7 @@ export function Risk({ a }: { a: Analytics }) {
           <GroupStat label="All other trades" g={al.other} />
         </div>
       </Panel>
-    </div>
+    </>
   )
 }
 

@@ -16,6 +16,6 @@ export function groupRows(d: { net: number; trades?: number; winRate?: number; a
   const rows: TipRow[] = [["Net P&L", money(d.net, true), pnlClass(d.net)]]
   if (d.trades !== undefined) rows.push(["Trades", d.trades])
   if (d.winRate !== undefined) rows.push(["Win rate", pct(d.winRate)])
-  if (d.avg !== undefined) rows.push(["Avg / trade", money(d.avg, true), pnlClass(d.avg)])
+  if (d.avg !== undefined) rows.push(["Average per trade", money(d.avg, true), pnlClass(d.avg)])
   return rows
 }

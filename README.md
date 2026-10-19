@@ -30,10 +30,10 @@ Use an Exness or MetaTrader 5 CSV export with these columns:
 ## Views
 
 - **Overview**: daily P&L, results by symbol and side.
-- **Notes**: one card for each finding, grouped into what hurts, what helps and what is worth a look.
-- **Plan**: rules found by the optimizer, tested on days it did not see.
-- **Timing**: P&L by hour, weekday and holding time.
-- **Frequency**: daily trade cap, results by trade number, busy and quiet days.
+- **Notes** (paid): one card for each finding, grouped into what hurts, what helps and what is worth a look.
+- **Plan** (paid): rules found by the optimizer, tested on days it did not see.
+- **Timing** (paid): P&L by hour, weekday and holding time.
+- **Frequency** (paid): daily trade cap, results by trade number, busy and quiet days.
 - **Risk**: position size, close reason, daily loss limit, trades after a loss.
 - **Trades**: all trades, newest first.
 

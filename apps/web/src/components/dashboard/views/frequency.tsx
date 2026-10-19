@@ -1,10 +1,10 @@
 import { PnlBars } from "@/components/charts/pnl-bars"
 import { Panel } from "@/components/dashboard/panel"
 import { money, ordinal, plural, pnlClass } from "@/lib/format"
-import type { Analytics } from "@/lib/api/types"
+import type { FullAnalytics } from "@/lib/api/types"
 import { best } from "@/lib/utils"
 
-export function Frequency({ a }: { a: Analytics }) {
+export function Frequency({ a }: { a: FullAnalytics }) {
   const caps = a.capSim
   const top = best(caps)!
   const actual = a.summary.net
@@ -42,7 +42,7 @@ export function Frequency({ a }: { a: Analytics }) {
           valueKey="avgPerDay"
           title={(d) => `${d.key} trades a day`}
           rows={(d) => [
-            ["Avg per day", money(d.avgPerDay, true), pnlClass(d.avgPerDay)],
+            ["Average per day", money(d.avgPerDay, true), pnlClass(d.avgPerDay)],
             ["Total", money(d.net, true), pnlClass(d.net)],
             ["Days", d.days],
             ["Green days", `${d.greenDays} of ${d.days}`],

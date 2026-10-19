@@ -100,20 +100,25 @@ export type Optimization = {
   curve: ComparePoint[]
 }
 
-export type Analytics = {
+/** Analytics every plan gets. */
+export type CoreAnalytics = {
   period: [string, string]
   symbols: string[]
   summary: Summary
   curve: EquityPoint[]
   daily: Group[]
-  byHour: Group[]
-  byWeekday: Group[]
-  heatmap: Group[][]
-  byDuration: Group[]
   byLots: Group[]
   byReason: Group[]
   bySymbol: Group[]
   bySide: Group[]
+}
+
+/** Timing statistics, recommendations and simulations. Paid plans only. */
+export type PaidAnalytics = {
+  byHour: Group[]
+  byWeekday: Group[]
+  heatmap: Group[][]
+  byDuration: Group[]
   nthTrade: Group[]
   dayBuckets: DayBucket[]
   capSim: CapRow[]
@@ -121,6 +126,11 @@ export type Analytics = {
   afterLoss: AfterLoss
   optimization: Optimization | null
 }
+
+export type FullAnalytics = CoreAnalytics & PaidAnalytics & { locked?: undefined }
+
+/** On the Free plan the server leaves out the paid fields and sets `locked`. */
+export type Analytics = FullAnalytics | (CoreAnalytics & { locked: true })
 
 export type AnalyticsResponse = Analytics | { empty: true }
 

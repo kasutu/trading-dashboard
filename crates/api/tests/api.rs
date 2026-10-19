@@ -56,6 +56,19 @@ async fn setup() -> TestApp {
 }
 
 impl TestApp {
+    /// Puts a user on a plan (free, espresso, latte).
+    async fn set_plan(&self, user: &str, plan: &str) {
+        sqlx::query(
+            "insert into profiles (user_id, plan) values ($1, $2)
+             on conflict (user_id) do update set plan = excluded.plan",
+        )
+        .bind(user)
+        .bind(plan)
+        .execute(&self.pool)
+        .await
+        .unwrap();
+    }
+
     async fn send(
         &self,
         method: Method,
@@ -250,6 +263,7 @@ async fn accounts_of_other_users_are_not_found() {
 #[tokio::test]
 async fn mappings_crud() {
     let t = setup().await;
+    t.set_plan("u_alice", "espresso").await;
     let (s, m) = t
         .post(
             "/api/mappings",
@@ -466,4 +480,46 @@ async fn analytics_and_trades() {
     assert_eq!(v["rows"].as_array().unwrap().len(), 10);
     assert!(v["rows"][0]["day"].is_string());
     assert!(v["rows"][0]["ticket"].is_string());
+}
+
+#[tokio::test]
+async fn free_plan_limits() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let body = json!({ "fileName": "w.csv", "csv": WINNING, "mapping": engine::exness_mapping() });
+    t.post(&format!("/api/accounts/{id}/imports"), body).await;
+
+    // Free: core analytics only, marked locked.
+    let (s, v) = t.get(&format!("/api/accounts/{id}/analytics")).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["locked"], true);
+    assert!(v["summary"].is_object() && v["daily"].is_array() && v["byLots"].is_array());
+    for key in api::plan::PAID_FIELDS {
+        assert!(v.get(key).is_none(), "free plan got {key}");
+    }
+
+    // Free: one account, no saved mappings.
+    let (s, v) = t.post("/api/accounts", json!({ "name": "Second" })).await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "{v}");
+    let (s, _) = t
+        .post(
+            "/api/mappings",
+            json!({ "name": "MT5", "mapping": mapping() }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::FORBIDDEN);
+
+    // Latte: everything, up to 5 accounts.
+    t.set_plan("u_alice", "latte").await;
+    let (_, v) = t.get(&format!("/api/accounts/{id}/analytics")).await;
+    assert!(v.get("locked").is_none());
+    assert!(v["byHour"].is_array() && v["optimization"].is_object());
+    for n in 2..=5 {
+        let (s, v) = t
+            .post("/api/accounts", json!({ "name": format!("A{n}") }))
+            .await;
+        assert_eq!(s, StatusCode::OK, "{v}");
+    }
+    let (s, _) = t.post("/api/accounts", json!({ "name": "A6" })).await;
+    assert_eq!(s, StatusCode::FORBIDDEN);
 }

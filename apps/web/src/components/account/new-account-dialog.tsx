@@ -41,7 +41,7 @@ export function NewAccountDialog({ onCreated, children }: { onCreated: (a: Accou
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1 pr-6">
             <DialogTitle className="font-display text-lg font-bold">New trading account</DialogTitle>
-            <DialogDescription>One account holds the trades of one broker account.</DialogDescription>
+            <DialogDescription>A trading account holds the trades of one broker account.</DialogDescription>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="account-name">Name</Label>

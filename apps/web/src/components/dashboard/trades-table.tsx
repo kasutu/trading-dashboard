@@ -29,7 +29,7 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
             <TableHead className="text-right">Lots</TableHead>
             <TableHead className="text-right">Open price</TableHead>
             <TableHead className="text-right">Close price</TableHead>
-            <TableHead className="text-right">Held</TableHead>
+            <TableHead className="text-right">Hold time</TableHead>
             <TableHead>Closed by</TableHead>
             <TableHead className="pr-5 text-right">Net P&L</TableHead>
           </TableRow>

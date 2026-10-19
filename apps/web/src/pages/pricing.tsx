@@ -13,8 +13,8 @@ export function Pricing({ plan }: { plan?: Me["plan"] }) {
 
   return (
     <div className="mx-auto max-w-5xl pt-6 pb-16 sm:pt-10">
-      <h1 className="font-display text-4xl font-extrabold tracking-tight">Pricing</h1>
-      <p className="mt-3 max-w-xl text-lg text-muted-foreground">Plans cost about as much as a coffee. Paid plans open soon. Until then, everyone is on Free.</p>
+      <h1 className="font-display text-4xl font-extrabold tracking-tight">Plans and prices</h1>
+      <p className="mt-3 max-w-xl text-lg text-muted-foreground">Start free and track your results. Upgrade when you want Jurno to show what to change. Paid plans are not open yet, so every account is on Free for now.</p>
 
       <ToggleGroup
         type="single"
@@ -36,6 +36,7 @@ export function Pricing({ plan }: { plan?: Me["plan"] }) {
           return (
             <section key={p.id} className={cn("flex flex-col rounded-xl border bg-card p-6 shadow-xs", current && "border-brand/60")}>
               <h2 className="font-display text-xl font-bold">{p.name}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{p.summary}</p>
               <p className="mt-3">
                 <span className="font-display text-4xl font-extrabold">${amount}</span>
                 <span className="text-muted-foreground"> / {yearly ? "year" : "month"}</span>
@@ -62,6 +63,7 @@ export function Pricing({ plan }: { plan?: Me["plan"] }) {
           )
         })}
       </div>
+      <p className="mt-6 text-sm text-muted-foreground">Prices are in US dollars. A yearly plan costs 10 months' price for 12 months.</p>
     </div>
   )
 }

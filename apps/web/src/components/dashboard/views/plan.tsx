@@ -11,7 +11,7 @@ export function Plan({ opt }: { opt: Optimization | null }) {
   if (!opt)
     return (
       <Panel title="Trading plan">
-        <p className="text-sm text-muted-foreground">The optimizer needs 10 or more trading days and 30 or more trades.</p>
+        <p className="text-sm text-muted-foreground">The plan needs 10 or more trading days and 30 or more trades.</p>
       </Panel>
     )
 

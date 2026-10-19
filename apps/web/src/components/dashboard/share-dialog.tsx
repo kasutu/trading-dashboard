@@ -6,7 +6,7 @@ import type { Analytics, Filters } from "@/lib/api/types"
 import { formatPeriod } from "@/lib/format"
 import { canvasToPng, drawShareCard, loadCardFonts, type ShareData } from "@/lib/share-card"
 
-function shareData(a: Analytics, f: Filters): ShareData {
+function shareData(a: Analytics, f: Filters, footer: boolean): ShareData {
   const s = a.summary
   return {
     net: s.net,
@@ -23,14 +23,15 @@ function shareData(a: Analytics, f: Filters): ShareData {
       f.symbol === "all" ? "All symbols" : f.symbol,
       f.side === "all" ? "Buy and sell" : f.side === "buy" ? "Buy only" : "Sell only",
     ].join(" · "),
+    footer,
   }
 }
 
 /** Share button and a dialog with a PNG stats card to copy or download. */
-export function ShareDialog({ a, filters }: { a: Analytics; filters: Filters }) {
+export function ShareDialog({ a, filters, footer }: { a: Analytics; filters: Filters; footer: boolean }) {
   const [canvas, setCanvas] = React.useState<HTMLCanvasElement | null>(null)
   const [status, setStatus] = React.useState<"idle" | "copied" | "error">("idle")
-  const data = React.useMemo(() => shareData(a, filters), [a, filters])
+  const data = React.useMemo(() => shareData(a, filters, footer), [a, filters, footer])
 
   React.useEffect(() => {
     if (!canvas) return

@@ -1,11 +1,11 @@
-import { CalendarClock, FileSpreadsheet, Target } from "lucide-react"
+import { CalendarDays, FileSpreadsheet, Target } from "lucide-react"
 import { Link } from "wouter"
 import { Button } from "@/components/ui/button"
 
 const FEATURES = [
-  { icon: CalendarClock, title: "Timing", text: "Net P&L by hour, weekday and holding time." },
-  { icon: Target, title: "Habits", text: "Daily trade caps, loss limits and trades after a loss." },
-  { icon: FileSpreadsheet, title: "Any broker", text: "Exness exports work as they are. Match the columns of any other CSV file once." },
+  { icon: CalendarDays, title: "Trading calendar", text: "Net P&L for each day. Select a day to see every trade." },
+  { icon: Target, title: "Timing and habits", text: "Results by hour, weekday and holding time. Trade caps and loss limits tested on your trades. Included in Espresso and Latte." },
+  { icon: FileSpreadsheet, title: "Any broker", text: "Exness exports import as they are. For another broker, match the columns to the fields Jurno needs." },
 ]
 
 /** First screen for signed-out visitors: what Jurno does and how to start. */
@@ -16,13 +16,14 @@ export function Landing() {
         See which habits <span className="marker">cost you money</span>.
       </h1>
       <p className="mt-4 max-w-xl text-lg text-muted-foreground">
-        Add your broker trade history. Jurno charts your results and shows what to change.
+        Import the trade history from your broker. Jurno shows where you make and lose money, by day, symbol and
+        position size. Paid plans also test rules such as a daily loss limit on your own trades.
       </p>
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <Button size="lg" asChild><Link href="/sign-up">Create a free account</Link></Button>
         <Button size="lg" variant="outline" asChild><Link href="/sign-in">Sign in</Link></Button>
         <Link href="/pricing" className="rounded-sm px-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
-          See pricing
+          See plans and prices
         </Link>
       </div>
 

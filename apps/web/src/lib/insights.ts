@@ -1,4 +1,4 @@
-import type { Analytics, Group } from "@/lib/api/types"
+import type { FullAnalytics, Group } from "@/lib/api/types"
 import { REASONS, formatDay, hourLabel, hourShort, money, ordinal, pct, sizeLabel, splitSizeKey } from "@/lib/format"
 import { best } from "@/lib/utils"
 
@@ -34,7 +34,7 @@ const pick = (gs: Group[], dir: 1 | -1) =>
 const sum = (gs: Group[]) => gs.reduce((s, g) => s + g.net, 0)
 
 /** Plain-language findings from the analytics payload. Returns [] for fewer than 10 trades. */
-export function buildInsights(a: Analytics): Insight[] {
+export function buildInsights(a: FullAnalytics): Insight[] {
   const out: Insight[] = []
   if (a.summary.trades < 10) return out
   const actual = a.summary.net

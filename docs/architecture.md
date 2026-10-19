@@ -12,7 +12,7 @@ This document is the contract between the services. Change it together with the 
 | Hosting | Railway. One service each for web, api and auth, plus Railway Postgres. |
 | Brokers | Exness preset, plus a column mapper for any CSV. |
 | Data | Trades are stored on the server. There is no local-only mode. |
-| Plans | Coffee-priced. See [Plans](#plans). Billing is not built yet. |
+| Plans | Free, Espresso ($9) and Latte ($15). See [Plans](#plans). Billing is not built yet. |
 
 ## Services
 
@@ -129,7 +129,7 @@ All routes are under `/api`, take and return JSON (camelCase), and need a sessio
 | `GET /api/mappings` | | `SavedMapping[]` |
 | `POST /api/mappings` | `{ name, mapping }` | `SavedMapping` |
 | `DELETE /api/mappings/:id` | | `204` |
-| `GET /api/accounts/:id/analytics` | query: `range=7\|30\|90\|all`, `symbol`, `side=buy\|sell`, `tz` | `Analytics` (see `crates/engine/src/lib.rs`), or `{ "empty": true }` when no trades match |
+| `GET /api/accounts/:id/analytics` | query: `range=7\|30\|90\|all`, `symbol`, `side=buy\|sell`, `tz` | `Analytics` (see `crates/engine/src/lib.rs`), or `{ "empty": true }` when no trades match. On Free, the paid fields are left out and `locked: true` is added (see [Plans](#plans)). |
 | `GET /api/accounts/:id/trades` | query: the analytics filters, plus `from`, `to` (yyyy-mm-dd, inclusive, in `tz`), `page` (0-based), `pageSize` (default 25, max 500) | `{ rows: LocalTrade[], total }`, newest first |
 
 Types:
@@ -149,12 +149,20 @@ Every route that takes `:id` checks that the account belongs to the session user
 
 ## Plans
 
-Prices sit at the price of a coffee. Billing (payment provider) is not built yet, so every user is on `free` and no limit is enforced. The pricing page shows the plans with the paid buttons marked "Coming soon".
+Billing (a payment provider) is not built yet. Every new user is on `free`. To put a user on a paid plan for testing, set `profiles.plan` to `espresso` or `latte` in the database.
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Free | $0 | 1 trading account, all dashboards, notes, share card with "Made with Jurno" |
-| Espresso | $3 / month | Everything in Free, plus the Plan tab (optimizer) and saved column mappings |
-| Latte | $5 / month | Everything in Espresso, plus up to 5 trading accounts and the share card without the footer |
+| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, results by symbol, side, position size and close reason, trade list. Share card with "Made with Jurno". |
+| Espresso | $9 / month | Everything in Free. Notes, Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
+| Latte | $15 / month | Everything in Espresso. Up to 5 trading accounts. Share card without the footer. |
 
-Yearly billing: 10 months' price for 12 months. The plan list lives in one file in the web app (`src/lib/plans.ts`) and in this table.
+Yearly billing: 10 months' price for 12 months.
+
+The API enforces the limits (`crates/api/src/plan.rs`):
+
+- Analytics on Free: the server removes `byHour`, `byWeekday`, `heatmap`, `byDuration`, `nthTrade`, `dayBuckets`, `capSim`, `lossLimitSim`, `afterLoss` and `optimization`, and adds `locked: true`. The web app shows a locked panel for those views.
+- `POST /api/accounts` returns 403 when the user has reached the plan's account limit.
+- `POST /api/mappings` returns 403 on Free.
+
+The plan list for the web app is in `apps/web/src/lib/plans.ts`. Keep it, `plan.rs` and this table in step.

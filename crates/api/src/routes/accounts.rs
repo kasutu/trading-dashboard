@@ -10,6 +10,7 @@ use uuid::Uuid;
 use crate::auth::UserId;
 use crate::error::{ApiError, ApiResult};
 use crate::extract::Json;
+use crate::plan::Plan;
 
 const NOT_FOUND: ApiError = ApiError::NotFound("This account does not exist.");
 
@@ -74,6 +75,18 @@ pub async fn create(
 ) -> ApiResult<Json<Account>> {
     let name = clean_name(&body.name)?;
     let currency = body.currency.as_deref().map(clean_currency).transpose()?;
+    let plan = Plan::of(&pool, &user).await?;
+    let count: i64 = sqlx::query_scalar("select count(*) from trading_accounts where user_id = $1")
+        .bind(&user)
+        .fetch_one(&pool)
+        .await?;
+    if count >= plan.max_accounts() {
+        return Err(ApiError::Forbidden(if plan == Plan::Latte {
+            "Latte includes up to 5 trading accounts. Delete an account to add a new one.".into()
+        } else {
+            "Your plan includes 1 trading account. Latte includes up to 5.".into()
+        }));
+    }
     let id: Uuid = sqlx::query_scalar(
         "insert into trading_accounts (user_id, name, broker, currency)
          values ($1, $2, $3, coalesce($4, 'USD')) returning id",
