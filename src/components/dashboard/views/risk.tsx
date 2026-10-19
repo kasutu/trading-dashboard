@@ -1,0 +1,75 @@
+import * as React from "react"
+import { PnlBars } from "@/components/charts/pnl-bars"
+import { BreakdownTable } from "@/components/dashboard/breakdown-table"
+import { Panel } from "@/components/dashboard/panel"
+import { money, pct, plural, pnlClass } from "@/lib/format"
+import { afterLoss, best, byLots, sizeLabel, byReason, lossLimitSim, sumNet, type Group, type LocalTrade } from "@/lib/trades"
+import { cn } from "@/lib/utils"
+
+export function Risk({ ts }: { ts: LocalTrade[] }) {
+  const lots = React.useMemo(() => byLots(ts), [ts])
+  const reasons = React.useMemo(() => byReason(ts), [ts])
+  const limits = React.useMemo(() => lossLimitSim(ts), [ts])
+  const al = React.useMemo(() => afterLoss(ts), [ts])
+  const top = best(limits)
+  const actual = sumNet(ts)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Panel title="P&L by position size" description="Lots per trade, for each symbol">
+        <PnlBars data={lots} vertical height={Math.max(180, lots.length * 30 + 40)} title={(d) => sizeLabel(d.key)} />
+      </Panel>
+      <Panel title="How trades closed" description="Stop loss, take profit, manual or margin stop-out">
+        <PnlBars data={reasons} vertical height={180} />
+        <BreakdownTable label="Closed by" rows={reasons} className="mt-3" />
+      </Panel>
+      {top && (
+        <Panel
+          title="Daily loss limit"
+          description={
+            <>
+              Net P&L if you stop for the day after a loss of $X. Best limit: −${top.limit},{" "}
+              <span className={pnlClass(top.net)}>{money(top.net, true)}</span>. Actual: {money(actual, true)}.
+            </>
+          }
+          className="lg:col-span-2"
+        >
+          <PnlBars
+            data={limits}
+            highlight={(d) => d.limit === top.limit}
+            title={(d) => `Stop at −$${d.limit} a day`}
+            rows={(d) => [
+              ["Net P&L", money(d.net, true), pnlClass(d.net)],
+              ["Change", money(d.net - actual, true), pnlClass(d.net - actual)],
+              ["Days stopped early", d.stoppedDays],
+              ["Trades kept", d.trades],
+            ]}
+            height={240}
+          />
+        </Panel>
+      )}
+      <Panel
+        title="Trades after a loss"
+        description={`Trades opened within ${al.windowMin} minutes after a losing trade closed`}
+        className="lg:col-span-2"
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <GroupStat label="Right after a loss" g={al.after} />
+          <GroupStat label="All other trades" g={al.other} />
+        </div>
+      </Panel>
+    </div>
+  )
+}
+
+function GroupStat({ label, g }: { label: string; g: Group }) {
+  return (
+    <div className="rounded-lg border bg-background/50 p-4">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className={cn("mt-1 font-mono text-2xl font-medium tabular-nums", pnlClass(g.net))}>{money(g.net, true)}</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {plural(g.trades, "trade")} · {pct(g.winRate)} win rate · {money(g.avg, true)} per trade
+      </p>
+    </div>
+  )
+}
