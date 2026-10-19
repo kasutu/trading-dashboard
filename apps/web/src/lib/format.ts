@@ -27,3 +27,51 @@ export const ordinal = (n: number) => {
   return `${n}${s}`
 }
 export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
+
+export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+export const LOCAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+/** "2026-10-19" → "Oct 19", or "Mon, Oct 19" with the weekday. */
+export function formatDay(day: string, weekday = false) {
+  return new Date(day + "T00:00").toLocaleDateString("en-US", {
+    weekday: weekday ? "short" : undefined,
+    month: "short",
+    day: "numeric",
+  })
+}
+
+/** ["2026-08-03", "2026-10-01"] → "Aug 3 – Oct 1" */
+export function formatPeriod([a, b]: [string, string]) {
+  return a === b ? formatDay(a) : `${formatDay(a)} – ${formatDay(b)}`
+}
+
+/** "2026-10-19" → "Monday, October 19, 2026" */
+export const formatLongDay = (day: string) =>
+  new Date(day + "T00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+
+/** ISO time → "Oct 19, 09:05 AM" in the timezone. */
+export const formatDateTime = (iso: string, tz: string) =>
+  new Date(iso).toLocaleString("en-US", { timeZone: tz, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })
+
+/** ISO time → "9:05 AM" in the timezone. */
+export const formatTime = (iso: string, tz: string) =>
+  new Date(iso).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true })
+
+/** Today as yyyy-mm-dd in the timezone. */
+export const today = (tz: string) => new Date().toLocaleDateString("en-CA", { timeZone: tz })
+
+export const REASONS: Record<string, string> = { sl: "Stop loss", tp: "Take profit", user: "Manual", so: "Stop-out" }
+export const reasonLabel = (r: string) => REASONS[r] ?? (r || "Unknown")
+
+/** Position sizes are keyed per symbol: "XAUUSD · 0.2". */
+export const splitSizeKey = (key: string) => {
+  const [symbol, lots] = key.split(" · ")
+  return { symbol, lots }
+}
+export const sizeLabel = (key: string) => {
+  const { symbol, lots } = splitSizeKey(key)
+  return `${lots} lots on ${symbol}`
+}
+
+/** Price without trailing zeros, or "—" when empty. */
+export const price = (n: number | null) => (n === null ? "—" : String(+n.toFixed(5)))

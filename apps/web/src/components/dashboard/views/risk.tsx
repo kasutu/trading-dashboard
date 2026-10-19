@@ -1,18 +1,14 @@
-import * as React from "react"
 import { PnlBars } from "@/components/charts/pnl-bars"
 import { BreakdownTable } from "@/components/dashboard/breakdown-table"
 import { Panel } from "@/components/dashboard/panel"
-import { money, pct, plural, pnlClass } from "@/lib/format"
-import { afterLoss, best, byLots, sizeLabel, byReason, lossLimitSim, sumNet, type Group, type LocalTrade } from "@/lib/trades"
-import { cn } from "@/lib/utils"
+import type { Analytics, Group } from "@/lib/api/types"
+import { money, pct, plural, pnlClass, sizeLabel } from "@/lib/format"
+import { best, cn } from "@/lib/utils"
 
-export function Risk({ ts }: { ts: LocalTrade[] }) {
-  const lots = React.useMemo(() => byLots(ts), [ts])
-  const reasons = React.useMemo(() => byReason(ts), [ts])
-  const limits = React.useMemo(() => lossLimitSim(ts), [ts])
-  const al = React.useMemo(() => afterLoss(ts), [ts])
+export function Risk({ a }: { a: Analytics }) {
+  const { byLots: lots, byReason: reasons, lossLimitSim: limits, afterLoss: al } = a
   const top = best(limits)
-  const actual = sumNet(ts)
+  const actual = a.summary.net
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">

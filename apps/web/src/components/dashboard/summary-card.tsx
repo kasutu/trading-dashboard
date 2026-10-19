@@ -1,17 +1,15 @@
-import * as React from "react"
+import type * as React from "react"
 import { EquityChart } from "@/components/charts/equity-chart"
-import { duration, money, pct, plural, pnlClass } from "@/lib/format"
-import { daily, equityCurve, formatDay, type LocalTrade, type Summary } from "@/lib/trades"
+import type { Analytics } from "@/lib/api/types"
+import { duration, formatDay, formatPeriod, money, pct, plural, pnlClass } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 /** Net P&L, the equity curve and the key ratios in one card. */
-export function SummaryCard({ ts, s, tz }: { ts: LocalTrade[]; s: Summary; tz: string }) {
-  const curve = React.useMemo(() => equityCurve(ts), [ts])
-  const days = React.useMemo(() => [...daily(ts)].sort((a, b) => b.net - a.net), [ts])
+export function SummaryCard({ a, tz }: { a: Analytics; tz: string }) {
+  const s = a.summary
+  const days = [...a.daily].sort((x, y) => y.net - x.net)
   const bestDay = days[0]
   const worstDay = days.at(-1)!
-  const from = formatDay(ts[0].day)
-  const to = formatDay(ts.at(-1)!.day)
 
   return (
     <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
@@ -24,23 +22,23 @@ export function SummaryCard({ ts, s, tz }: { ts: LocalTrade[]; s: Summary; tz: s
           <p className="mt-3 text-sm text-muted-foreground">
             {plural(s.trades, "trade")} on {plural(s.days, "day")}
           </p>
-          <p className="text-sm text-muted-foreground">{from === to ? from : `${from} – ${to}`}</p>
+          <p className="text-sm text-muted-foreground">{formatPeriod(a.period)}</p>
           <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-3 text-sm lg:mt-auto">
             <Stat label={`Best day · ${formatDay(bestDay.key)}`} value={money(bestDay.net, true)} />
             <Stat label={`Worst day · ${formatDay(worstDay.key)}`} value={money(worstDay.net, true)} />
-            <Stat label="Best trade" value={money(Math.max(...ts.map((t) => t.net)), true)} />
-            <Stat label="Worst trade" value={money(Math.min(...ts.map((t) => t.net)), true)} />
+            <Stat label="Best trade" value={money(s.bestTrade, true)} />
+            <Stat label="Worst trade" value={money(s.worstTrade, true)} />
           </dl>
         </div>
-        <EquityChart data={curve} tz={tz} />
+        <EquityChart data={a.curve} tz={tz} />
       </div>
 
       <dl className="grid grid-cols-2 border-t sm:grid-cols-3 lg:grid-cols-5 [&>div]:border-b [&>div]:border-r [&>div]:-mb-px [&>div]:-mr-px">
         <Kpi label="Win rate" value={pct(s.winRate, 1)} sub={`${s.wins} won · ${s.losses} lost`} />
         <Kpi
           label="Profit factor"
-          value={Number.isFinite(s.profitFactor) ? s.profitFactor.toFixed(2) : "∞"}
-          tone={s.profitFactor >= 1 ? "text-profit" : "text-loss"}
+          value={s.profitFactor === null ? "∞" : s.profitFactor.toFixed(2)}
+          tone={(s.profitFactor ?? Infinity) >= 1 ? "text-profit" : "text-loss"}
           sub={`${money(s.grossWin)} won · ${money(Math.abs(s.grossLoss))} lost`}
         />
         <Kpi
@@ -56,8 +54,8 @@ export function SummaryCard({ ts, s, tz }: { ts: LocalTrade[]; s: Summary; tz: s
         />
         <Kpi
           label="Max drawdown"
-          value={money(s.maxDD)}
-          tone={s.maxDD < 0 ? "text-loss" : undefined}
+          value={money(s.maxDd)}
+          tone={s.maxDd < 0 ? "text-loss" : undefined}
           sub={`Longest losing run: ${plural(s.maxLossStreak, "trade")}`}
         />
         <Kpi label="Trades a day" value={s.tradesPerDay.toFixed(1)} sub={`Median hold: ${duration(s.medianDurationMin)}`} />

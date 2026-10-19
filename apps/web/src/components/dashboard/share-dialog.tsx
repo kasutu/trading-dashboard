@@ -2,24 +2,23 @@ import * as React from "react"
 import { Check, Copy, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import type { Filters } from "@/hooks/use-filters"
+import type { Analytics, Filters } from "@/lib/api/types"
+import { formatPeriod } from "@/lib/format"
 import { canvasToPng, drawShareCard, loadCardFonts, type ShareData } from "@/lib/share-card"
-import { daily, equityCurve, formatDay, type LocalTrade, type Summary } from "@/lib/trades"
 
-function shareData(ts: LocalTrade[], s: Summary, f: Filters): ShareData {
-  const from = formatDay(ts[0].day)
-  const to = formatDay(ts.at(-1)!.day)
+function shareData(a: Analytics, f: Filters): ShareData {
+  const s = a.summary
   return {
     net: s.net,
     trades: s.trades,
     days: s.days,
     winRate: s.winRate,
     profitFactor: s.profitFactor,
-    maxDD: s.maxDD,
+    maxDd: s.maxDd,
     tradesPerDay: s.tradesPerDay,
-    bestDay: Math.max(...daily(ts).map((d) => d.net)),
-    curve: equityCurve(ts).map((p) => p.equity),
-    period: from === to ? from : `${from} – ${to}`,
+    bestDay: Math.max(...a.daily.map((d) => d.net)),
+    curve: a.curve.map((p) => p.equity),
+    period: formatPeriod(a.period),
     context: [
       f.symbol === "all" ? "All symbols" : f.symbol,
       f.side === "all" ? "Buy and sell" : f.side === "buy" ? "Buy only" : "Sell only",
@@ -28,10 +27,10 @@ function shareData(ts: LocalTrade[], s: Summary, f: Filters): ShareData {
 }
 
 /** Share button and a dialog with a PNG stats card to copy or download. */
-export function ShareDialog({ ts, s, filters }: { ts: LocalTrade[]; s: Summary; filters: Filters }) {
+export function ShareDialog({ a, filters }: { a: Analytics; filters: Filters }) {
   const [canvas, setCanvas] = React.useState<HTMLCanvasElement | null>(null)
   const [status, setStatus] = React.useState<"idle" | "copied" | "error">("idle")
-  const data = React.useMemo(() => shareData(ts, s, filters), [ts, s, filters])
+  const data = React.useMemo(() => shareData(a, filters), [a, filters])
 
   React.useEffect(() => {
     if (!canvas) return
@@ -53,8 +52,8 @@ export function ShareDialog({ ts, s, filters }: { ts: LocalTrade[]; s: Summary; 
 
   const download = async () => {
     const url = URL.createObjectURL(await canvasToPng(canvas!))
-    const a = Object.assign(document.createElement("a"), { href: url, download: `jurno-stats-${ts.at(-1)!.day}.png` })
-    a.click()
+    const link = Object.assign(document.createElement("a"), { href: url, download: `jurno-stats-${a.period[1]}.png` })
+    link.click()
     URL.revokeObjectURL(url)
   }
 

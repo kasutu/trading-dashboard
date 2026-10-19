@@ -1,7 +1,6 @@
 import { CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart"
-import { compactMoney, money, pnlClass } from "@/lib/format"
-import { formatDay } from "@/lib/trades"
+import { compactMoney, formatDay, money, pnlClass } from "@/lib/format"
 import { axisTick, chartConfig } from "./chart-config"
 import { ChartTip } from "./chart-tip"
 

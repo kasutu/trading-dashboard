@@ -1,5 +1,6 @@
-import { hourLabel, hourShort, money, ordinal, pct } from "@/lib/format"
-import * as T from "@/lib/trades"
+import type { Analytics, Group } from "@/lib/api/types"
+import { REASONS, formatDay, hourLabel, hourShort, money, ordinal, pct, sizeLabel, splitSizeKey } from "@/lib/format"
+import { best } from "@/lib/utils"
 
 export type Insight = {
   tone: "good" | "bad" | "info"
@@ -16,7 +17,7 @@ export type Viz =
   | { kind: "bars"; bars: { label: string; value: number; on: boolean }[] }
   | { kind: "compare"; rows: { label: string; value: number; on: boolean }[] }
 
-const bars = (gs: T.Group[], on: (g: T.Group) => boolean, label: (k: string) => string = (k) => k): Viz => ({
+const bars = (gs: Group[], on: (g: Group) => boolean, label: (k: string) => string = (k) => k): Viz => ({
   kind: "bars",
   bars: gs.map((g) => ({ label: label(g.key), value: g.net, on: on(g) })),
 })
@@ -27,16 +28,18 @@ const compare = (rows: [string, number, boolean][]): Viz => ({
 
 const MIN = 5 // ignore groups with fewer trades than this
 
-const pick = (gs: T.Group[], dir: 1 | -1) =>
+const pick = (gs: Group[], dir: 1 | -1) =>
   gs.filter((g) => g.trades >= MIN).sort((a, b) => dir * (b.net - a.net))[0]
 
-/** Plain-language findings from a set of trades. Returns [] for fewer than 10 trades. */
-export function buildInsights(ts: T.LocalTrade[]): Insight[] {
-  const out: Insight[] = []
-  if (ts.length < 10) return out
-  const actual = T.sumNet(ts)
+const sum = (gs: Group[]) => gs.reduce((s, g) => s + g.net, 0)
 
-  const hours = T.byHour(ts)
+/** Plain-language findings from the analytics payload. Returns [] for fewer than 10 trades. */
+export function buildInsights(a: Analytics): Insight[] {
+  const out: Insight[] = []
+  if (a.summary.trades < 10) return out
+  const actual = a.summary.net
+
+  const hours = a.byHour
   const worstH = pick(hours, -1)
   if (worstH && worstH.net < 0)
     out.push({
@@ -61,12 +64,12 @@ export function buildInsights(ts: T.LocalTrade[]): Insight[] {
     out.push({
       tone: "info",
       title: `Skip ${losingHours.length} losing hour${losingHours.length > 1 ? "s" : ""}`,
-      figure: money(-T.sumNet(losingHours), true),
+      figure: money(-sum(losingHours), true),
       detail: `These hours lost money: ${losingHours.map((h) => hourLabel(h.key)).join(", ")}.`,
       viz: bars(hours, (g) => losingHours.includes(g), hourShort),
     })
 
-  const weekdays = T.byWeekday(ts)
+  const weekdays = a.byWeekday
   const bestD = pick(weekdays, 1)
   if (bestD && bestD.net > 0)
     out.push({
@@ -86,27 +89,27 @@ export function buildInsights(ts: T.LocalTrade[]): Insight[] {
       viz: bars(weekdays, (g) => g === worstD),
     })
 
-  const days = T.daily(ts)
-  const bestDay = T.best(days)
-  const worstDay = T.best(days.map((d) => ({ ...d, net: -d.net })))
+  const days = a.daily
+  const bestDay = best(days)
+  const worstDay = best(days.map((d) => ({ ...d, net: -d.net })))
   if (bestDay && bestDay.net > 0)
     out.push({
       tone: "good",
       title: "Best day",
-      figure: T.formatDay(bestDay.key, true),
+      figure: formatDay(bestDay.key, true),
       detail: `${money(bestDay.net, true)} over ${bestDay.trades} trades, ${pct(bestDay.winRate)} win rate.`,
-      viz: bars(days, (g) => g.key === bestDay.key, (k) => T.formatDay(k)),
+      viz: bars(days, (g) => g.key === bestDay.key, (k) => formatDay(k)),
     })
   if (worstDay && worstDay.net > 0)
     out.push({
       tone: "bad",
       title: "Worst day",
-      figure: T.formatDay(worstDay.key, true),
+      figure: formatDay(worstDay.key, true),
       detail: `${money(-worstDay.net, true)} over ${worstDay.trades} trades, ${pct(worstDay.winRate)} win rate.`,
-      viz: bars(days, (g) => g.key === worstDay.key, (k) => T.formatDay(k)),
+      viz: bars(days, (g) => g.key === worstDay.key, (k) => formatDay(k)),
     })
 
-  const cap = T.best(T.tradeCapSim(ts))
+  const cap = best(a.capSim)
   if (cap && cap.net > actual + 0.01)
     out.push({
       tone: "good",
@@ -116,7 +119,7 @@ export function buildInsights(ts: T.LocalTrade[]): Insight[] {
       viz: compare([["Actual", actual, false], [`Cap at ${cap.cap}`, cap.net, true]]),
     })
 
-  const limit = T.best(T.lossLimitSim(ts))
+  const limit = best(a.lossLimitSim)
   if (limit && limit.net > actual + 0.01)
     out.push({
       tone: "good",
@@ -126,7 +129,7 @@ export function buildInsights(ts: T.LocalTrade[]): Insight[] {
       viz: compare([["Actual", actual, false], [`Stop at −$${limit.limit}`, limit.net, true]]),
     })
 
-  const al = T.afterLoss(ts)
+  const al = a.afterLoss
   if (al.after.trades >= MIN && al.after.avg < al.other.avg)
     out.push({
       tone: "bad",
@@ -136,7 +139,7 @@ export function buildInsights(ts: T.LocalTrade[]): Insight[] {
       viz: compare([["After a loss", al.after.avg, true], ["Other trades", al.other.avg, false]]),
     })
 
-  const dur = T.byDuration(ts).filter((g) => g.trades >= MIN)
+  const dur = a.byDuration.filter((g) => g.trades >= MIN)
   const bestDur = pick(dur, 1)
   const worstDur = pick(dur, -1)
   if (bestDur && worstDur && bestDur.net > 0 && worstDur.net < 0)
@@ -145,33 +148,35 @@ export function buildInsights(ts: T.LocalTrade[]): Insight[] {
       title: "Best holding time",
       figure: bestDur.key,
       detail: `${money(bestDur.net, true)} over ${bestDur.trades} trades. Holds of ${worstDur.key}: ${money(worstDur.net, true)}.`,
-      viz: bars(T.byDuration(ts), (g) => g.key === bestDur.key),
+      viz: bars(a.byDuration, (g) => g.key === bestDur.key),
     })
 
-  const so = T.byReason(ts).find((r) => r.key === T.REASONS.so)
+  const so = a.byReason.find((r) => r.key === REASONS.so)
   if (so)
     out.push({
       tone: "bad",
       title: "Margin stop-outs",
       figure: String(so.trades),
       detail: `Stop-outs cost ${money(so.net, true)}. The position size was too large for the account balance.`,
-      viz: bars(T.byReason(ts), (g) => g === so),
+      viz: bars(a.byReason, (g) => g === so),
     })
 
-  const lots = T.byLots(ts).filter((g) => g.trades >= MIN)
-  const worstLot = [...lots].sort((a, b) => a.avg - b.avg)[0]
-  if (worstLot && worstLot.net < 0 && lots.length > 1)
+  const lots = a.byLots.filter((g) => g.trades >= MIN)
+  const worstLot = [...lots].sort((x, y) => x.avg - y.avg)[0]
+  if (worstLot && worstLot.net < 0 && lots.length > 1) {
+    const symbol = splitSizeKey(worstLot.key).symbol
     out.push({
       tone: "info",
       title: "Worst position size",
-      figure: T.sizeLabel(worstLot.key),
-      detail: `${money(worstLot.net, true)} over ${worstLot.trades} trades, ${money(worstLot.avg, true)} / trade. The chart shows each size on ${T.splitSizeKey(worstLot.key).symbol}.`,
+      figure: sizeLabel(worstLot.key),
+      detail: `${money(worstLot.net, true)} over ${worstLot.trades} trades, ${money(worstLot.avg, true)} / trade. The chart shows each size on ${symbol}.`,
       viz: bars(
-        T.byLots(ts.filter((t) => t.symbol === T.splitSizeKey(worstLot.key).symbol)),
+        a.byLots.filter((g) => splitSizeKey(g.key).symbol === symbol),
         (g) => g.key === worstLot.key,
-        (k) => T.splitSizeKey(k).lots
+        (k) => splitSizeKey(k).lots
       ),
     })
+  }
 
   return out
 }

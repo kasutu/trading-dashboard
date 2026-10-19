@@ -2,8 +2,9 @@ import type * as React from "react"
 import { Globe } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { RANGES, type Filters, type Range } from "@/hooks/use-filters"
-import { LOCAL_TZ } from "@/lib/trades"
+import { RANGES } from "@/hooks/use-filters"
+import type { Filters, Range } from "@/lib/api/types"
+import { LOCAL_TZ } from "@/lib/format"
 
 const TIMEZONES = [...new Set([LOCAL_TZ, "UTC", "America/New_York", "Europe/London", "Asia/Tokyo"])]
 

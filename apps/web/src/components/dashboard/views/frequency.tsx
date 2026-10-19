@@ -1,15 +1,13 @@
-import * as React from "react"
 import { PnlBars } from "@/components/charts/pnl-bars"
 import { Panel } from "@/components/dashboard/panel"
 import { money, ordinal, plural, pnlClass } from "@/lib/format"
-import { best, nthTradeOfDay, sumNet, tradeCapSim, tradesPerDayBuckets, type LocalTrade } from "@/lib/trades"
+import type { Analytics } from "@/lib/api/types"
+import { best } from "@/lib/utils"
 
-export function Frequency({ ts }: { ts: LocalTrade[] }) {
-  const nth = React.useMemo(() => nthTradeOfDay(ts), [ts])
-  const caps = React.useMemo(() => tradeCapSim(ts), [ts])
-  const buckets = React.useMemo(() => tradesPerDayBuckets(ts), [ts])
+export function Frequency({ a }: { a: Analytics }) {
+  const caps = a.capSim
   const top = best(caps)!
-  const actual = sumNet(ts)
+  const actual = a.summary.net
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -36,11 +34,11 @@ export function Frequency({ ts }: { ts: LocalTrade[] }) {
         />
       </Panel>
       <Panel title="Result by trade number" description="1st, 2nd, 3rd trade of the day and later">
-        <PnlBars data={nth} title={(d) => `${ordinal(parseInt(d.key))}${d.key.endsWith("+") ? " and later" : ""} trade of the day`} />
+        <PnlBars data={a.nthTrade} title={(d) => `${ordinal(parseInt(d.key))}${d.key.endsWith("+") ? " and later" : ""} trade of the day`} />
       </Panel>
       <Panel title="Busy days and quiet days" description="Average daily P&L by number of trades that day">
         <PnlBars
-          data={buckets}
+          data={a.dayBuckets}
           valueKey="avgPerDay"
           title={(d) => `${d.key} trades a day`}
           rows={(d) => [

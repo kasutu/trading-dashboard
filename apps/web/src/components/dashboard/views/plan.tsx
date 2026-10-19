@@ -1,15 +1,13 @@
-import * as React from "react"
 import { CircleCheck, CircleAlert } from "lucide-react"
 import { CompareChart } from "@/components/charts/compare-chart"
 import { Panel } from "@/components/dashboard/panel"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { hourLabel, money, pct, plural, pnlClass } from "@/lib/format"
-import { WEEKDAYS, formatDay, optimize, type Comparison, type FocusItem, type LocalTrade, type Optimization } from "@/lib/trades"
+import type { Comparison, FocusItem, Optimization } from "@/lib/api/types"
+import { WEEKDAYS, formatPeriod, hourLabel, money, pct, plural, pnlClass } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 /** What to focus on (primary), then the limits found by the optimizer (secondary), checked on days it did not see. */
-export function Plan({ ts }: { ts: LocalTrade[] }) {
-  const opt = React.useMemo(() => optimize(ts), [ts])
+export function Plan({ opt }: { opt: Optimization | null }) {
   if (!opt)
     return (
       <Panel title="Trading plan">
@@ -17,7 +15,7 @@ export function Plan({ ts }: { ts: LocalTrade[] }) {
       </Panel>
     )
 
-  const range = ([a, b]: readonly [string, string]) => `${formatDay(a)} – ${formatDay(b)}`
+  const range = formatPeriod
   const testGain = opt.test.withRules.net - opt.test.actual.net
 
   return (
