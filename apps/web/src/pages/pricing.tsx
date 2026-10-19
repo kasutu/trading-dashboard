@@ -16,6 +16,10 @@ export function Pricing({ plan }: { plan?: Me["plan"] }) {
       <h1 className="font-display text-4xl font-extrabold tracking-tight">Plans and prices</h1>
       <p className="mt-3 max-w-xl text-lg text-muted-foreground">Start free and track your results. Upgrade when you want Jurno to show what to change. Paid plans are not open yet, so every account is on Free for now.</p>
 
+      {plan === "owner" && (
+        <p className="mt-4 text-sm text-muted-foreground">You are on the Owner plan. It includes everything below, with no limit on trading accounts.</p>
+      )}
+
       <ToggleGroup
         type="single"
         variant="outline"

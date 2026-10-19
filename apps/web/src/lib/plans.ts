@@ -47,3 +47,6 @@ export const yearlyPrice = (p: Plan) => p.monthly * 10
 
 /** The cheapest paid plan, named in upgrade prompts. */
 export const FIRST_PAID = PLANS[1]
+
+/** Display name of any plan, including the creator's owner plan, which is not sold. */
+export const planName = (id: Me["plan"]) => PLANS.find((p) => p.id === id)?.name ?? "Owner"
