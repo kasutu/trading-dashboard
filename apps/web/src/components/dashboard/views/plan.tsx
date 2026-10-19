@@ -84,7 +84,7 @@ function FocusList({ items }: { items: FocusItem[] }) {
         return (
           <div key={f.kind} className="rounded-lg border border-profit/30 bg-profit/5 p-4">
             <p className="text-sm text-muted-foreground">{FOCUS_LABEL[f.kind]}</p>
-            <p className="mt-1 font-display text-xl font-extrabold text-profit">{focusValue(f)}</p>
+            <p className="mt-1 font-display text-xl font-bold text-profit">{focusValue(f)}</p>
             <dl className="mt-3 space-y-1 text-xs">
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Fit days</dt>
@@ -132,7 +132,7 @@ function Big({ label, value, tone, emphasis }: { label: string; value: string; t
   return (
     <div className={cn("rounded-lg border p-4", emphasis ? "border-brand/50 bg-brand/10" : "bg-background/50")}>
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className={cn("mt-1 font-display text-2xl font-extrabold", tone)}>
+      <p className={cn("mt-1 font-display text-2xl font-bold", tone)}>
         {value}
       </p>
     </div>

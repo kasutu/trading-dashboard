@@ -6,7 +6,7 @@ import { FIELDS } from "@/lib/mapping"
 export function MappingPreview({ mapping, rows }: { mapping: ColumnMapping; rows: Record<string, string>[] }) {
   const cols = FIELDS.filter((f) => mapping.columns[f.field])
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+    <section className="overflow-hidden rounded-xl border bg-card shadow-card">
       <header className="px-5 pt-5 pb-3">
         <h2 className="text-sm font-semibold">Preview</h2>
         <p className="mt-1 text-sm text-muted-foreground">The first {rows.length} rows of your file, as Jurno reads them.</p>

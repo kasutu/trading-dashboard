@@ -12,11 +12,11 @@ export function SummaryCard({ a, tz }: { a: Analytics; tz: string }) {
   const worstDay = days.at(-1)!
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+    <section className="overflow-hidden rounded-xl border bg-card shadow-card">
       <div className="grid gap-6 p-5 lg:grid-cols-[minmax(240px,300px)_1fr] lg:p-6">
         <div className="flex flex-col">
           <p className="text-sm text-muted-foreground">Net P&L</p>
-          <p className={cn("mt-1 font-display text-5xl font-extrabold tracking-tight", pnlClass(s.net))}>
+          <p className={cn("mt-1 font-display text-5xl font-bold tracking-tight", pnlClass(s.net))}>
             {money(s.net, true)}
           </p>
           <p className="mt-3 text-sm text-muted-foreground">

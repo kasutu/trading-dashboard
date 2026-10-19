@@ -13,7 +13,7 @@ export function Pricing({ plan }: { plan?: Me["plan"] }) {
 
   return (
     <div className="mx-auto max-w-5xl pt-6 pb-16 sm:pt-10">
-      <h1 className="font-display text-4xl font-extrabold tracking-tight">Plans and prices</h1>
+      <h1 className="font-display text-4xl font-bold tracking-tight">Plans and prices</h1>
       <p className="mt-3 max-w-xl text-lg text-muted-foreground">Start free and track your results. Upgrade when you want Jurno to show what to change. Paid plans are not open yet, so every account is on Free for now.</p>
 
       {plan === "owner" && (
@@ -22,15 +22,15 @@ export function Pricing({ plan }: { plan?: Me["plan"] }) {
 
       <ToggleGroup
         type="single"
-        variant="outline"
         size="sm"
-        className="mt-8 bg-card"
+        spacing={1}
+        className="mt-8 rounded-full bg-muted p-0.5"
         value={yearly ? "yearly" : "monthly"}
         onValueChange={(v) => v && setYearly(v === "yearly")}
         aria-label="Billing period"
       >
-        <ToggleGroupItem value="monthly" className="px-3">Monthly</ToggleGroupItem>
-        <ToggleGroupItem value="yearly" className="px-3">Yearly · 2 months free</ToggleGroupItem>
+        <ToggleGroupItem value="monthly" className="h-7 rounded-full px-3 text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm dark:data-[state=on]:bg-popover">Monthly</ToggleGroupItem>
+        <ToggleGroupItem value="yearly" className="h-7 rounded-full px-3 text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm dark:data-[state=on]:bg-popover">Yearly · 2 months free</ToggleGroupItem>
       </ToggleGroup>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -38,11 +38,11 @@ export function Pricing({ plan }: { plan?: Me["plan"] }) {
           const amount = yearly ? yearlyPrice(p) : p.monthly
           const current = plan === p.id
           return (
-            <section key={p.id} className={cn("flex flex-col rounded-xl border bg-card p-6 shadow-xs", current && "border-brand/60")}>
+            <section key={p.id} className={cn("flex flex-col rounded-xl border bg-card p-6 shadow-card", current && "border-brand/60")}>
               <h2 className="font-display text-xl font-bold">{p.name}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{p.summary}</p>
               <p className="mt-3">
-                <span className="font-display text-4xl font-extrabold">${amount}</span>
+                <span className="font-display text-4xl font-bold">${amount}</span>
                 <span className="text-muted-foreground"> / {yearly ? "year" : "month"}</span>
               </p>
               <ul className="mt-5 flex-1 space-y-2 text-sm">

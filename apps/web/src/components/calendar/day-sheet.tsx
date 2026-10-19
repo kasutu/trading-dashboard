@@ -27,7 +27,7 @@ export function DaySheet({ day, trades, tz, onClose }: Props) {
             </dl>
             <ul className="space-y-3">
               {trades.map((t) => (
-                <li key={t.ticket} className="rounded-xl border bg-card p-4 shadow-xs">
+                <li key={t.ticket} className="rounded-xl border bg-card p-4 shadow-card">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{t.symbol}</span>
                     <SideBadge side={t.side} />

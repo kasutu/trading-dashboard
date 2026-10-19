@@ -18,8 +18,9 @@ import { Plan } from "./views/plan"
 import { Risk } from "./views/risk"
 import { Timing } from "./views/timing"
 
+// Apple-style segmented control: a grey track with a white pill on the active tab.
 const tab =
-  "flex-none px-1 pb-3 data-[state=active]:font-semibold group-data-[orientation=horizontal]/tabs:after:bottom-0 group-data-[orientation=horizontal]/tabs:after:h-[3px] after:rounded-full after:bg-brand"
+  "flex-none rounded-full px-4 py-1.5 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-popover"
 
 /** What each paid tab holds, for the locked panel on the Free plan. */
 const LOCKED = {
@@ -67,7 +68,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
         <>
           <SummaryCard a={a} tz={filters.tz} />
           <Tabs defaultValue="overview" className="gap-5">
-            <TabsList variant="line" className="h-auto w-full justify-start gap-6 overflow-x-auto border-b p-0">
+            <TabsList className="h-auto max-w-full justify-start gap-0.5 overflow-x-auto rounded-full p-1">
               <TabsTrigger className={tab} value="overview">Overview</TabsTrigger>
               <TabsTrigger className={tab} value="notes">
                 Notes

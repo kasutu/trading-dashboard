@@ -19,7 +19,7 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
   const tz = filters.tz
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+    <div className="overflow-hidden rounded-xl border bg-card shadow-card">
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>

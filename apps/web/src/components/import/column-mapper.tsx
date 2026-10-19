@@ -59,7 +59,7 @@ export function ColumnMapper({ file, accountId, preset, onImported, onReset }: P
 
   return (
     <form onSubmit={submit} className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4 shadow-xs">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4 shadow-card">
         <FileText className="size-4 shrink-0 text-muted-foreground" />
         <span className="min-w-0 flex-1 truncate font-medium">{file.name}</span>
         <Button type="button" variant="ghost" size="sm" onClick={onReset}>Choose another file</Button>
@@ -83,7 +83,7 @@ export function ColumnMapper({ file, accountId, preset, onImported, onReset }: P
         </div>
       )}
 
-      <section className="rounded-xl border bg-card p-5 shadow-xs">
+      <section className="rounded-xl border bg-card p-5 shadow-card">
         <h2 className="text-sm font-semibold">Match the columns</h2>
         <p className="mt-1 text-sm text-muted-foreground">For each field, pick the column in your file that holds it.</p>
         <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
@@ -164,7 +164,7 @@ function SaveMapping({ mapping }: { mapping: ColumnMapping }) {
   }
 
   return (
-    <section className="rounded-xl border bg-card p-5 shadow-xs">
+    <section className="rounded-xl border bg-card p-5 shadow-card">
       <Label htmlFor="mapping-name">Save this mapping (optional)</Label>
       <p className="mt-1 text-sm text-muted-foreground">Next time, pick it from the list at the top.</p>
       <div className="mt-3 flex flex-wrap gap-2">

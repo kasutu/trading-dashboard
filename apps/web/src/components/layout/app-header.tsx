@@ -15,7 +15,7 @@ type Props = {
 
 export function AppHeader({ dark, onToggleTheme, compact, children }: Props) {
   return (
-    <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-20 border-b bg-header backdrop-blur-xl backdrop-saturate-150">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:gap-3 sm:px-6">
         <Link href="/" className="shrink-0 rounded-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none" aria-label="Jurno home">
           <Logo compact={compact} />

@@ -21,15 +21,15 @@ export function FilterBar({ filters, symbols, onChange, children }: Props) {
     <div className="flex flex-wrap items-center gap-2">
       <ToggleGroup
         type="single"
-        variant="outline"
         size="sm"
-        className="bg-card"
+        spacing={1}
+        className="rounded-full bg-muted p-0.5"
         value={filters.range}
         onValueChange={(v) => v && onChange("range", v as Range)}
         aria-label="Date range"
       >
         {RANGES.map(([k, label]) => (
-          <ToggleGroupItem key={k} value={k} className="px-3 font-mono text-xs">{label}</ToggleGroupItem>
+          <ToggleGroupItem key={k} value={k} className="h-7 rounded-full px-3 font-mono text-xs text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm dark:data-[state=on]:bg-popover">{label}</ToggleGroupItem>
         ))}
       </ToggleGroup>
 

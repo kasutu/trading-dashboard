@@ -21,8 +21,11 @@ const short = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${compactMoney(
 export function CalendarDay({ day, trades, inMonth, weekend, isToday, onOpen }: Props) {
   const n = trades.length
   const net = trades.reduce((s, t) => s + t.net, 0)
-  const tint = !n ? (weekend ? "bg-muted/50" : "bg-card") : net > 0 ? "border-profit/30 bg-profit/10" : net < 0 ? "border-loss/30 bg-loss/10" : "bg-card"
-  const box = "flex min-h-14 min-w-0 flex-col gap-0.5 rounded-lg border p-1 text-left sm:min-h-24 sm:p-2"
+  // Empty days stay quiet (no border, faint fill) so trading days stand out.
+  const tint = !n
+    ? "border-transparent bg-muted/40"
+    : net > 0 ? "border-profit/25 bg-profit/10" : net < 0 ? "border-loss/25 bg-loss/10" : "border-border bg-card"
+  const box = "flex min-h-14 min-w-0 flex-col gap-0.5 rounded-xl border p-1 text-left sm:min-h-24 sm:p-2.5"
   const number = (
     <span
       className={cn("w-fit font-mono text-xs text-muted-foreground", isToday && "rounded bg-foreground px-1 font-semibold text-background")}
@@ -51,7 +54,7 @@ export function CalendarDay({ day, trades, inMonth, weekend, isToday, onOpen }: 
             box,
             tint,
             !inMonth && "opacity-40",
-            "cursor-pointer transition-colors hover:border-foreground/30 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+            "cursor-pointer transition-[border-color,transform] duration-150 ease-out hover:border-foreground/25 active:scale-[0.98] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
           )}
         >
           {number}

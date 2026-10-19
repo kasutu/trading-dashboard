@@ -63,7 +63,7 @@ export function ImportPage({ account, onSelect }: { account: Account | null; onS
         <Link href="/" className="inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
           <ArrowLeft className="size-4" /> {account.name}
         </Link>
-        <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight">Import trades into {account.name}</h1>
+        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Import trades into {account.name}</h1>
         <p className="mt-1 text-muted-foreground">Trades you already imported are not added twice.</p>
       </div>
 
@@ -112,7 +112,7 @@ export function ImportPage({ account, onSelect }: { account: Account | null; onS
 
 function ImportResult({ result: r, onAgain }: { result: Import; onAgain: () => void }) {
   return (
-    <section className="rounded-xl border bg-card p-6 shadow-xs">
+    <section className="rounded-xl border bg-card p-6 shadow-card">
       <p className="flex items-center gap-2 font-display text-xl font-bold">
         <CircleCheck className="size-5 text-profit" /> Import done
       </p>
@@ -133,7 +133,7 @@ function PastImports({ accountId }: { accountId: string }) {
   if (!data?.length) return null
   const num = "text-right font-mono tabular-nums"
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+    <section className="overflow-hidden rounded-xl border bg-card shadow-card">
       <h2 className="px-5 pt-5 pb-3 text-sm font-semibold">Past imports</h2>
       <Table>
         <TableHeader className="bg-muted/50">
