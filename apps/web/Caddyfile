@@ -1,0 +1,23 @@
+{
+	admin off
+	# Keep the client IP that the Railway edge sends, so auth rate limits apply per user.
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:{$PORT:80} {
+	handle /api/auth/* {
+		reverse_proxy {$AUTH_UPSTREAM}
+	}
+
+	handle /api/* {
+		reverse_proxy {$API_UPSTREAM}
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -49,7 +49,7 @@ browser ──► web (Caddy: static files + reverse proxy)
    select "userId" from "session" where "token" = $1 and "expiresAt" > now()
    ```
    No row: respond `401`. The auth service owns the `user`, `session`, `account` and `verification` tables and their migrations. The API only reads `session` and `user`.
-4. Username and password only. No email in the UI. (The auth work documents how this is done with Better Auth.)
+4. Username and password only. No email in the UI. Better Auth's `username` plugin stores the lower-case username in `"user"."username"` and the typed form in `"user"."displayUsername"`. Better Auth still needs an email, so the auth server fills in `<username>@users.jurno.invalid` at sign up. See `apps/auth/README.md` for the web client calls.
 
 ## Database
 

@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: jurno
+      POSTGRES_PASSWORD: jurno
+      POSTGRES_DB: jurno
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jurno -d jurno"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  auth:
+    build: apps/auth
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://jurno:jurno@postgres:5432/jurno
+      PORT: "3001"
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: crates/api/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://jurno:jurno@postgres:5432/jurno
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
