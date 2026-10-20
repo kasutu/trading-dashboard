@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { RANGES } from "@/hooks/use-filters"
 import type { Filters, Range } from "@/lib/api/types"
-import { LOCAL_TZ } from "@/lib/format"
+import { LOCAL_TZ, tzLabel } from "@/lib/format"
 
 const TIMEZONES = [...new Set([LOCAL_TZ, "UTC", "America/New_York", "Europe/London", "Asia/Tokyo"])]
 
@@ -56,7 +56,7 @@ export function FilterBar({ filters, symbols, onChange, children }: Props) {
           <SelectValue />
         </SelectTrigger>
         <SelectContent align="end">
-          {TIMEZONES.map((z) => <SelectItem key={z} value={z}>{z === LOCAL_TZ ? `${z} (local)` : z}</SelectItem>)}
+          {TIMEZONES.map((z) => <SelectItem key={z} value={z}>{tzLabel(z)}{z === LOCAL_TZ && <span className="text-muted-foreground"> · Local</span>}</SelectItem>)}
         </SelectContent>
       </Select>
       {children}

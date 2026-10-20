@@ -7,6 +7,7 @@ import { addMonths, monthGrid, monthOf, monthTitle } from "@/lib/calendar"
 import { WEEKDAYS, money, plural, pnlClass, today } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { CalendarDay } from "./calendar-day"
+import { CalendarShare } from "./calendar-share"
 import { DaySheet } from "./day-sheet"
 
 type Props = { accountId: string; filters: Filters; period: [string, string] }
@@ -43,6 +44,7 @@ export function TradeCalendar({ accountId, filters, period }: Props) {
           <Button variant="outline" size="icon" className="size-8" disabled={month >= last} onClick={() => setPicked(addMonths(month, 1))} aria-label="Next month">
             <ChevronRight />
           </Button>
+          {data && <CalendarShare month={month} grid={grid} byDay={byDay} filters={filters} />}
         </div>
         {inMonth.length > 0 && (
           <p className="ml-auto text-right text-sm text-muted-foreground">
