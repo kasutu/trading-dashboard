@@ -2,7 +2,15 @@
 
 Jurno runs as three Railway services and one Railway Postgres database. Only the web service has a public domain. Web sends `/api/auth/*` to auth and other `/api/*` to api over private networking.
 
-Each service has a `railway.json` file. It sets the Dockerfile, the health check path and the watch paths. A push rebuilds only the services whose files changed.
+Live: project `jurno` in the Splitscale workspace, at https://web-production-b23c0.up.railway.app. It deploys from `main`.
+
+Each service has these settings in Railway (Settings): root directory, Dockerfile path, watch paths and health check path. The `railway.json` files in the repo record the same values. Railway has deprecated `railway.json` (config as code), so do not rely on it. Set the values in the service settings, as below. A push rebuilds only the services whose files changed.
+
+| Service | Root directory | Dockerfile path | Watch paths | Health check |
+| --- | --- | --- | --- | --- |
+| `web` | `/apps/web` | `Dockerfile` | `/apps/web/**` | `/` |
+| `auth` | `/apps/auth` | `Dockerfile` | `/apps/auth/**` | `/health` |
+| `api` | (empty) | `crates/api/Dockerfile` | `/crates/**`, `/Cargo.toml`, `/Cargo.lock` | `/api/health` |
 
 ## Before you start
 
@@ -15,11 +23,6 @@ You set these values by hand. Railway fills in the rest with references.
 
 Deploy from the `main` branch.
 
-| Service | Root directory | Config file path | Health check |
-| --- | --- | --- | --- |
-| `web` | `apps/web` | `/apps/web/railway.json` | `/` |
-| `auth` | `apps/auth` | `/apps/auth/railway.json` | `/health` |
-| `api` | (empty, the repo root) | `/crates/api/railway.json` | `/api/health` |
 
 The api build needs the whole Cargo workspace, so its root directory is the repo root.
 
@@ -35,7 +38,7 @@ The api build needs the whole Cargo workspace, so its root directory is the repo
 3. Click **Create**, choose **GitHub Repo** and pick the Jurno repo.
 4. Open the new service. In **Settings**, rename it to `auth`.
 5. In **Settings > Source**, set **Root Directory** to `apps/auth`.
-6. In **Settings > Config-as-code**, set the path to `/apps/auth/railway.json`.
+6. In **Settings**, set the Dockerfile path, watch paths and health check from the table above.
 7. In **Variables**, add `DATABASE_URL` with the value `${{Postgres.DATABASE_URL}}`.
 8. Add `BETTER_AUTH_SECRET`. Use the output of `openssl rand -base64 32`.
 9. Add `BETTER_AUTH_URL` with the value `https://${{web.RAILWAY_PUBLIC_DOMAIN}}`. This resolves once the web service has a domain (step 25).
@@ -46,7 +49,7 @@ The api build needs the whole Cargo workspace, so its root directory is the repo
 11. Click **Create**, choose **GitHub Repo** and pick the Jurno repo again.
 12. Rename the service to `api`.
 13. Leave **Root Directory** empty.
-14. In **Settings > Config-as-code**, set the path to `/crates/api/railway.json`.
+14. In **Settings**, set the Dockerfile path, watch paths and health check from the table above.
 15. In **Variables**, add `DATABASE_URL` with the value `${{Postgres.DATABASE_URL}}`.
 16. Add `PORT` with the value `8080`.
 
@@ -55,7 +58,7 @@ The api build needs the whole Cargo workspace, so its root directory is the repo
 17. Click **Create**, choose **GitHub Repo** and pick the Jurno repo again.
 18. Rename the service to `web`.
 19. In **Settings > Source**, set **Root Directory** to `apps/web`.
-20. In **Settings > Config-as-code**, set the path to `/apps/web/railway.json`.
+20. In **Settings**, set the Dockerfile path, watch paths and health check from the table above.
 21. In **Variables**, add `AUTH_UPSTREAM` with the value `${{auth.RAILWAY_PRIVATE_DOMAIN}}:${{auth.PORT}}`.
 22. Add `API_UPSTREAM` with the value `${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}`.
 23. Do not set `PORT` on web. Railway sets it and Caddy listens on it.
