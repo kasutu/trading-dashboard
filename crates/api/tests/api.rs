@@ -494,6 +494,7 @@ async fn free_plan_limits() {
     assert_eq!(s, StatusCode::OK, "{v}");
     assert_eq!(v["locked"], true);
     assert!(v["summary"].is_object() && v["daily"].is_array() && v["byLots"].is_array());
+    assert!(v["byWeek"].is_array() && v["byMonth"].is_array() && v["bestLots"].is_array());
     for key in api::plan::PAID_FIELDS {
         assert!(v.get(key).is_none(), "free plan got {key}");
     }
