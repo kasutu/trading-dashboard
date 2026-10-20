@@ -88,7 +88,8 @@ create table trades (
   swap double precision not null default 0,
   profit double precision not null,
   close_reason text not null default '',
-  primary key (account_id, ticket)
+  -- A partial close is its own row with the same ticket, so the ticket alone is not unique.
+  primary key (account_id, ticket, closed_at, lots, close_price)
 );
 
 create table imports (
@@ -124,7 +125,7 @@ All routes are under `/api`, take and return JSON (camelCase), and need a sessio
 | `PATCH /api/accounts/:id` | `{ name?, broker?, currency? }` | `Account` |
 | `DELETE /api/accounts/:id` | | `204` |
 | `GET /api/accounts/:id/imports` | | `Import[]`, newest first |
-| `POST /api/accounts/:id/imports` | `{ fileName, csv, mapping: ColumnMapping }` | `Import`. Upserts trades on `(account_id, ticket)`. `duplicates` counts tickets already stored. `422` with the parse error message when parsing fails. Max body 20 MB. |
+| `POST /api/accounts/:id/imports` | `{ fileName, csv, mapping: ColumnMapping }` | `Import`. Upserts trades on `(account_id, ticket, closed_at, lots, close_price)`, so partial closes (same ticket) are kept. `duplicates` counts rows already stored. `422` with the parse error message when parsing fails. Max body 20 MB. |
 | `GET /api/presets` (public) | | `{ exness: ColumnMapping }` |
 | `GET /api/mappings` | | `SavedMapping[]` |
 | `POST /api/mappings` | `{ name, mapping }` | `SavedMapping` |

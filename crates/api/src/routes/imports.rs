@@ -13,7 +13,7 @@ use super::accounts::owned_account;
 use crate::auth::UserId;
 use crate::error::{ApiError, ApiResult};
 use crate::extract::Json;
-use crate::trade_row::upsert_trades;
+use crate::trade_row::{trade_key, upsert_trades, TradeKey};
 
 #[derive(Serialize, FromRow)]
 #[serde(rename_all = "camelCase")]
@@ -50,7 +50,8 @@ pub struct NewImport {
     mapping: ColumnMapping,
 }
 
-/// Parses the CSV and upserts its trades on `(account_id, ticket)`.
+/// Parses the CSV and upserts its trades on their key (ticket, close time, lots, close price).
+/// Partial closes share a ticket and are kept as separate trades.
 pub async fn create(
     State(pool): State<PgPool>,
     UserId(user): UserId,
@@ -68,26 +69,35 @@ pub async fn create(
         .map_err(|e| ApiError::Internal(format!("parser crashed: {e}")))?
         .map_err(|e| ApiError::Unprocessable(parse_error_message(&e)))?;
 
-    // Keep the last row for each ticket; repeats inside the file count as duplicates.
+    // Rows with the same key inside the file are true duplicates: keep the last one.
     let rows = parsed.trades.len();
-    let mut by_ticket: HashMap<String, engine::Trade> = HashMap::with_capacity(rows);
+    let mut by_key: HashMap<TradeKey, engine::Trade> = HashMap::with_capacity(rows);
     for t in parsed.trades {
-        by_ticket.insert(t.ticket.clone(), t);
+        by_key.insert(trade_key(&t), t);
     }
-    let trades: Vec<engine::Trade> = by_ticket.into_values().collect();
+    let trades: Vec<engine::Trade> = by_key.into_values().collect();
     let tickets: Vec<&str> = trades.iter().map(|t| t.ticket.as_str()).collect();
 
     let mut tx = pool.begin().await?;
-    let stored: Vec<String> =
-        sqlx::query_scalar("select ticket from trades where account_id = $1 and ticket = any($2)")
-            .bind(id)
-            .bind(&tickets)
-            .fetch_all(&mut *tx)
-            .await?;
-    let stored: HashSet<String> = stored.into_iter().collect();
+    let stored: Vec<(String, DateTime<Utc>, f64, f64)> = sqlx::query_as(
+        "select ticket, closed_at, lots, close_price from trades
+         where account_id = $1 and ticket = any($2)",
+    )
+    .bind(id)
+    .bind(&tickets)
+    .fetch_all(&mut *tx)
+    .await?;
+    let stored: HashSet<TradeKey> = stored
+        .into_iter()
+        .map(|(ticket, close, lots, price)| (ticket, close, lots.to_bits(), price.to_bits()))
+        .collect();
+    let already = trades
+        .iter()
+        .filter(|t| stored.contains(&trade_key(t)))
+        .count();
     upsert_trades(&mut tx, id, &trades).await?;
 
-    let added = trades.len() - stored.len();
+    let added = trades.len() - already;
     let duplicates = rows - added;
     let import: Import = sqlx::query_as(
         "insert into imports (account_id, file_name, added, duplicates, skipped)

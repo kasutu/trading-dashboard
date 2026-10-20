@@ -75,3 +75,7 @@ export const sizeLabel = (key: string) => {
 
 /** Price without trailing zeros, or "—" when empty. */
 export const price = (n: number | null) => (n === null ? "—" : String(+n.toFixed(5)))
+
+/** A unique key for a trade row. Partial closes share a ticket, so the ticket alone is not enough. */
+export const tradeKey = (t: { ticket: string; close: string; lots: number; closePrice: number }) =>
+  `${t.ticket}|${t.close}|${t.lots}|${t.closePrice}`

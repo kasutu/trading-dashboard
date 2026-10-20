@@ -596,3 +596,33 @@ async fn admin_delete_removes_the_user_and_their_data() {
     assert_eq!(bob, 1);
     assert!(api::admin::delete_user(&t.pool, "nobody").await.is_err());
 }
+
+#[tokio::test]
+async fn partial_closes_with_the_same_ticket_are_kept() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    // One 0.05 position closed in two parts: same ticket, different close time and lots.
+    let csv = "ticket,opening_time_utc,closing_time_utc,type,lots,symbol,opening_price,closing_price,stop_loss,take_profit,commission,swap,profit,close_reason\n\
+266462226,2026-10-18T20:44:09,2026-10-19T02:24:17,buy,0.03,BTCUSDm,80775.9,82270.36,80815.23,83400,0,0,44.83,user\n\
+266462226,2026-10-18T20:44:09,2026-10-19T10:25:41,buy,0.02,BTCUSDm,80775.9,82390.05,80815.23,83400,0,0,32.28,user\n";
+    let body = json!({ "fileName": "p.csv", "csv": csv, "mapping": engine::exness_mapping() });
+    let (s, v) = t
+        .post(&format!("/api/accounts/{id}/imports"), body.clone())
+        .await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(
+        (v["added"].as_u64(), v["duplicates"].as_u64()),
+        (Some(2), Some(0))
+    );
+
+    let (_, a) = t.get(&format!("/api/accounts/{id}/analytics")).await;
+    assert_eq!(a["summary"]["trades"], 2);
+    assert!((a["summary"]["net"].as_f64().unwrap() - 77.11).abs() < 0.001);
+
+    // Importing the same file again adds nothing.
+    let (_, v) = t.post(&format!("/api/accounts/{id}/imports"), body).await;
+    assert_eq!(
+        (v["added"].as_u64(), v["duplicates"].as_u64()),
+        (Some(0), Some(2))
+    );
+}

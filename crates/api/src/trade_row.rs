@@ -63,7 +63,7 @@ pub async fn load_trades(pool: &PgPool, account_id: Uuid) -> Result<Vec<Trade>, 
     let rows: Vec<TradeRow> = sqlx::query_as(
         "select ticket, opened_at, closed_at, side, lots, symbol, open_price, close_price,
                 stop_loss, take_profit, commission, swap, profit, close_reason
-         from trades where account_id = $1 order by opened_at, ticket",
+         from trades where account_id = $1 order by opened_at, ticket, closed_at",
     )
     .bind(account_id)
     .fetch_all(pool)
@@ -71,8 +71,20 @@ pub async fn load_trades(pool: &PgPool, account_id: Uuid) -> Result<Vec<Trade>, 
     Ok(rows.into_iter().map(Trade::from).collect())
 }
 
-/// Inserts trades, replacing rows with the same `(account_id, ticket)`.
-/// Tickets must be unique within `trades`.
+/// The identity of a trade row. Partial closes share a ticket, so the ticket alone is not enough.
+pub type TradeKey = (String, DateTime<Utc>, u64, u64);
+
+pub fn trade_key(t: &Trade) -> TradeKey {
+    (
+        t.ticket.clone(),
+        t.close,
+        t.lots.to_bits(),
+        t.close_price.to_bits(),
+    )
+}
+
+/// Inserts trades, replacing rows with the same key `(account_id, ticket, closed_at, lots,
+/// close_price)`. Keys must be unique within `trades`.
 pub async fn upsert_trades(
     tx: &mut Transaction<'_, Postgres>,
     account_id: Uuid,
@@ -89,10 +101,10 @@ pub async fn upsert_trades(
          select $1, * from unnest($2::text[], $3::timestamptz[], $4::timestamptz[], $5::text[],
             $6::float8[], $7::text[], $8::float8[], $9::float8[], $10::float8[], $11::float8[],
             $12::float8[], $13::float8[], $14::float8[], $15::text[])
-         on conflict (account_id, ticket) do update set
-            opened_at = excluded.opened_at, closed_at = excluded.closed_at, side = excluded.side,
-            lots = excluded.lots, symbol = excluded.symbol, open_price = excluded.open_price,
-            close_price = excluded.close_price, stop_loss = excluded.stop_loss,
+         on conflict (account_id, ticket, closed_at, lots, close_price) do update set
+            opened_at = excluded.opened_at, side = excluded.side,
+            symbol = excluded.symbol, open_price = excluded.open_price,
+            stop_loss = excluded.stop_loss,
             take_profit = excluded.take_profit, commission = excluded.commission,
             swap = excluded.swap, profit = excluded.profit, close_reason = excluded.close_reason",
     )
