@@ -2,6 +2,7 @@
 
 mod accounts;
 mod analytics;
+mod cash_flows;
 mod health;
 mod imports;
 mod mappings;
@@ -30,6 +31,14 @@ pub fn app(pool: PgPool) -> Router {
         .route(
             "/accounts/{id}/imports",
             get(imports::list).post(imports::create),
+        )
+        .route(
+            "/accounts/{id}/cash-flows",
+            get(cash_flows::list).post(cash_flows::create),
+        )
+        .route(
+            "/accounts/{id}/cash-flows/{flow}",
+            delete(cash_flows::remove),
         )
         .route("/accounts/{id}/analytics", get(analytics::analytics))
         .route("/accounts/{id}/trades", get(analytics::trades))

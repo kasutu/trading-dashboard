@@ -13,6 +13,7 @@ use chrono::{DateTime, Datelike, Timelike, Utc};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 
+mod cash;
 mod optimize;
 mod parse;
 mod stats;
@@ -447,4 +448,77 @@ pub struct LocalTrade<'a> {
     /// 0 = Mon ... 6 = Sun
     pub weekday: u32,
     pub duration_min: f64,
+}
+
+// ---------------------------------------------------------------------------
+// Deposits and withdrawals
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FlowKind {
+    Deposit,
+    Withdrawal,
+}
+
+/// Money moved into or out of the account, entered by the user. Not a trade.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashFlow {
+    pub time: DateTime<Utc>,
+    pub kind: FlowKind,
+    /// Always positive. `kind` gives the direction.
+    pub amount: f64,
+}
+
+/// Count and total of one kind of cash flow.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlowTotal {
+    pub count: u32,
+    pub total: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashSummary {
+    pub deposits: FlowTotal,
+    pub withdrawals: FlowTotal,
+    /// Deposits minus withdrawals.
+    pub net: f64,
+}
+
+/// The cash flows of one day.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashDay {
+    /// yyyy-mm-dd in the requested timezone.
+    pub day: String,
+    pub deposits: f64,
+    /// Positive: the total taken out that day.
+    pub withdrawals: f64,
+    /// deposits - withdrawals
+    pub net: f64,
+    /// Net deposited up to and including this day.
+    pub cumulative: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashReport {
+    pub summary: CashSummary,
+    /// One entry per day with a cash flow, oldest first.
+    pub daily: Vec<CashDay>,
+}
+
+/// Totals and the per-day timeline of deposits and withdrawals. Days are in `tz`
+/// (an IANA name; an unknown name falls back to UTC).
+pub fn cash_report(flows: &[CashFlow], tz: &str) -> CashReport {
+    cash::report(flows, tz.parse().unwrap_or(Tz::UTC))
+}
+
+/// yyyy-mm-dd of a time in `tz` (an IANA name; an unknown name falls back to UTC).
+pub fn local_day(time: DateTime<Utc>, tz: &str) -> String {
+    let tz: Tz = tz.parse().unwrap_or(Tz::UTC);
+    time.with_timezone(&tz).format("%Y-%m-%d").to_string()
 }
