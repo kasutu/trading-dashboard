@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Lock } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAnalytics, useMe } from "@/hooks/use-api"
+import { useAnalytics, useCashFlows, useMe } from "@/hooks/use-api"
 import { useFilters } from "@/hooks/use-filters"
 import { filterQuery } from "@/lib/api/client"
 import type { Analytics } from "@/lib/api/types"
@@ -12,6 +12,7 @@ import { ShareDialog } from "./share-dialog"
 import { SummaryCard } from "./summary-card"
 import { TradesTable } from "./trades-table"
 import { Frequency } from "./views/frequency"
+import { Funding } from "./views/funding"
 import { Notes } from "./views/notes"
 import { Overview } from "./views/overview"
 import { Plan } from "./views/plan"
@@ -39,6 +40,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
   const full = a && !a.locked ? a : null
   const insights = React.useMemo(() => (full ? buildInsights(full) : []), [full])
   const { data: me } = useMe()
+  const { data: flows } = useCashFlows(accountId, filters.tz)
   const lock = a?.locked ? <Lock className="size-3 text-muted-foreground" aria-label="Paid plan" /> : null
 
   // An empty result has no symbol list, so keep the last one for the filter bar.
@@ -66,7 +68,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
         </div>
       ) : (
         <>
-          <SummaryCard a={a} tz={filters.tz} />
+          <SummaryCard a={a} tz={filters.tz} flows={flows?.rows} />
           <Tabs defaultValue="overview" className="gap-5">
             <TabsList className="h-auto max-w-full justify-start gap-0.5 overflow-x-auto rounded-full p-1">
               <TabsTrigger className={tab} value="overview">Overview</TabsTrigger>
@@ -82,6 +84,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
               <TabsTrigger className={tab} value="frequency">Frequency{lock}</TabsTrigger>
               <TabsTrigger className={tab} value="risk">Risk</TabsTrigger>
               <TabsTrigger className={tab} value="trades">Trades</TabsTrigger>
+              <TabsTrigger className={tab} value="funding">Funding</TabsTrigger>
             </TabsList>
             <TabsContent value="overview"><Overview a={a} accountId={accountId} filters={filters} /></TabsContent>
             <TabsContent value="notes">
@@ -100,6 +103,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
             <TabsContent value="trades">
               <TradesTable key={filterQuery(filters)} accountId={accountId} filters={filters} />
             </TabsContent>
+            <TabsContent value="funding"><Funding accountId={accountId} flows={flows} tz={filters.tz} /></TabsContent>
           </Tabs>
         </>
       )}

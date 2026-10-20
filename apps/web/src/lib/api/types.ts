@@ -147,5 +147,17 @@ export type Import = { id: string; fileName: string; added: number; duplicates: 
 export type SavedMapping = { id: string; name: string; mapping: ColumnMapping; createdAt: string }
 export type TradePage = { rows: LocalTrade[]; total: number }
 
+export type FlowKind = "deposit" | "withdrawal"
+/** A deposit or withdrawal, entered by hand. `amount` is always positive. */
+export type CashFlow = { id: string; occurredAt: string; kind: FlowKind; amount: number; note: string | null; createdAt: string }
+/** With `day` (yyyy-mm-dd of `occurredAt` in the requested timezone). */
+export type LocalCashFlow = CashFlow & { day: string }
+export type FlowTotal = { count: number; total: number }
+export type CashSummary = { deposits: FlowTotal; withdrawals: FlowTotal; net: number }
+/** One day with cash flows. `withdrawals` is positive; `cumulative` is the net deposited so far. */
+export type CashDay = { day: string; deposits: number; withdrawals: number; net: number; cumulative: number }
+/** GET /accounts/:id/cash-flows. Rows newest first, `daily` oldest first. */
+export type CashFlows = { rows: LocalCashFlow[]; summary: CashSummary; daily: CashDay[] }
+
 export type Range = "7" | "30" | "90" | "all"
 export type Filters = { range: Range; symbol: string; side: Side | "all"; tz: string }

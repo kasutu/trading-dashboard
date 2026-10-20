@@ -1,6 +1,6 @@
 import * as React from "react"
 import { api, filterQuery } from "@/lib/api/client"
-import type { Account, AnalyticsResponse, ColumnMapping, Filters, Import, Me, SavedMapping, TradePage } from "@/lib/api/types"
+import type { Account, AnalyticsResponse, CashFlows, ColumnMapping, Filters, Import, Me, SavedMapping, TradePage } from "@/lib/api/types"
 
 // Mounted queries listen here. invalidate() makes the ones whose path starts with a prefix fetch again.
 const listeners = new Set<(prefix: string) => void>()
@@ -48,3 +48,6 @@ export const useAnalytics = (accountId: string, f: Filters) =>
   useApi<AnalyticsResponse>(`/accounts/${accountId}/analytics?${filterQuery(f)}`)
 export const useTrades = (accountId: string, f: Filters, extra: Record<string, string | number>) =>
   useApi<TradePage>(`/accounts/${accountId}/trades?${filterQuery(f, extra)}`)
+export const cashFlowsPath = (accountId: string) => `/accounts/${accountId}/cash-flows`
+export const useCashFlows = (accountId: string, tz: string) =>
+  useApi<CashFlows>(`${cashFlowsPath(accountId)}?${new URLSearchParams({ tz })}`)
