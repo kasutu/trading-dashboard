@@ -2,7 +2,7 @@
 
 Jurno runs as three Railway services and one Railway Postgres database. Only the web service has a public domain. Web sends `/api/auth/*` to auth and other `/api/*` to api over private networking.
 
-Live: project `jurno` in the Splitscale workspace, at https://web-production-b23c0.up.railway.app. It deploys from `main`.
+Live: project `jurno` in the Splitscale workspace, at https://jurno.up.railway.app. It deploys from `main`.
 
 Each service has these settings in Railway (Settings): root directory, Dockerfile path, watch paths and health check path. The `railway.json` files in the repo record the same values. Railway has deprecated `railway.json` (config as code), so do not rely on it. Set the values in the service settings, as below. A push rebuilds only the services whose files changed.
 
@@ -83,6 +83,7 @@ The api build needs the whole Cargo workspace, so its root directory is the repo
 - Railway private networking can use IPv6. Each service must listen on all interfaces (`::`), not only on `127.0.0.1`.
 - With HTTPS, the session cookie is `__Secure-better-auth.session_token`.
 - Do not generate public domains for auth or api. The browser reaches them only through web.
+- After you change the web domain, redeploy auth: `railway redeploy --service auth`. Auth reads `BETTER_AUTH_URL` only at start. Until then, sign-up and sign-in fail with "Invalid origin".
 
 ## Local development
 
