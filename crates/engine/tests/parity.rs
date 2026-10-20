@@ -5,6 +5,10 @@ use std::path::Path;
 use engine::{analyze, exness_mapping, filter_trades, parse_csv, Filters, Side};
 use serde_json::Value;
 
+/// Analytics fields added after the port. The TS engine never had them, so the goldens
+/// do not either; they have their own unit tests in `src/stats.rs`.
+const AFTER_PORT: [&str; 3] = ["byWeek", "byMonth", "bestLots"];
+
 fn fixture(name: &str) -> String {
     std::fs::read_to_string(
         Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -67,7 +71,10 @@ fn matches_typescript_goldens() {
                 side: None,
                 tz: tz.into(),
             };
-            let got = serde_json::to_value(analyze(&parsed.trades, &filters).unwrap()).unwrap();
+            let mut got = serde_json::to_value(analyze(&parsed.trades, &filters).unwrap()).unwrap();
+            for key in AFTER_PORT {
+                got.as_object_mut().unwrap().remove(key);
+            }
             let want: Value =
                 serde_json::from_str(&fixture(&format!("{name}.{case}.golden.json"))).unwrap();
             compare(&format!("{name}.{case}"), &got, &want, &mut errs);

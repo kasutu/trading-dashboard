@@ -2,7 +2,8 @@ import { PnlBars } from "@/components/charts/pnl-bars"
 import { BreakdownTable } from "@/components/dashboard/breakdown-table"
 import { LockedPanel } from "@/components/dashboard/locked-panel"
 import { Panel } from "@/components/dashboard/panel"
-import type { Analytics, FullAnalytics, Group } from "@/lib/api/types"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import type { Analytics, BestLots, FullAnalytics, Group } from "@/lib/api/types"
 import { money, pct, plural, pnlClass, sizeLabel } from "@/lib/format"
 import { best, cn } from "@/lib/utils"
 
@@ -11,9 +12,14 @@ export function Risk({ a }: { a: Analytics }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Panel title="P&L by position size" description="Lots per trade, for each symbol">
-        <PnlBars data={lots} vertical height={Math.max(180, lots.length * 30 + 40)} title={(d) => sizeLabel(d.key)} />
-      </Panel>
+      <div className="grid min-w-0 content-start gap-4">
+        <Panel title="P&L by position size" description="Lots per trade, for each symbol">
+          <PnlBars data={lots} vertical height={Math.max(180, lots.length * 30 + 40)} title={(d) => sizeLabel(d.key)} />
+        </Panel>
+        <Panel title="Best lots per instrument" description="Sizes with at least 5 trades on the symbol">
+          <BestLotsTable rows={a.bestLots} />
+        </Panel>
+      </div>
       <Panel title="How trades closed" description="Stop loss, take profit, manual or margin stop-out">
         <PnlBars data={reasons} vertical height={180} />
         <BreakdownTable label="Closed by" rows={reasons} className="mt-3" />
@@ -74,6 +80,48 @@ function Simulations({ a }: { a: FullAnalytics }) {
         </div>
       </Panel>
     </>
+  )
+}
+
+/** The best and worst lot size on each symbol. */
+function BestLotsTable({ rows }: { rows: BestLots[] }) {
+  const none = <span className="text-muted-foreground">Not enough trades</span>
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="h-8 px-0">Symbol</TableHead>
+          <TableHead className="h-8">Best size</TableHead>
+          <TableHead className="h-8 pr-0">Worst size</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((r) => (
+          <TableRow key={r.symbol}>
+            <TableCell className="px-0 py-2 font-medium">{r.symbol}</TableCell>
+            <TableCell className="py-2">
+              {r.best ? <LotStat g={r.best} rate /> : r.sizes ? <span className="text-muted-foreground">No winning size</span> : none}
+            </TableCell>
+            <TableCell className="py-2 pr-0">
+              {r.worst ? <LotStat g={r.worst} /> : r.sizes ? <span className="text-muted-foreground">No losing size</span> : none}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  )
+}
+
+/** "0.02 lots", then "+$120.50 · 62%" below. */
+function LotStat({ g, rate }: { g: Group; rate?: boolean }) {
+  return (
+    <div className="font-mono tabular-nums">
+      <div>{g.key} lots</div>
+      <div className="text-xs">
+        <span className={pnlClass(g.net)}>{money(g.net, true)}</span>
+        {rate && <span className="text-muted-foreground"> · {pct(g.winRate)} win</span>}
+      </div>
+    </div>
   )
 }
 

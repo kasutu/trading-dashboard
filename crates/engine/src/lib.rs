@@ -160,6 +160,19 @@ pub struct Group {
     pub gross_loss: f64,
 }
 
+/// The lot size that made the most and the one that lost the most on one symbol.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BestLots {
+    pub symbol: String,
+    /// Highest net among sizes with enough trades, key = lots ("0.02"). None unless net > 0.
+    pub best: Option<Group>,
+    /// Lowest net among sizes with enough trades. None unless net < 0.
+    pub worst: Option<Group>,
+    /// Lot sizes on this symbol with enough trades to compare.
+    pub sizes: u32,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Summary {
@@ -307,6 +320,10 @@ pub struct Analytics {
     pub curve: Vec<EquityPoint>,
     /// One group per day, key yyyy-mm-dd, sorted.
     pub daily: Vec<Group>,
+    /// One group per week (weeks start Monday), key = the Monday as yyyy-mm-dd, sorted.
+    pub by_week: Vec<Group>,
+    /// One group per month, key yyyy-mm, sorted.
+    pub by_month: Vec<Group>,
     /// 24 groups, keys "0".."23".
     pub by_hour: Vec<Group>,
     /// Mon..Fri always, Sat/Sun only with trades. Keys "Mon".."Sun".
@@ -316,6 +333,8 @@ pub struct Analytics {
     pub by_duration: Vec<Group>,
     /// Keys "SYMBOL · lots", e.g. "XAUUSD · 0.2", sorted by symbol then lots.
     pub by_lots: Vec<Group>,
+    /// Best and worst lot size per symbol, most traded symbol first.
+    pub best_lots: Vec<BestLots>,
     pub by_reason: Vec<Group>,
     pub by_symbol: Vec<Group>,
     pub by_side: Vec<Group>,
@@ -349,12 +368,15 @@ pub fn analyze(trades: &[Trade], filters: &Filters) -> Option<Analytics> {
         symbols: symbols.into_iter().map(|g| g.key).collect(),
         summary: summary(&ts),
         curve: equity_curve(&ts),
+        by_week: by_week(&ts),
+        by_month: by_month(&ts),
         daily,
         by_hour: by_hour(&ts),
         by_weekday: by_weekday(&ts),
         heatmap: heatmap(&ts),
         by_duration: by_duration(&ts),
         by_lots: by_lots(&ts),
+        best_lots: best_lots(&ts),
         by_reason: by_reason(&ts),
         by_symbol: by_symbol(&ts),
         by_side: by_side(&ts),

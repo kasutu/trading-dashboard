@@ -146,6 +146,7 @@ Every route that takes `:id` checks that the account belongs to the session user
 ## Analytics split
 
 - **Engine (Rust):** parsing, normalizing, grouping, simulations, the optimizer. All numbers.
+- Days, weeks and months use the trade's opening time in the filter timezone (`tz`). `byWeek` is keyed by the Monday (`yyyy-mm-dd`), `byMonth` by `yyyy-mm`, both sorted. `bestLots` picks, per symbol, the lot size with the highest net (only if above 0) and the one with the lowest (only if below 0), among sizes with at least 5 trades (`MIN_LOT_TRADES` in `stats.rs`).
 - **Web (TypeScript):** wording and layout. `src/lib/insights.ts` turns the `Analytics` payload into notes. Formatting (money, 12-hour time) stays in the browser.
 
 ## Plans
@@ -154,7 +155,7 @@ Billing (a payment provider) is not built yet. Every new user is on `free`. To p
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, results by symbol, side, position size and close reason, trade list. Share card with "Made with Jurno". |
+| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list. Share card with "Made with Jurno". |
 | Espresso | $9 / month | Everything in Free. Notes, Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
 | Latte | $15 / month | Everything in Espresso. Up to 5 trading accounts. Share card without the footer. |
 
@@ -164,7 +165,7 @@ There is also an `owner` plan for the creator: everything in Latte, with no acco
 
 The API enforces the limits (`crates/api/src/plan.rs`):
 
-- Analytics on Free: the server removes `byHour`, `byWeekday`, `heatmap`, `byDuration`, `nthTrade`, `dayBuckets`, `capSim`, `lossLimitSim`, `afterLoss` and `optimization`, and adds `locked: true`. The web app shows a locked panel for those views.
+- Analytics on Free: the server removes `byHour`, `byWeekday`, `heatmap`, `byDuration`, `nthTrade`, `dayBuckets`, `capSim`, `lossLimitSim`, `afterLoss` and `optimization`, and adds `locked: true`. The web app shows a locked panel for those views. Everything else stays, including `byWeek`, `byMonth` and `bestLots`.
 - `POST /api/accounts` returns 403 when the user has reached the plan's account limit.
 - `POST /api/mappings` returns 403 on Free.
 

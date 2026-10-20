@@ -6,6 +6,11 @@ import { RANGES } from "@/hooks/use-filters"
 import type { Filters, Range } from "@/lib/api/types"
 import { LOCAL_TZ, tzLabel } from "@/lib/format"
 
+/** A segmented pill toggle: put `pillGroup` on the ToggleGroup and `pillItem` on each item. */
+export const pillGroup = "rounded-full bg-muted p-0.5"
+export const pillItem =
+  "h-7 rounded-full px-3 font-mono text-xs text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm dark:data-[state=on]:bg-popover"
+
 const TIMEZONES = [...new Set([LOCAL_TZ, "UTC", "America/New_York", "Europe/London", "Asia/Tokyo"])]
 
 type Props = {
@@ -23,13 +28,13 @@ export function FilterBar({ filters, symbols, onChange, children }: Props) {
         type="single"
         size="sm"
         spacing={1}
-        className="rounded-full bg-muted p-0.5"
+        className={pillGroup}
         value={filters.range}
         onValueChange={(v) => v && onChange("range", v as Range)}
         aria-label="Date range"
       >
         {RANGES.map(([k, label]) => (
-          <ToggleGroupItem key={k} value={k} className="h-7 rounded-full px-3 font-mono text-xs text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm dark:data-[state=on]:bg-popover">{label}</ToggleGroupItem>
+          <ToggleGroupItem key={k} value={k} className={pillItem}>{label}</ToggleGroupItem>
         ))}
       </ToggleGroup>
 
