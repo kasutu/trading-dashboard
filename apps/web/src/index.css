@@ -30,6 +30,9 @@
   --profit: #248a3d;
   --loss: #d70015;
   --chart-1: var(--foreground);
+  /* Deposits and withdrawals: not profit or loss, so blue and orange instead of green and red. */
+  --deposit: #0071e3;
+  --withdrawal: #c93400;
   --card-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 24px rgb(0 0 0 / 0.05);
   --header: rgb(245 245 247 / 0.72);
 }
@@ -52,6 +55,8 @@
   --brand: #ffc23d;
   --profit: #30d158;
   --loss: #ff453a;
+  --deposit: #0a84ff;
+  --withdrawal: #d46f00;
   --card-shadow: 0 0 0 1px rgb(255 255 255 / 0.04);
   --header: rgb(0 0 0 / 0.68);
 }
@@ -91,6 +96,8 @@
   --color-profit: var(--profit);
   --color-loss: var(--loss);
   --color-chart-1: var(--chart-1);
+  --color-deposit: var(--deposit);
+  --color-withdrawal: var(--withdrawal);
 }
 
 @layer base {

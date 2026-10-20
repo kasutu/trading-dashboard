@@ -233,6 +233,13 @@ async fn accounts_crud() {
 async fn accounts_of_other_users_are_not_found() {
     let t = setup().await;
     let id = t.new_account().await;
+    let (_, flow) = t
+        .post(
+            &format!("/api/accounts/{id}/cash-flows"),
+            json!({ "occurredAt": "2026-08-01T09:00:00Z", "kind": "deposit", "amount": 1 }),
+        )
+        .await;
+    let flow = flow["id"].as_str().unwrap();
     let bob = Some(BOB_COOKIE);
     let (_, list) = t.send(Method::GET, "/api/accounts", bob, None).await;
     assert_eq!(list, json!([]));
@@ -249,6 +256,13 @@ async fn accounts_of_other_users_are_not_found() {
         ),
         (Method::GET, format!("{path}/analytics"), None),
         (Method::GET, format!("{path}/trades"), None),
+        (Method::GET, format!("{path}/cash-flows"), None),
+        (
+            Method::POST,
+            format!("{path}/cash-flows"),
+            Some(json!({ "occurredAt": "2026-08-01T09:00:00Z", "kind": "deposit", "amount": 1 })),
+        ),
+        (Method::DELETE, format!("{path}/cash-flows/{flow}"), None),
         (Method::GET, "/api/accounts/not-a-uuid/trades".into(), None),
     ] {
         let (s, v) = t.send(method.clone(), &path, bob, body).await;
@@ -258,6 +272,8 @@ async fn accounts_of_other_users_are_not_found() {
     // Still there for the owner.
     let (_, imports) = t.get(&format!("/api/accounts/{id}/imports")).await;
     assert_eq!(imports, json!([]));
+    let (_, flows) = t.get(&format!("/api/accounts/{id}/cash-flows")).await;
+    assert_eq!(flows["rows"].as_array().unwrap().len(), 1);
 }
 
 #[tokio::test]
@@ -626,4 +642,146 @@ async fn partial_closes_with_the_same_ticket_are_kept() {
         (v["added"].as_u64(), v["duplicates"].as_u64()),
         (Some(0), Some(2))
     );
+}
+
+#[tokio::test]
+async fn cash_flows_crud_and_summary() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let path = format!("/api/accounts/{id}/cash-flows");
+
+    let (s, v) = t.get(&path).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["rows"], json!([]));
+    assert_eq!(v["summary"]["net"], 0.0);
+    assert_eq!(v["daily"], json!([]));
+
+    let (s, first) = t
+        .post(
+            &path,
+            json!({ "occurredAt": "2026-08-01T09:00:00Z", "kind": "deposit", "amount": 500, "note": " First funding " }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{first}");
+    assert_eq!(first["kind"], "deposit");
+    assert_eq!(first["amount"], 500.0);
+    assert_eq!(first["note"], "First funding");
+    assert_eq!(first["occurredAt"], "2026-08-01T09:00:00Z");
+    assert!(first["id"].is_string() && first["createdAt"].is_string());
+    // 20:00 UTC is Aug 2 in Manila. An empty note is stored as null.
+    for body in [
+        json!({ "occurredAt": "2026-08-01T20:00:00Z", "kind": "deposit", "amount": 100.5, "note": "" }),
+        json!({ "occurredAt": "2026-09-10T08:00:00Z", "kind": "withdrawal", "amount": 150 }),
+    ] {
+        let (s, v) = t.post(&path, body).await;
+        assert_eq!(s, StatusCode::OK, "{v}");
+        assert_eq!(v["note"], Value::Null);
+    }
+
+    let (_, v) = t.get(&format!("{path}?tz=Asia/Manila")).await;
+    let rows = v["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 3);
+    assert_eq!(rows[0]["kind"], "withdrawal", "newest first");
+    assert_eq!(rows[1]["day"], "2026-08-02");
+    assert_eq!(rows[2]["day"], "2026-08-01");
+    assert_eq!(
+        v["summary"],
+        json!({
+            "deposits": { "count": 2, "total": 600.5 },
+            "withdrawals": { "count": 1, "total": 150.0 },
+            "net": 450.5,
+        })
+    );
+    let days: Vec<_> = v["daily"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|d| {
+            (
+                d["day"].as_str().unwrap(),
+                d["cumulative"].as_f64().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        days,
+        [
+            ("2026-08-01", 500.0),
+            ("2026-08-02", 600.5),
+            ("2026-09-10", 450.5)
+        ]
+    );
+
+    // Delete one; a second delete and a bad id are 404.
+    let flow = format!("{path}/{}", first["id"].as_str().unwrap());
+    let (s, _) = t.send(Method::DELETE, &flow, Some(COOKIE), None).await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+    let (s, v) = t.send(Method::DELETE, &flow, Some(COOKIE), None).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    assert_eq!(v["error"], "This deposit or withdrawal does not exist.");
+    let (s, _) = t
+        .send(Method::DELETE, &format!("{path}/nope"), Some(COOKIE), None)
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let (_, v) = t.get(&path).await;
+    assert_eq!(v["summary"]["deposits"]["count"], 1);
+
+    // Deleting the account deletes its cash flows.
+    t.send(
+        Method::DELETE,
+        &format!("/api/accounts/{id}"),
+        Some(COOKIE),
+        None,
+    )
+    .await;
+    let n: i64 = sqlx::query_scalar("select count(*) from cash_flows")
+        .fetch_one(&t.pool)
+        .await
+        .unwrap();
+    assert_eq!(n, 0);
+}
+
+#[tokio::test]
+async fn cash_flow_validation() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let path = format!("/api/accounts/{id}/cash-flows");
+    let at = "2026-08-01T09:00:00Z";
+    for (body, error) in [
+        (
+            json!({ "occurredAt": at, "kind": "bonus", "amount": 10 }),
+            "Use deposit or withdrawal for \"kind\".",
+        ),
+        (
+            json!({ "occurredAt": at, "kind": "deposit", "amount": 0 }),
+            "The amount must be more than zero.",
+        ),
+        (
+            json!({ "occurredAt": at, "kind": "withdrawal", "amount": -5 }),
+            "The amount must be more than zero.",
+        ),
+        (
+            json!({ "occurredAt": at, "kind": "deposit", "amount": 1, "note": "x".repeat(201) }),
+            "Keep the note under 200 characters.",
+        ),
+    ] {
+        let (s, v) = t.post(&path, body.clone()).await;
+        assert_eq!(s, StatusCode::BAD_REQUEST, "{body}");
+        assert_eq!(v["error"], error);
+    }
+    for body in [
+        json!({ "occurredAt": "yesterday", "kind": "deposit", "amount": 1 }),
+        json!({ "kind": "deposit", "amount": 1 }),
+        json!({ "occurredAt": at, "kind": "deposit", "amount": "ten" }),
+    ] {
+        let (s, v) = t.post(&path, body.clone()).await;
+        assert_eq!(s, StatusCode::BAD_REQUEST, "{body}");
+        assert!(v["error"]
+            .as_str()
+            .unwrap()
+            .starts_with("The request body is not valid"));
+    }
+    let (s, v) = t.get(&format!("{path}?tz=Mars/Base")).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    assert!(v["error"].as_str().unwrap().contains("Mars/Base"));
 }

@@ -16,6 +16,7 @@ export const PLANS: Plan[] = [
       "Results by symbol, side, position size and close reason",
       "Best lot size for each symbol",
       "Full trade list",
+      "Deposits and withdrawals",
       "Share card with a “Made with Jurno” footer",
     ],
   },
