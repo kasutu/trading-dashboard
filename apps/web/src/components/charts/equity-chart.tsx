@@ -1,6 +1,6 @@
 import { Area, AreaChart, CartesianGrid, ReferenceDot, ReferenceLine, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart"
-import { money, pnlClass } from "@/lib/format"
+import { formatDateTime, money, pnlClass } from "@/lib/format"
 import type { EquityPoint } from "@/lib/api/types"
 import { chartConfig } from "./chart-config"
 import { ChartTip } from "./chart-tip"
@@ -18,7 +18,6 @@ export function EquityChart({ data, tz }: { data: EquityPoint[]; tz: string }) {
   const marks = high.equity !== low.equity
   // Put the word on the side of the dot that faces the middle, so it never clips at an edge.
   const side = (p: EquityPoint): "right" | "left" => (p.n < lastN / 2 ? "right" : "left")
-  const date = (t: number) => new Date(t).toLocaleDateString("en-US", { timeZone: tz, month: "short", day: "numeric" })
 
   return (
     <ChartContainer config={chartConfig} className="aspect-auto h-full min-h-[260px] w-full flex-1">
@@ -48,9 +47,10 @@ export function EquityChart({ data, tz }: { data: EquityPoint[]; tz: string }) {
             const d = payload[0].payload as EquityPoint
             return (
               <ChartTip
-                title={`Trade #${d.n} · ${date(d.time)}`}
+                title={formatDateTime(new Date(d.time).toISOString(), tz)}
                 rows={[
                   ["Equity", money(d.equity, true), pnlClass(d.equity)],
+                  ["Trade", `${d.n} of ${data.length}`],
                   ["This trade", money(d.net, true), pnlClass(d.net)],
                   ["Drawdown", money(d.drawdown), d.drawdown < 0 ? "text-loss" : undefined],
                 ]}

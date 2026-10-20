@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useImports, usePresets } from "@/hooks/use-api"
 import type { Account, Import } from "@/lib/api/types"
-import { plural } from "@/lib/format"
+import { LOCAL_TZ, formatDateTime, plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const MAX_BYTES = 20 * 1024 * 1024
@@ -149,7 +149,7 @@ function PastImports({ accountId }: { accountId: string }) {
           {data.map((i) => (
             <TableRow key={i.id}>
               <TableCell className="max-w-48 truncate pl-5 font-medium">{i.fileName}</TableCell>
-              <TableCell className="text-muted-foreground">{new Date(i.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</TableCell>
+              <TableCell className="text-muted-foreground">{formatDateTime(i.createdAt, LOCAL_TZ)}</TableCell>
               <TableCell className={num}>{i.added}</TableCell>
               <TableCell className={num}>{i.duplicates}</TableCell>
               <TableCell className={cn("pr-5", num)}>{i.skipped}</TableCell>

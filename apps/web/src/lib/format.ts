@@ -19,8 +19,15 @@ export const hourShort = (h: number | string) => {
   const n = Number(h)
   return `${n % 12 || 12}${n < 12 ? "a" : "p"}`
 }
-export const duration = (min: number) =>
-  min < 1 ? `${Math.round(min * 60)}s` : min < 60 ? `${Math.round(min)}m` : `${(min / 60).toFixed(1)}h`
+/** Hold time in words: "45 sec", "12 min", "1 hr 24 min", "2 days 3 hr". */
+export function duration(min: number) {
+  if (min < 1) return `${Math.max(1, Math.round(min * 60))} sec`
+  const m = Math.round(min)
+  if (m < 60) return `${m} min`
+  const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), r = m % 60
+  if (d) return `${plural(d, "day")}${h ? ` ${h} hr` : ""}`
+  return `${h} hr${r ? ` ${r} min` : ""}`
+}
 export const ordinal = (n: number) => {
   const t = n % 100
   const s = t >= 11 && t <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"
@@ -41,21 +48,61 @@ export function formatDay(day: string, weekday = false) {
 }
 
 /** ["2026-08-03", "2026-10-01"] → "Aug 3 – Oct 1" */
+const toDate = (day: string) => new Date(day + "T00:00")
+const isThisYear = (day: string) => day.slice(0, 4) === String(new Date().getFullYear())
+
+/** A span of days: "Aug 3 – Oct 1", with the year only when it is not this year. */
 export function formatPeriod([a, b]: [string, string]) {
-  return a === b ? formatDay(a) : `${formatDay(a)} – ${formatDay(b)}`
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }
+  if (!isThisYear(a) || !isThisYear(b)) opts.year = "numeric"
+  return new Intl.DateTimeFormat("en-US", opts).formatRange(toDate(a), toDate(b))
 }
 
 /** "2026-10-19" → "Monday, October 19, 2026" */
 export const formatLongDay = (day: string) =>
-  new Date(day + "T00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+  toDate(day).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
 
-/** ISO time → "Oct 19, 09:05 AM" in the timezone. */
-export const formatDateTime = (iso: string, tz: string) =>
-  new Date(iso).toLocaleString("en-US", { timeZone: tz, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })
+/** A day the way Apple writes it: "Today", "Yesterday", "Monday" (this week), "Mon, Oct 19",
+ *  or "Mon, Oct 19, 2025" in another year. */
+export function relativeDay(day: string, tz: string) {
+  const now = today(tz)
+  const diff = Math.round((+toDate(now) - +toDate(day)) / 86400000)
+  if (diff === 0) return "Today"
+  if (diff === 1) return "Yesterday"
+  if (diff > 1 && diff < 7) return toDate(day).toLocaleDateString("en-US", { weekday: "long" })
+  return toDate(day).toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric", year: isThisYear(day) ? undefined : "numeric",
+  })
+}
 
-/** ISO time → "9:05 AM" in the timezone. */
+/** ISO time → "9:05 PM" in the timezone. */
 export const formatTime = (iso: string, tz: string) =>
-  new Date(iso).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true })
+  new Date(iso).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" })
+
+/** yyyy-mm-dd of an ISO time in the timezone. */
+const dayOf = (iso: string, tz: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: tz })
+
+/** ISO time → "Today, 9:05 PM", "Yesterday, 9:05 PM" or "Mon, Oct 19, 9:05 PM". */
+export const formatDateTime = (iso: string, tz: string) => `${relativeDay(dayOf(iso, tz), tz)}, ${formatTime(iso, tz)}`
+
+/** Open to close: "9:05 – 9:19 PM" on one day, "9:05 PM – Oct 20, 2:24 AM" across days. */
+export function formatTimeRange(startIso: string, endIso: string, tz: string) {
+  const sameDay = dayOf(startIso, tz) === dayOf(endIso, tz)
+  const opts: Intl.DateTimeFormatOptions = sameDay
+    ? { timeZone: tz, hour: "numeric", minute: "2-digit" }
+    : { timeZone: tz, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }
+  return new Intl.DateTimeFormat("en-US", opts).formatRange(new Date(startIso), new Date(endIso))
+}
+
+/** A timezone as people say it: "Manila (GMT+8)", "New York (GMT-4)", "UTC". */
+export function tzLabel(tz: string) {
+  if (tz === "UTC") return "UTC"
+  const city = tz.split("/").pop()!.replace(/_/g, " ")
+  const offset = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "shortOffset" })
+    .formatToParts(new Date())
+    .find((p) => p.type === "timeZoneName")?.value
+  return offset ? `${city} (${offset})` : city
+}
 
 /** Today as yyyy-mm-dd in the timezone. */
 export const today = (tz: string) => new Date().toLocaleDateString("en-CA", { timeZone: tz })

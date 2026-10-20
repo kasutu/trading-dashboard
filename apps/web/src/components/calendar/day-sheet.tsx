@@ -1,7 +1,7 @@
 import { SideBadge } from "@/components/dashboard/side-badge"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import type { LocalTrade } from "@/lib/api/types"
-import { formatLongDay, formatTime, money, pct, pnlClass, price, tradeKey } from "@/lib/format"
+import { duration, formatLongDay, formatTimeRange, money, pct, pnlClass, price, tradeKey, tzLabel } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type Props = { day: string | null; trades: LocalTrade[]; tz: string; onClose: () => void }
@@ -18,7 +18,7 @@ export function DaySheet({ day, trades, tz, onClose }: Props) {
           <div className="space-y-5 p-5">
             <div className="space-y-1 pr-8">
               <SheetTitle className="font-display text-xl font-bold">{formatLongDay(day)}</SheetTitle>
-              <SheetDescription>Trades opened on this day. Times are in {tz}.</SheetDescription>
+              <SheetDescription>Trades opened on this day. Times are in {tzLabel(tz)}.</SheetDescription>
             </div>
             <dl className="grid grid-cols-3 gap-2">
               <Stat label="Total trades" value={String(trades.length)} />
@@ -34,9 +34,12 @@ export function DaySheet({ day, trades, tz, onClose }: Props) {
                     <span className="text-xs text-muted-foreground">{t.lots} lots</span>
                     <span className={cn("ml-auto font-mono font-medium tabular-nums", pnlClass(t.net))}>{money(t.net, true)}</span>
                   </div>
+                  <p className="mt-1 font-mono text-sm text-muted-foreground">
+                    {formatTimeRange(t.open, t.close, tz)} <span aria-hidden>·</span> {duration(t.durationMin)}
+                  </p>
                   <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
-                    <Field label="Open" value={`${price(t.openPrice)} at ${formatTime(t.open, tz)}`} />
-                    <Field label="Close" value={`${price(t.closePrice)} at ${formatTime(t.close, tz)}`} />
+                    <Field label="Open price" value={price(t.openPrice)} />
+                    <Field label="Close price" value={price(t.closePrice)} />
                     <Field label="Swap" value={money(t.swap)} />
                     <Field label="Commission" value={money(t.commission)} />
                     <Field label="Stop loss" value={price(t.sl)} />

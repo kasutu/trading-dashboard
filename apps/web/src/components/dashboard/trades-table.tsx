@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useTrades } from "@/hooks/use-api"
 import type { Filters } from "@/lib/api/types"
-import { duration, formatDateTime, money, plural, pnlClass, price, tradeKey } from "@/lib/format"
+import { duration, formatTimeRange, money, plural, pnlClass, price, relativeDay, tradeKey } from "@/lib/format"
 import { ReasonPill } from "./reason-pill"
 import { cn } from "@/lib/utils"
 import { SideBadge } from "./side-badge"
@@ -24,7 +24,7 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
-            <TableHead className="pl-5">Opened</TableHead>
+            <TableHead className="pl-5">Time</TableHead>
             <TableHead>Symbol</TableHead>
             <TableHead>Side</TableHead>
             <TableHead className="text-right">Lots</TableHead>
@@ -36,9 +36,18 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data?.rows.map((t) => (
-            <TableRow key={tradeKey(t)}>
-              <TableCell className="pl-5 text-muted-foreground">{formatDateTime(t.open, tz)}</TableCell>
+          {data?.rows.map((t, i) => (
+            <React.Fragment key={tradeKey(t)}>
+            {/* A header row each time the day changes, like Wallet and Mail. */}
+            {t.day !== data.rows[i - 1]?.day && (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={9} className="bg-muted/40 py-1.5 pl-5 text-xs font-semibold text-muted-foreground">
+                  {relativeDay(t.day, tz)}
+                </TableCell>
+              </TableRow>
+            )}
+            <TableRow>
+              <TableCell className="pl-5 font-mono whitespace-nowrap text-muted-foreground">{formatTimeRange(t.open, t.close, tz)}</TableCell>
               <TableCell className="font-medium">{t.symbol}</TableCell>
               <TableCell>
                 <SideBadge side={t.side} />
@@ -46,10 +55,11 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
               <TableCell className={num}>{t.lots}</TableCell>
               <TableCell className={num}>{price(t.openPrice)}</TableCell>
               <TableCell className={num}>{price(t.closePrice)}</TableCell>
-              <TableCell className={num}>{duration(t.durationMin)}</TableCell>
+              <TableCell className={cn(num, "whitespace-nowrap")}>{duration(t.durationMin)}</TableCell>
               <TableCell><ReasonPill reason={t.reason} /></TableCell>
               <TableCell className={cn("pr-5", num, pnlClass(t.net))}>{money(t.net, true)}</TableCell>
             </TableRow>
+            </React.Fragment>
           ))}
         </TableBody>
       </Table>
