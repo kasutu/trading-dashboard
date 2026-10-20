@@ -528,3 +528,29 @@ async fn free_plan_limits() {
     let (s, v) = t.post("/api/accounts", json!({ "name": "A6" })).await;
     assert_eq!(s, StatusCode::OK, "{v}");
 }
+
+#[tokio::test]
+async fn admin_commands_set_plans() {
+    let t = setup().await;
+    let run = |args: &[&str]| {
+        let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+        let pool = t.pool.clone();
+        async move { api::admin::run(&pool, &args).await }
+    };
+    // Username match ignores case, as Better Auth stores it in lower case.
+    assert!(run(&["plan", "ALICE", "espresso"])
+        .await
+        .unwrap()
+        .contains("espresso"));
+    assert!(run(&["owner", "alice"]).await.unwrap().contains("owner"));
+    assert_eq!(
+        api::plan::Plan::of(&t.pool, "u_alice").await.unwrap(),
+        api::plan::Plan::Owner
+    );
+    assert!(run(&["plan", "alice", "gold"]).await.is_err());
+    assert!(run(&["owner", "nobody"])
+        .await
+        .unwrap_err()
+        .contains("No user named nobody"));
+    assert!(run(&["unknown"]).await.is_err());
+}

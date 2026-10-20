@@ -30,10 +30,13 @@ Ctrl+C stops all of them. Run `just` to see every task:
 | `just mock` | Web app with fake data, no backend |
 | `just plan alice espresso` | Put a user on a plan (`free`, `espresso`, `latte` or `owner`) |
 | `just owner alice` | Give a user the owner plan: everything, no account limit |
+| `just users` | List users with their plan, trading accounts and trades |
 | `just psql` | Open a database shell |
 | `just test` | Rust tests (with their own Postgres), web build and lint |
 | `just check` | Rust format and clippy, in Docker |
 | `just up`, `just down`, `just reset` | All services in containers, stop them, stop and delete the database |
+
+On Railway, the same account commands run in the api container: see [docs/deploy.md](docs/deploy.md#admin-commands).
 
 The steps below do the same by hand.
 

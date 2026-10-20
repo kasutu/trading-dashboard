@@ -60,16 +60,17 @@ reset:
 psql:
     docker compose exec postgres psql -U jurno -d jurno
 
+# List users with their plan, trading accounts and trades
+users:
+    @cargo run -q -p api -- users
+
 # Put a user on a plan: just plan alice espresso (free, espresso, latte or owner)
 plan username tier:
-    @[[ "{{tier}}" =~ ^(free|espresso|latte|owner)$ ]] || { echo "Use free, espresso, latte or owner."; exit 1; }
-    @out=$(docker compose exec -T postgres psql -U jurno -d jurno -qtAc "insert into profiles (user_id, plan) select id, '{{tier}}' from \"user\" where username = lower('{{username}}') on conflict (user_id) do update set plan = excluded.plan returning plan"); \
-    if [ -z "$out" ]; then echo "No user named {{username}}. Sign up first at http://localhost:5173/sign-up, then run this again."; exit 1; fi; \
-    echo "{{username}} is now on {{tier}}. Reload the page."
+    @cargo run -q -p api -- plan {{username}} {{tier}}
 
 # Give a user the owner plan: everything, no account limit
 owner username:
-    just plan {{username}} owner
+    @cargo run -q -p api -- owner {{username}}
 
 # Run the Rust tests (own Postgres on port 55432) and build and lint the web app
 test:

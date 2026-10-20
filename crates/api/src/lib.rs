@@ -1,5 +1,6 @@
 //! Jurno HTTP API. See docs/architecture.md for the contract.
 
+pub mod admin;
 pub mod auth;
 pub mod config;
 pub mod db;

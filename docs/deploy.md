@@ -69,3 +69,25 @@ The api build needs the whole Cargo workspace, so its root directory is the repo
 1. Copy `.env.example` to `.env` and set `BETTER_AUTH_SECRET`.
 2. Run `docker compose up`. This starts Postgres on port 5432, auth on 3001 and api on 8080. Set `POSTGRES_PORT` if 5432 is in use.
 3. In `apps/web`, run `npm run dev`. Vite serves the app on port 5173 and proxies `/api`.
+
+## Admin commands
+
+The `api` service has commands to manage users and plans. Run them inside the running container.
+
+1. Install the Railway CLI and sign in: `npm i -g @railway/cli`, then `railway login`.
+2. In the repo folder, link the project: `railway link`.
+3. Open a shell in the api container: `railway ssh --service api`. The shell starts in `/app`.
+4. Run a command:
+
+| Command | What it does |
+| --- | --- |
+| `make users` | List users with their plan, trading accounts and trades |
+| `make owner NAME=kasutu` | Give a user the owner plan: everything, no account limit |
+| `make plan NAME=alice PLAN=espresso` | Put a user on a plan: `free`, `espresso`, `latte` or `owner` |
+| `make help` | Show every command |
+
+To run one command without opening a shell: `railway ssh --service api -- make users`.
+
+The same commands run as `api users`, `api owner <username>` and `api plan <username> <plan>`. Locally, use `just users`, `just owner <username>` and `just plan <username> <plan>`.
+
+A user must sign up before you can change their plan. The change shows on their next page load.

@@ -40,6 +40,26 @@ impl Plan {
         }
     }
 
+    /// Strict version of `parse` for admin commands: unknown names are an error, not Free.
+    pub fn from_name(s: &str) -> Option<Self> {
+        match s {
+            "free" => Some(Self::Free),
+            "espresso" => Some(Self::Espresso),
+            "latte" => Some(Self::Latte),
+            "owner" => Some(Self::Owner),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Free => "free",
+            Self::Espresso => "espresso",
+            Self::Latte => "latte",
+            Self::Owner => "owner",
+        }
+    }
+
     pub fn is_paid(self) -> bool {
         self != Self::Free
     }
