@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useTrades } from "@/hooks/use-api"
 import type { Filters } from "@/lib/api/types"
-import { duration, formatDateTime, money, plural, pnlClass, price } from "@/lib/format"
+import { duration, formatDateTime, money, plural, pnlClass, price, tradeKey } from "@/lib/format"
 import { ReasonPill } from "./reason-pill"
 import { cn } from "@/lib/utils"
 import { SideBadge } from "./side-badge"
@@ -37,7 +37,7 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
         </TableHeader>
         <TableBody>
           {data?.rows.map((t) => (
-            <TableRow key={t.ticket}>
+            <TableRow key={tradeKey(t)}>
               <TableCell className="pl-5 text-muted-foreground">{formatDateTime(t.open, tz)}</TableCell>
               <TableCell className="font-medium">{t.symbol}</TableCell>
               <TableCell>

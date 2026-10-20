@@ -2,7 +2,7 @@ import { ArrowDownRight, ArrowUpRight } from "lucide-react"
 import { SideBadge } from "@/components/dashboard/side-badge"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import type { LocalTrade } from "@/lib/api/types"
-import { compactMoney, formatDay, money, plural, pnlClass } from "@/lib/format"
+import { compactMoney, formatDay, money, plural, pnlClass, tradeKey } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -72,7 +72,7 @@ export function CalendarDay({ day, trades, inMonth, weekend, isToday, onOpen }: 
         </div>
         <ul className="max-h-64 overflow-y-auto px-3 py-1.5">
           {trades.map((t) => (
-            <li key={t.ticket} className="flex items-center gap-2 py-1.5 text-sm">
+            <li key={tradeKey(t)} className="flex items-center gap-2 py-1.5 text-sm">
               {t.net >= 0 ? <ArrowUpRight className="size-4 text-profit" /> : <ArrowDownRight className="size-4 text-loss" />}
               <span className={cn("w-20 font-mono tabular-nums", pnlClass(t.net))}>{money(t.net, true)}</span>
               <span className="flex-1 truncate">{t.symbol}</span>

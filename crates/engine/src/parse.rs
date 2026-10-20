@@ -97,7 +97,12 @@ pub fn parse_csv(text: &str, mapping: &ColumnMapping) -> Result<ParseOutput, Par
 fn row<'r>(get: impl Fn(Field) -> &'r str, tz: Tz) -> Option<Trade> {
     let open = parse_time(get(Field::OpenTime), tz)?;
     let close = parse_time(get(Field::CloseTime), tz)?;
-    let profit = num(get(Field::Profit))?;
+    // Exness leaves zero values blank (a breakeven trade has an empty profit cell),
+    // so an empty profit is 0. A value that is not a number still skips the row.
+    let profit = match get(Field::Profit) {
+        "" => 0.0,
+        p => num(p)?,
+    };
     let commission = num(get(Field::Commission)).unwrap_or(0.0);
     let swap = num(get(Field::Swap)).unwrap_or(0.0);
     let side = match get(Field::Side).to_lowercase().as_str() {
@@ -304,8 +309,10 @@ mod tests {
                    \n\
                    2024-01-01 10:00:00,2024-01-01 10:30:00,-5\n";
         let out = parse_csv(csv, &basic("UTC")).unwrap();
-        assert_eq!(out.trades.len(), 2);
-        assert_eq!(out.skipped_rows, 5);
+        // The row with an empty profit is a breakeven trade (profit 0), not a bad row.
+        assert_eq!(out.trades.len(), 3);
+        assert_eq!(out.skipped_rows, 4);
+        assert_eq!(out.trades.iter().filter(|t| t.profit == 0.0).count(), 1);
         assert!(out.trades[0].open < out.trades[1].open, "sorted by open");
     }
 

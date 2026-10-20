@@ -1,7 +1,7 @@
 import { SideBadge } from "@/components/dashboard/side-badge"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import type { LocalTrade } from "@/lib/api/types"
-import { formatLongDay, formatTime, money, pct, pnlClass, price } from "@/lib/format"
+import { formatLongDay, formatTime, money, pct, pnlClass, price, tradeKey } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type Props = { day: string | null; trades: LocalTrade[]; tz: string; onClose: () => void }
@@ -27,7 +27,7 @@ export function DaySheet({ day, trades, tz, onClose }: Props) {
             </dl>
             <ul className="space-y-3">
               {trades.map((t) => (
-                <li key={t.ticket} className="rounded-xl border bg-card p-4 shadow-card">
+                <li key={tradeKey(t)} className="rounded-xl border bg-card p-4 shadow-card">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{t.symbol}</span>
                     <SideBadge side={t.side} />
