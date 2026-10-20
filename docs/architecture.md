@@ -110,6 +110,18 @@ create table column_mappings (
   created_at timestamptz not null default now()
 );
 create index on column_mappings (user_id);
+
+-- Deposits and withdrawals, entered by hand (the trade CSV has none).
+create table cash_flows (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references trading_accounts on delete cascade,
+  occurred_at timestamptz not null,
+  kind text not null check (kind in ('deposit', 'withdrawal')),
+  amount double precision not null check (amount > 0),
+  note text,
+  created_at timestamptz not null default now()
+);
+create index on cash_flows (account_id);
 ```
 
 ## HTTP API
@@ -126,6 +138,9 @@ All routes are under `/api`, take and return JSON (camelCase), and need a sessio
 | `DELETE /api/accounts/:id` | | `204` |
 | `GET /api/accounts/:id/imports` | | `Import[]`, newest first |
 | `POST /api/accounts/:id/imports` | `{ fileName, csv, mapping: ColumnMapping }` | `Import`. Upserts trades on `(account_id, ticket, closed_at, lots, close_price)`, so partial closes (same ticket) are kept. `duplicates` counts rows already stored. `422` with the parse error message when parsing fails. Max body 20 MB. |
+| `GET /api/accounts/:id/cash-flows` | query: `tz` (default `UTC`) | `{ rows: LocalCashFlow[], summary: CashSummary, daily: CashDay[] }`. Rows newest first. `summary` and `daily` come from `engine::cash_report`; days are in `tz`. Not affected by the dashboard filters. |
+| `POST /api/accounts/:id/cash-flows` | `{ occurredAt, kind: "deposit" \| "withdrawal", amount, note? }` | `CashFlow`. `400` when `kind` is not deposit or withdrawal, `amount` is not more than 0, or `note` is over 200 characters. An empty note is stored as `null`. |
+| `DELETE /api/accounts/:id/cash-flows/:flowId` | | `204`. `404` when the entry is not in this account. |
 | `GET /api/presets` (public) | | `{ exness: ColumnMapping }` |
 | `GET /api/mappings` | | `SavedMapping[]` |
 | `POST /api/mappings` | `{ name, mapping }` | `SavedMapping` |
@@ -139,13 +154,19 @@ Types:
 Account      = { id, name, broker: string | null, currency, createdAt, trades: number }
 Import       = { id, fileName, added, duplicates, skipped, createdAt }
 SavedMapping = { id, name, mapping: ColumnMapping, createdAt }
+CashFlow     = { id, occurredAt, kind: "deposit" | "withdrawal", amount, note: string | null, createdAt }  // amount > 0
+LocalCashFlow = CashFlow & { day }  // yyyy-mm-dd of occurredAt in tz
+CashSummary  = { deposits: { count, total }, withdrawals: { count, total }, net }  // net = deposits - withdrawals
+CashDay      = { day, deposits, withdrawals, net, cumulative }  // one per day with a flow, oldest first; cumulative = net deposited so far
 ```
+
+Deposits and withdrawals are on every plan. They are not trades: they never change the P&L numbers. The web app shows them in the Funding tab and as markers on the equity curve.
 
 Every route that takes `:id` checks that the account belongs to the session user (404 otherwise).
 
 ## Analytics split
 
-- **Engine (Rust):** parsing, normalizing, grouping, simulations, the optimizer. All numbers.
+- **Engine (Rust):** parsing, normalizing, grouping, simulations, the optimizer, the deposit and withdrawal totals (`cash_report`). All numbers.
 - Days, weeks and months use the trade's opening time in the filter timezone (`tz`). `byWeek` is keyed by the Monday (`yyyy-mm-dd`), `byMonth` by `yyyy-mm`, both sorted. `bestLots` picks, per symbol, the lot size with the highest net (only if above 0) and the one with the lowest (only if below 0), among sizes with at least 5 trades (`MIN_LOT_TRADES` in `stats.rs`).
 - **Web (TypeScript):** wording and layout. `src/lib/insights.ts` turns the `Analytics` payload into notes. Formatting (money, 12-hour time) stays in the browser.
 
@@ -155,7 +176,7 @@ Billing (a payment provider) is not built yet. Every new user is on `free`. To p
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list. Share card with "Made with Jurno". |
+| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list, deposits and withdrawals. Share card with "Made with Jurno". |
 | Espresso | $9 / month | Everything in Free. Notes, Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
 | Latte | $15 / month | Everything in Espresso. Up to 5 trading accounts. Share card without the footer. |
 
