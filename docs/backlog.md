@@ -13,20 +13,8 @@ Show how many deposits and withdrawals were made, the total of each, and a chart
 - Chart idea: mark each deposit and withdrawal on the equity curve on the day it happened, so a jump in balance is not mistaken for trading profit.
 - New table (for example `cash_flows`: account, time, type, amount), API routes, and a line in `architecture.md`.
 
-### 2. Best lot size per instrument
-
-For each instrument, show which lot size made the most money (and which lost the most).
-
-- Now: partly there. `by_lots` in the engine already groups by symbol and lot size ("XAUUSD · 0.2"), shown in Risk as "P&L by position size". Nothing picks the best size per instrument.
-- Add: a per-instrument pick in the engine (minimum trade count so one lucky trade does not win), a "Best lots on {instrument}" view, and an insight note.
-
-### 3. Weekly and monthly profit
-
-Net P&L per week and per month, as charts.
-
-- Now: only the trading calendar shows a total for the month on screen. No weekly totals, no monthly chart.
-- Add: `by_week` and `by_month` in the engine (weeks start Monday, in the user's timezone), and green/red bar charts with trades and win rate in the tooltip.
-
 ## Done
 
 - **P&L by hour uses the opening time.** Already the case: the engine takes the hour from the opening time and the chart says "Hour the trade was opened". No change needed.
+- **Best lot size per instrument.** `bestLots` in the engine picks the best and worst size per symbol (at least 5 trades per size), shown in Risk as "Best lots per instrument", with a "Best size on {symbol}" note. (PR link)
+- **Weekly and monthly profit.** `byWeek` (weeks start Monday) and `byMonth` in the engine, on the user's timezone, shown on Overview as a Weekly | Monthly P&L bar chart. Free plan. (PR link)
