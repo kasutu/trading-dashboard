@@ -80,6 +80,8 @@ export type DayBucket = { key: string; days: number; net: number; avgPerDay: num
 export type CapRow = { key: string; cap: number; net: number; trades: number }
 export type LimitRow = { key: string; limit: number; net: number; trades: number; stoppedDays: number }
 export type AfterLoss = { windowMin: number; after: Group; other: Group }
+/** Best and worst lot size on one symbol. Group keys are lots ("0.02"). Sizes with fewer than 5 trades are left out. */
+export type BestLots = { symbol: string; best: Group | null; worst: Group | null; sizes: number }
 
 export type Rules = { skipHours: number[]; skipWeekdays: number[]; cap: number | null; lossLimit: number | null }
 export type Merged = { trades: number; net: number; winRate: number }
@@ -107,7 +109,12 @@ export type CoreAnalytics = {
   summary: Summary
   curve: EquityPoint[]
   daily: Group[]
+  /** Key: the Monday of the week, yyyy-mm-dd. */
+  byWeek: Group[]
+  /** Key: yyyy-mm. */
+  byMonth: Group[]
   byLots: Group[]
+  bestLots: BestLots[]
   byReason: Group[]
   bySymbol: Group[]
   bySide: Group[]

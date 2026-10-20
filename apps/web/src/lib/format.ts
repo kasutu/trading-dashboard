@@ -47,6 +47,10 @@ export function formatDay(day: string, weekday = false) {
   })
 }
 
+/** "2026-10" → "Oct 2026", or "October 2026" with `long`. */
+export const formatMonth = (month: string, long = false) =>
+  new Date(month + "-01T00:00").toLocaleDateString("en-US", { month: long ? "long" : "short", year: "numeric" })
+
 /** ["2026-08-03", "2026-10-01"] → "Aug 3 – Oct 1" */
 const toDate = (day: string) => new Date(day + "T00:00")
 const isThisYear = (day: string) => day.slice(0, 4) === String(new Date().getFullYear())
