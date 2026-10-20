@@ -99,6 +99,7 @@ The `api` service has commands to manage users and plans. Run them inside the ru
 | `make users` | List users with their plan, trading accounts and trades |
 | `make owner NAME=kasutu` | Give a user the owner plan: everything, no account limit |
 | `make plan NAME=alice PLAN=espresso` | Put a user on a plan: `free`, `espresso`, `latte` or `owner` |
+| `make delete NAME=alice` | Delete a user and all their data. This cannot be undone. |
 | `make help` | Show every command |
 
 To run one command without opening a shell: `railway ssh --service api -- make users`.

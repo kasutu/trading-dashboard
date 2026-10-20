@@ -554,3 +554,45 @@ async fn admin_commands_set_plans() {
         .contains("No user named nobody"));
     assert!(run(&["unknown"]).await.is_err());
 }
+
+#[tokio::test]
+async fn admin_delete_removes_the_user_and_their_data() {
+    let t = setup().await;
+    sqlx::query(r#"create table "account" ("id" text primary key, "userId" text not null)"#)
+        .execute(&t.pool)
+        .await
+        .unwrap();
+    let id = t.new_account().await;
+    let body = json!({ "fileName": "w.csv", "csv": WINNING, "mapping": engine::exness_mapping() });
+    t.post(&format!("/api/accounts/{id}/imports"), body).await;
+    t.set_plan("u_alice", "latte").await;
+
+    let out = api::admin::delete_user(&t.pool, "Alice").await.unwrap();
+    assert!(out.contains("Deleted"));
+    for (table, col) in [
+        ("trading_accounts", "user_id"),
+        ("profiles", "user_id"),
+        ("\"session\"", "\"userId\""),
+        ("\"user\"", "id"),
+    ] {
+        let n: i64 = sqlx::query_scalar(&format!(
+            "select count(*) from {table} where {col} = 'u_alice'"
+        ))
+        .fetch_one(&t.pool)
+        .await
+        .unwrap();
+        assert_eq!(n, 0, "{table} still has alice");
+    }
+    let trades: i64 = sqlx::query_scalar("select count(*) from trades")
+        .fetch_one(&t.pool)
+        .await
+        .unwrap();
+    assert_eq!(trades, 0);
+    // Bob is untouched.
+    let bob: i64 = sqlx::query_scalar(r#"select count(*) from "user" where id = 'u_bob'"#)
+        .fetch_one(&t.pool)
+        .await
+        .unwrap();
+    assert_eq!(bob, 1);
+    assert!(api::admin::delete_user(&t.pool, "nobody").await.is_err());
+}

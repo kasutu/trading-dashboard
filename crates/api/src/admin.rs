@@ -10,7 +10,8 @@ Usage:
   api                          Start the server
   api users                    List users with their plan, accounts and trades
   api plan <username> <plan>   Put a user on a plan: free, espresso, latte or owner
-  api owner <username>         Give a user the owner plan: everything, no account limit";
+  api owner <username>         Give a user the owner plan: everything, no account limit
+  api delete <username>        Delete a user and all their data (cannot be undone)";
 
 /// Runs an admin command. Returns the text to print, or an error message.
 pub async fn run(pool: &PgPool, args: &[String]) -> Result<String, String> {
@@ -18,6 +19,7 @@ pub async fn run(pool: &PgPool, args: &[String]) -> Result<String, String> {
         [cmd] if cmd == "users" => users(pool).await,
         [cmd, user, plan] if cmd == "plan" => set_plan(pool, user, plan).await,
         [cmd, user] if cmd == "owner" => set_plan(pool, user, "owner").await,
+        [cmd, user] if cmd == "delete" => delete_user(pool, user).await,
         _ => Err(USAGE.into()),
     }
 }
@@ -82,4 +84,34 @@ async fn users(pool: &PgPool) -> Result<String, String> {
         );
     }
     Ok(out)
+}
+
+/// Deletes a user and everything they own: trading accounts (with trades and imports),
+/// saved mappings, profile, sessions and sign-in records. Runs in one transaction.
+pub async fn delete_user(pool: &PgPool, username: &str) -> Result<String, String> {
+    let db = |e: sqlx::Error| format!("Database error: {e}");
+    let mut tx = pool.begin().await.map_err(db)?;
+    let id: Option<String> =
+        sqlx::query_scalar(r#"select id from "user" where username = lower($1)"#)
+            .bind(username)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db)?;
+    let id = id.ok_or_else(|| format!("No user named {username}."))?;
+    for sql in [
+        "delete from trading_accounts where user_id = $1",
+        "delete from column_mappings where user_id = $1",
+        "delete from profiles where user_id = $1",
+        r#"delete from "session" where "userId" = $1"#,
+        r#"delete from "account" where "userId" = $1"#,
+        r#"delete from "user" where id = $1"#,
+    ] {
+        sqlx::query(sql)
+            .bind(&id)
+            .execute(&mut *tx)
+            .await
+            .map_err(db)?;
+    }
+    tx.commit().await.map_err(db)?;
+    Ok(format!("Deleted {username} and all their data."))
 }

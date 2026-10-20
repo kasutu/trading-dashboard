@@ -72,6 +72,10 @@ plan username tier:
 owner username:
     @cargo run -q -p api -- owner {{username}}
 
+# Delete a user and all their data (cannot be undone)
+delete-user username:
+    @cargo run -q -p api -- delete {{username}}
+
 # Run the Rust tests (own Postgres on port 55432) and build and lint the web app
 test:
     #!/usr/bin/env bash
