@@ -1,5 +1,13 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
-  "build": { "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile" },
-  "deploy": { "healthcheckPath": "/" }
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile",
+    "watchPatterns": [
+      "/apps/web/**"
+    ]
+  },
+  "deploy": {
+    "healthcheckPath": "/"
+  }
 }

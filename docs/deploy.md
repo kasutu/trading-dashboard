@@ -2,7 +2,18 @@
 
 Jurno runs as three Railway services and one Railway Postgres database. Only the web service has a public domain. Web sends `/api/auth/*` to auth and other `/api/*` to api over private networking.
 
-Each service has a `railway.json` file. It sets the Dockerfile and the health check path.
+Each service has a `railway.json` file. It sets the Dockerfile, the health check path and the watch paths. A push rebuilds only the services whose files changed.
+
+## Before you start
+
+You set these values by hand. Railway fills in the rest with references.
+
+| Value | Where | How to get it |
+| --- | --- | --- |
+| `BETTER_AUTH_SECRET` | auth | `openssl rand -base64 32`. Keep it secret. Changing it signs everyone out. |
+| `BETTER_AUTH_URL` | auth | The public web address, for example `https://jurno.up.railway.app` |
+
+Deploy from the `main` branch.
 
 | Service | Root directory | Config file path | Health check |
 | --- | --- | --- | --- |
@@ -57,6 +68,12 @@ The api build needs the whole Cargo workspace, so its root directory is the repo
 27. Redeploy auth so it picks up the final `BETTER_AUTH_URL`.
 28. Open the web domain. Sign up with a username and a password to check the setup.
 
+### Make yourself the owner
+
+29. Install the Railway CLI and link the project (see [Admin commands](#admin-commands)).
+30. Run `railway ssh --service api -- make owner NAME=<your username>`.
+31. Reload the page. Every tab is open and there is no account limit.
+
 ## Notes
 
 - Auth creates its tables on start. Api runs its own migrations. Either can start first.
@@ -66,9 +83,7 @@ The api build needs the whole Cargo workspace, so its root directory is the repo
 
 ## Local development
 
-1. Copy `.env.example` to `.env` and set `BETTER_AUTH_SECRET`.
-2. Run `docker compose up`. This starts Postgres on port 5432, auth on 3001 and api on 8080. Set `POSTGRES_PORT` if 5432 is in use.
-3. In `apps/web`, run `npm run dev`. Vite serves the app on port 5173 and proxies `/api`.
+See the README: `just setup` once, then `just dev`. Local Postgres uses port 5433.
 
 ## Admin commands
 
