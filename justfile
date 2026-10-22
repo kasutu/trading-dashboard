@@ -10,6 +10,7 @@ default:
 setup:
     [ -f .env ] || { cp .env.example .env && sed -i "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$(openssl rand -base64 32)|" .env && echo "Created .env"; }
     cd apps/auth && npm install
+    cd apps/prices && npm install
     cd apps/web && npm install
 
 # Start Postgres in Docker (port 5433)
@@ -20,6 +21,10 @@ db:
 auth:
     cd apps/auth && npm run dev
 
+# Run the prices service with reload on save (port 3002)
+prices:
+    cd apps/prices && npm run dev
+
 # Run the Rust API (port 8080). Run again after Rust changes.
 api:
     cargo run -p api
@@ -28,21 +33,18 @@ api:
 web:
     cd apps/web && npm run dev
 
-# Run Postgres, auth, API and web together. Ctrl+C stops them all.
+# Run Postgres, auth, prices, API and web together. Ctrl+C stops them all.
 dev: db
     #!/usr/bin/env bash
     set -euo pipefail
     [ -f .env ] || { echo "No .env file. Run: just setup"; exit 1; }
-    # On Ctrl+C, or when any of the three exits, stop the others too.
+    # On Ctrl+C, or when any of them exits, stop the others too.
     trap 'trap - INT TERM EXIT; kill 0' INT TERM EXIT
     (cd apps/auth && npm run dev) &
+    (cd apps/prices && npm run dev) &
     cargo run -p api &
     (cd apps/web && npm run dev) &
     wait -n
-
-# Run the web app with fake data and no backend
-mock:
-    cd apps/web && VITE_MOCK=1 npm run dev
 
 # Run every service in containers (production builds)
 up:
@@ -84,6 +86,7 @@ test:
     trap 'docker stop jurno-test-pg >/dev/null' EXIT
     until docker exec jurno-test-pg pg_isready -q; do sleep 1; done
     cargo test --workspace
+    (cd apps/prices && npm test)
     cd apps/web && npm run build && npm run lint
 
 # Format and lint the Rust code (clippy and rustfmt run in Docker)

@@ -14,6 +14,7 @@ use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 
 mod cash;
+pub mod journal;
 mod optimize;
 mod overtrade;
 mod parse;

@@ -4,13 +4,10 @@ Requested features, newest last. Move an item to "Done" with the PR link when it
 
 ## Open
 
-### Journal and trade chart: from prototype to product
+### Journal: what is left
 
-The prototype ([#5](https://github.com/kasutu/trading-dashboard/pull/5)) runs on the mock API only.
-
-- Build the real tables and API from `docs/journal-data.md` (Rust routes, migrations, tests). `Position` now has `close` for the day timeline.
 - Move the check-in setting from the browser to `profiles`.
-- Pick a price-data provider for the trade chart's candles (options in `docs/architecture.md`).
+- Inline rename and archive for setups and mistake tags (adding is inline; rename and archive are in Settings).
 
 ## Done
 
@@ -21,3 +18,5 @@ The prototype ([#5](https://github.com/kasutu/trading-dashboard/pull/5)) runs on
 - **Journal prototype: UX and UI pass.** The journal has its own tab, and Notes holds only the automatic notes. Each journal day is one line, grouped by month, with a strip of its trades. Open a day for its answers. A banner shows the newest day to review. The review card shows the trade on its day, the holding time and the setup chips. The progress bar has one segment for each trade. The check-in shows your last "one thing to change" and has no disabled button.
 - **Overtrading chart.** `overtrading` in the engine (paid): the best holding time is the `byDuration` bucket with the highest net (at least 5 trades, net above 0). For each day, the allowed trades are the minutes in the market (overlapping trades count once) divided by that bucket's median holding time, rounded down, at least 1. A day with more trades than allowed is over. Frequency shows trades taken and trades allowed as two lines, with the days over in red. Click a day to see its timeline. A note in Notes compares days over with other days. First open to last close was tried first, but it allowed 80 trades on a long day and flagged nothing.
 - **Trade timeline (Gantt).** One bar for each trade from open to close, with the time in the market on top. It shows in the day sheet and from the overtrading chart. Click a trade for its price chart. The same strip, smaller, shows on each journal day and on the review card.
+- **Journal backend, mock removed.** Tables (`0004_journal.sql`), routes (`routes/journal.rs`) and the engine module (`journal.rs`) from `docs/journal-data.md`, with tests. The web app's fake backend (`VITE_MOCK`, `just mock`) is deleted. The trade chart's SL and TP save as `initialStop` and the new `initialTarget`.
+- **Trade chart candles.** The prices service (`apps/prices`) gets them from TradingView through the unofficial TradingView-API; the API caches each window in `candle_cache`. Without a TradingView account, older trades get longer candles (the chart says so).

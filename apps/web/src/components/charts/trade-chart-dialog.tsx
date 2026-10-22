@@ -9,7 +9,7 @@ import { SaveStatus } from "@/components/journal/save-status"
 import { useTradeAnswers } from "@/hooks/use-answers"
 import { useCandles } from "@/hooks/use-api"
 import { useJournalContext } from "@/hooks/use-journal"
-import type { LocalTrade, Timeframe } from "@/lib/api/types"
+import type { Candle, LocalTrade, Timeframe } from "@/lib/api/types"
 import { duration, formatTimeRange, money, pnlClass, price, relativeDay, tzLabel } from "@/lib/format"
 import { formatR, rFrom } from "@/lib/journal"
 import { MAX_CANDLES, TIMEFRAMES, candleWindow, pickTimeframe } from "@/lib/timeframes"
@@ -182,12 +182,26 @@ function Body({ accountId, trade, tz, levels, onLevel, children }: Props & { lev
 
       {children}
 
+      {data && offChart(trade, data.candles) && (
+        <p className="rounded-lg bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
+          These prices are far from your fills, so the market data may be for a different instrument than your broker's {trade.symbol}.
+        </p>
+      )}
+
       <p className="text-xs text-muted-foreground">
+        {data && data.tf !== tf && `${tf} candles are not available this far back, so these are ${data.tf}. `}
         Times in {tzLabel(tz)}.{onLevel && " Drag the SL and TP lines to set your plan."}
-        {import.meta.env.VITE_MOCK && " Sample prices for the prototype."}
       </p>
     </>
   )
+}
+
+/** The entry or exit is more than 3% outside the candles' range. */
+function offChart(t: LocalTrade, candles: Candle[]) {
+  if (!candles.length) return false
+  const low = Math.min(...candles.map((c) => c.low))
+  const high = Math.max(...candles.map((c) => c.high))
+  return [t.openPrice, t.closePrice].some((p) => p < low * 0.97 || p > high * 1.03)
 }
 
 function Placeholder({ text = "Loading prices…" }: { text?: string }) {

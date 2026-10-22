@@ -27,6 +27,12 @@ services:
       postgres:
         condition: service_healthy
 
+  prices:
+    build: apps/prices
+    env_file: .env
+    environment:
+      PORT: "3002"
+
   api:
     build:
       context: .
@@ -35,11 +41,14 @@ services:
     environment:
       DATABASE_URL: postgres://jurno:jurno@postgres:5432/jurno
       PORT: "8080"
+      PRICES_URL: http://prices:3002
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+      prices:
+        condition: service_started
 
 volumes:
   pgdata:

@@ -4,8 +4,8 @@ What Jurno asks about each trade and each day, how each answer is entered, and h
 The goal is the information a full trading journal collects (setup, grade, mistakes, plan, emotion,
 risk) with almost no typing: taps, swipes and a confirm, and one optional text box last.
 
-Status: the prototype runs on the mock API (`VITE_MOCK=1`). There are no tables or Rust routes yet.
-The API below is the contract for building them.
+Status: built. Tables in `crates/api/migrations/0004_journal.sql`, routes in `crates/api/src/routes/journal.rs`,
+positions, R and the summary in `crates/engine/src/journal.rs`.
 
 ## Principles
 

@@ -137,14 +137,23 @@ mod tests {
 
         let o = analyze(&trades, &filters("UTC")).unwrap().overtrading;
         let best = o.best.as_ref().unwrap();
-        assert_eq!((best.key.as_str(), best.median_min, best.trades), ("15–60m", 30.0, 6));
+        assert_eq!(
+            (best.key.as_str(), best.median_min, best.trades),
+            ("15–60m", 30.0, 6)
+        );
         assert_eq!(best.net, 48.0);
         assert_eq!(o.days.len(), 6);
         // One 30-minute trade: span 30 min, 1 allowed.
         assert_eq!((o.days[0].allowed, o.days[0].over), (Some(1), false));
         let busy = &o.days[5];
         assert_eq!(
-            (busy.day.as_str(), busy.trades, busy.span_min, busy.allowed, busy.over),
+            (
+                busy.day.as_str(),
+                busy.trades,
+                busy.span_min,
+                busy.allowed,
+                busy.over
+            ),
             ("2026-10-06", 5, 100.0, Some(3), true)
         );
         assert_eq!(busy.net, -11.0);

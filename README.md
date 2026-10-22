@@ -9,6 +9,7 @@ The file stays in the browser. Jurno keeps the last file in `localStorage`.
 | --- | --- |
 | `apps/web` | Front end (Vite, React) |
 | `apps/auth` | Auth service (Better Auth) |
+| `apps/prices` | Prices service: chart candles from TradingView (unofficial TradingView-API) |
 | `crates/engine` | Rust analytics engine |
 | `crates/api` | Rust HTTP API |
 | `docs/architecture.md` | Service contract: routes, tables, types |
@@ -19,15 +20,14 @@ You need Docker, Node 22, Rust and [just](https://github.com/casey/just).
 
 ```bash
 just setup   # first run: creates .env with a secret, installs npm packages
-just dev     # Postgres, auth, API and web together. Open http://localhost:5173
+just dev     # Postgres, auth, prices, API and web together. Open http://localhost:5173
 ```
 
 Ctrl+C stops all of them. Run `just` to see every task:
 
 | Task | What it does |
 | --- | --- |
-| `just db`, `just auth`, `just api`, `just web` | Start one part on its own, each in its own terminal |
-| `just mock` | Web app with fake data, no backend |
+| `just db`, `just auth`, `just prices`, `just api`, `just web` | Start one part on its own, each in its own terminal |
 | `just plan alice espresso` | Put a user on a plan (`free`, `espresso`, `latte` or `owner`) |
 | `just owner alice` | Give a user the owner plan: everything, no account limit |
 | `just delete-user alice` | Delete a user and all their data (cannot be undone) |
@@ -58,12 +58,17 @@ You need Docker, Node 22 and Rust. Run each command from the repo root unless th
    ```bash
    cd apps/auth && npm install && npm run dev        # port 3001
    ```
-4. In a second terminal, start the API:
+4. In another terminal, start the prices service. The trade chart gets its candles from it:
+   ```bash
+   cd apps/prices && npm install && npm run dev      # port 3002
+   ```
+   Set `PRICES_URL=http://localhost:3002` in `.env` (it is in `.env.example`).
+5. In a second terminal, start the API:
    ```bash
    cargo run -p api                                   # port 8080
    ```
    Run it again after you change Rust code.
-5. In a third terminal, start the web app. It reloads when you save a file:
+6. In a third terminal, start the web app. It reloads when you save a file:
    ```bash
    cd apps/web && npm install && npm run dev          # http://localhost:5173
    ```
@@ -76,7 +81,7 @@ To try a paid plan, put your user on it:
 docker compose exec postgres psql -U jurno -d jurno -c "update profiles set plan = 'espresso' where user_id = (select id from \"user\" where username = 'yourname')"
 ```
 
-To run everything in containers instead, use `docker compose up -d --build` and step 5.
+To run everything in containers instead, use `docker compose up -d --build` and step 6.
 
 ### Tests
 

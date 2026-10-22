@@ -583,12 +583,17 @@ async fn admin_delete_removes_the_user_and_their_data() {
     let body = json!({ "fileName": "w.csv", "csv": WINNING, "mapping": engine::exness_mapping() });
     t.post(&format!("/api/accounts/{id}/imports"), body).await;
     t.set_plan("u_alice", "latte").await;
+    t.post("/api/journal/setups", json!({ "name": "Breakout" }))
+        .await;
+    t.get("/api/journal/tags").await;
 
     let out = api::admin::delete_user(&t.pool, "Alice").await.unwrap();
     assert!(out.contains("Deleted"));
     for (table, col) in [
         ("trading_accounts", "user_id"),
         ("profiles", "user_id"),
+        ("setups", "user_id"),
+        ("mistake_tags", "user_id"),
         ("\"session\"", "\"userId\""),
         ("\"user\"", "id"),
     ] {
@@ -784,4 +789,404 @@ async fn cash_flow_validation() {
     let (s, v) = t.get(&format!("{path}?tz=Mars/Base")).await;
     assert_eq!(s, StatusCode::BAD_REQUEST);
     assert!(v["error"].as_str().unwrap().contains("Mars/Base"));
+}
+
+impl TestApp {
+    async fn patch(&self, path: &str, body: Value) -> (StatusCode, Value) {
+        self.send(Method::PATCH, path, Some(COOKIE), Some(body))
+            .await
+    }
+}
+
+/// One buy closed in two parts (ticket 1, stop moved to breakeven) and one sell (ticket 2), on Oct 18 UTC.
+const JOURNAL_CSV: &str = "ticket,opening_time_utc,closing_time_utc,type,lots,symbol,opening_price,closing_price,stop_loss,take_profit,commission,swap,profit,close_reason\n\
+1,2026-10-18T09:00:00,2026-10-18T09:20:00,buy,0.1,XAUUSD,100,104,100,110,0,0,40,user\n\
+1,2026-10-18T09:00:00,2026-10-18T09:40:00,buy,0.1,XAUUSD,100,106,100,110,0,0,60,user\n\
+2,2026-10-18T23:30:00,2026-10-18T23:45:00,sell,0.2,EURUSD,1.2,1.21,1.205,1.19,0,0,-20,sl\n";
+
+#[tokio::test]
+async fn journal_tags() {
+    let t = setup().await;
+    let (s, v) = t.get("/api/journal/tags").await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["setups"], json!([]));
+    let mistakes = v["mistakes"].as_array().unwrap();
+    assert_eq!(mistakes.len(), 12);
+    assert_eq!(
+        (mistakes[0]["name"].as_str(), mistakes[0]["group"].as_str()),
+        (Some("FOMO"), Some("entry"))
+    );
+    assert_eq!(mistakes[11]["name"], "Bored");
+    // Presets are made once.
+    let (_, v) = t.get("/api/journal/tags").await;
+    assert_eq!(v["mistakes"].as_array().unwrap().len(), 12);
+
+    let (s, setup) = t
+        .post(
+            "/api/journal/setups",
+            json!({ "name": "  Pullback   to EMA " }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{setup}");
+    assert_eq!(
+        (setup["name"].as_str(), setup["archived"].as_bool()),
+        (Some("Pullback to EMA"), Some(false))
+    );
+    let (s, v) = t
+        .post("/api/journal/setups", json!({ "name": "pullback TO ema" }))
+        .await;
+    assert_eq!(
+        (s, v["error"].as_str()),
+        (
+            StatusCode::BAD_REQUEST,
+            Some("You already have “Pullback to EMA”.")
+        )
+    );
+    let (s, _) = t
+        .post("/api/journal/setups", json!({ "name": "x".repeat(41) }))
+        .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let (s, _) = t
+        .post("/api/journal/setups", json!({ "name": "A", "extra": 1 }))
+        .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+
+    // Archive frees the name; restoring it next to a new one with the same name fails.
+    let sid = setup["id"].as_str().unwrap();
+    let (s, v) = t
+        .patch(
+            &format!("/api/journal/setups/{sid}"),
+            json!({ "archived": true }),
+        )
+        .await;
+    assert_eq!((s, v["archived"].as_bool()), (StatusCode::OK, Some(true)));
+    let (s, _) = t
+        .post("/api/journal/setups", json!({ "name": "Pullback to EMA" }))
+        .await;
+    assert_eq!(s, StatusCode::OK);
+    let (s, _) = t
+        .patch(
+            &format!("/api/journal/setups/{sid}"),
+            json!({ "archived": false }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let (s, v) = t
+        .patch(
+            &format!("/api/journal/setups/{sid}"),
+            json!({ "name": "Old pullback", "archived": false }),
+        )
+        .await;
+    assert_eq!(
+        (s, v["name"].as_str()),
+        (StatusCode::OK, Some("Old pullback"))
+    );
+
+    let (s, m) = t
+        .post(
+            "/api/journal/mistakes",
+            json!({ "name": "Ignored news", "group": "mindset" }),
+        )
+        .await;
+    assert_eq!((s, m["preset"].as_bool()), (StatusCode::OK, Some(false)));
+    let (s, _) = t
+        .post(
+            "/api/journal/mistakes",
+            json!({ "name": "X", "group": "luck" }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+
+    // Bob cannot see or change Alice's tags.
+    let (s, _) = t
+        .send(
+            Method::PATCH,
+            &format!("/api/journal/setups/{sid}"),
+            Some(BOB_COOKIE),
+            Some(json!({ "name": "Mine" })),
+        )
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let (_, v) = t
+        .send(Method::GET, "/api/journal/tags", Some(BOB_COOKIE), None)
+        .await;
+    assert_eq!(v["setups"], json!([]));
+}
+
+#[tokio::test]
+async fn journal_reviews_and_summary() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let body =
+        json!({ "fileName": "j.csv", "csv": JOURNAL_CSV, "mapping": engine::exness_mapping() });
+    let (s, v) = t.post(&format!("/api/accounts/{id}/imports"), body).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    let (_, tags) = t.get("/api/journal/tags").await;
+    let revenge = tags["mistakes"][3]["id"].as_str().unwrap().to_string();
+    let (_, setup) = t
+        .post("/api/journal/setups", json!({ "name": "Breakout" }))
+        .await;
+    let sid = setup["id"].as_str().unwrap().to_string();
+
+    // Positions: partial closes merged, days in Manila, newest first.
+    let (s, j) = t
+        .get(&format!("/api/accounts/{id}/journal?tz=Asia/Manila"))
+        .await;
+    assert_eq!(s, StatusCode::OK, "{j}");
+    let p = j["positions"].as_array().unwrap();
+    assert_eq!(p.len(), 2);
+    assert_eq!(
+        (p[0]["ticket"].as_str(), p[0]["day"].as_str()),
+        (Some("2"), Some("2026-10-19"))
+    );
+    assert_eq!(
+        (
+            p[1]["lots"].as_f64(),
+            p[1]["net"].as_f64(),
+            p[1]["closePrice"].as_f64()
+        ),
+        (Some(0.2), Some(100.0), Some(105.0))
+    );
+    assert_eq!(p[1]["close"], "2026-10-18T09:40:00Z");
+    // Ticket 1's stop is at the entry (moved): ask, no R. Ticket 2's stop was not moved: R from it.
+    assert_eq!(
+        (p[1]["askStop"].as_bool(), p[1]["r"].is_null()),
+        (Some(true), true)
+    );
+    assert_eq!(
+        (p[0]["askStop"].as_bool(), p[0]["r"].as_f64()),
+        (Some(false), Some(-2.0))
+    );
+
+    // A starting stop gives ticket 1 an R; fields left out are kept; null clears.
+    let trade = |ticket: &str| format!("/api/accounts/{id}/journal/trades/{ticket}");
+    let (s, r) = t
+        .patch(&trade("1"), json!({ "followedPlan": true, "setupId": sid, "grade": "A", "initialStop": 99, "initialTarget": 110, "note": "  Clean  " }))
+        .await;
+    assert_eq!(s, StatusCode::OK, "{r}");
+    assert_eq!(
+        (
+            r["note"].as_str(),
+            r["mistakeIds"].clone(),
+            r["initialTarget"].as_f64()
+        ),
+        (Some("Clean"), json!([]), Some(110.0))
+    );
+    let (_, r) = t
+        .patch(&trade("1"), json!({ "mood": 5, "grade": null }))
+        .await;
+    assert_eq!(
+        (
+            r["followedPlan"].as_bool(),
+            r["grade"].is_null(),
+            r["mood"].as_i64()
+        ),
+        (Some(true), true, Some(5))
+    );
+    let (_, r) = t
+        .patch(
+            &trade("2"),
+            json!({ "followedPlan": false, "mistakeIds": [revenge, revenge] }),
+        )
+        .await;
+    assert_eq!(r["mistakeIds"], json!([revenge]));
+
+    for (body, msg) in [
+        (json!({ "grade": "D" }), "The grade must be A, B or C."),
+        (
+            json!({ "mood": 6 }),
+            "The mood must be a number from 1 to 5.",
+        ),
+        (
+            json!({ "initialStop": -1 }),
+            "The starting stop must be a price above 0.",
+        ),
+        (
+            json!({ "note": "x".repeat(501) }),
+            "A note can be up to 500 characters.",
+        ),
+        (
+            json!({ "noMistakes": true }),
+            "Pick mistakes or None, not both.",
+        ),
+        (
+            json!({ "setupId": Uuid::new_v4().to_string() }),
+            "This setup does not exist.",
+        ),
+        (json!({ "colour": "red" }), "Unknown field: colour."),
+    ] {
+        let (s, v) = t.patch(&trade("2"), body).await;
+        assert_eq!(
+            (s, v["error"].as_str()),
+            (StatusCode::BAD_REQUEST, Some(msg))
+        );
+    }
+    let (s, _) = t.patch(&trade("nope"), json!({ "mood": 1 })).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+
+    // Days.
+    let day = |d: &str| format!("/api/accounts/{id}/journal/days/{d}");
+    let (s, d) = t
+        .patch(
+            &day("2026-10-18"),
+            json!({ "preMood": 4, "risks": ["news", "tired", "news"], "watchSetupIds": [sid] }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{d}");
+    assert_eq!(
+        (d["day"].as_str(), d["risks"].clone()),
+        (Some("2026-10-18"), json!(["tired", "news"]))
+    );
+    let (s, v) = t
+        .patch(&day("2026-10-18"), json!({ "noRisks": true }))
+        .await;
+    assert_eq!(
+        (s, v["error"].as_str()),
+        (
+            StatusCode::BAD_REQUEST,
+            Some("Pick risks or None, not both.")
+        )
+    );
+    let (s, _) = t.patch(&day("18-10-2026"), json!({ "preMood": 1 })).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    // A day without trades still gets a stats row.
+    t.patch(&day("2026-10-21"), json!({ "note": "Rest day" }))
+        .await;
+    let (_, j) = t.get(&format!("/api/accounts/{id}/journal")).await;
+    assert_eq!(
+        j["stats"][0],
+        json!({ "day": "2026-10-21", "trades": 0, "net": 0.0 })
+    );
+    assert_eq!(
+        j["stats"][1],
+        json!({ "day": "2026-10-18", "trades": 2, "net": 80.0 })
+    );
+    assert_eq!(
+        (
+            j["trades"].as_array().unwrap().len(),
+            j["days"].as_array().unwrap().len()
+        ),
+        (2, 2)
+    );
+
+    // Summary: paid plans only.
+    let (_, v) = t.get(&format!("/api/accounts/{id}/journal/summary")).await;
+    assert_eq!(v, json!({ "locked": true }));
+    t.set_plan("u_alice", "espresso").await;
+    let (s, v) = t.get(&format!("/api/accounts/{id}/journal/summary")).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(
+        v["byPlan"][0],
+        json!({ "key": "yes", "trades": 1, "net": 100.0, "winRate": 1.0, "avgR": 5.0 })
+    );
+    assert_eq!(v["byMistake"][0]["key"], json!(revenge));
+    assert_eq!(
+        (
+            v["byMood"][3]["trades"].as_u64(),
+            v["byMood"][3]["net"].as_f64()
+        ),
+        (Some(1), Some(80.0))
+    );
+
+    // Every answer cleared: the review is deleted.
+    let (s, _) = t.patch(&day("2026-10-21"), json!({ "note": "  " })).await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+    let (s, _) = t
+        .patch(
+            &trade("2"),
+            json!({ "followedPlan": null, "mistakeIds": [] }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+
+    // Bob cannot read or write Alice's journal.
+    let (s, _) = t
+        .send(
+            Method::GET,
+            &format!("/api/accounts/{id}/journal"),
+            Some(BOB_COOKIE),
+            None,
+        )
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let (s, _) = t
+        .send(
+            Method::PATCH,
+            &trade("1"),
+            Some(BOB_COOKIE),
+            Some(json!({ "mood": 1 })),
+        )
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+}
+
+/// A stand-in for the prices service: XAUUSD has two 5m candles (asked 1m: older data comes longer),
+/// anything else is not found. Counts its calls.
+async fn fake_prices() -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+    use axum::extract::Query as Q;
+    use std::collections::HashMap;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let calls = std::sync::Arc::new(AtomicUsize::new(0));
+    let c = calls.clone();
+    let app = Router::new().route(
+        "/candles",
+        axum::routing::get(move |Q(q): Q<HashMap<String, String>>| {
+            c.fetch_add(1, Ordering::SeqCst);
+            async move {
+                if q.get("symbol").map(String::as_str) != Some("XAUUSD") {
+                    return (StatusCode::NOT_FOUND, axum::Json(json!({ "error": "No prices." })));
+                }
+                let bar = |t: i64| json!({ "time": t, "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5 });
+                (StatusCode::OK, axum::Json(json!({ "tf": "5m", "candles": [bar(1790554800), bar(1790555100)] })))
+            }
+        }),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    (url, calls)
+}
+
+#[tokio::test]
+async fn candles_come_from_the_prices_service_once() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let (url, calls) = fake_prices().await;
+    // Only this test reads PRICES_URL.
+    std::env::set_var("PRICES_URL", url);
+
+    let path = |symbol: &str, tf: &str, to: &str| {
+        format!(
+            "/api/accounts/{id}/candles?symbol={symbol}&tf={tf}&from=2026-09-28T00:20:00Z&to={to}"
+        )
+    };
+    let past = "2026-09-28T01:00:00Z";
+    let (s, v) = t.get(&path("XAUUSD", "1m", past)).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(
+        (v["tf"].as_str(), v["candles"].as_array().unwrap().len()),
+        (Some("5m"), 2)
+    );
+    // The same window again: from the cache.
+    let (_, again) = t.get(&path("XAUUSD", "1m", past)).await;
+    assert_eq!(again, v);
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+
+    let (s, _) = t.get(&path("NOPE", "1m", past)).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let (s, _) = t.get(&path("XAUUSD", "2m", past)).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let (s, _) = t.get(&path("XAUUSD", "1m", "2026-09-28T00:00:00Z")).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let (s, _) = t.get(&path("XAUUSD", "1m", "2026-10-28T00:00:00Z")).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+    let (s, _) = t
+        .send(
+            Method::GET,
+            &path("XAUUSD", "1m", past),
+            Some(BOB_COOKIE),
+            None,
+        )
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
 }
