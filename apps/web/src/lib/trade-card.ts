@@ -108,7 +108,7 @@ function drawChart(ctx: CanvasRenderingContext2D, d: TradeCardData, box: Box) {
   // Time the trade was open
   const xo = px(d.openTs)
   const xc = px(d.closeTs)
-  ctx.fillStyle = "rgba(255,255,255,0.05)"
+  ctx.fillStyle = C.faint
   ctx.fillRect(xo, box.y, Math.max(xc - xo, 2), box.h)
 
   // Candles
@@ -139,13 +139,13 @@ function drawFills(ctx: CanvasRenderingContext2D, d: TradeCardData, box: Box, xo
     py = (p: number) => box.y + box.h - ((p - lo) / (hi - lo)) * box.h
     xo = box.x + box.w * 0.18
     xc = box.x + box.w * 0.82
-    ctx.fillStyle = "rgba(255,255,255,0.05)"
+    ctx.fillStyle = C.faint
     ctx.fillRect(xo, box.y, xc - xo, box.h)
   }
   xo = xo!
   xc = xc!
   const ye = py(d.entry)
-  ctx.strokeStyle = "rgba(232,237,243,0.55)"
+  ctx.strokeStyle = C.level
   ctx.setLineDash([5, 6])
   ctx.lineWidth = 1.5
   ctx.beginPath()

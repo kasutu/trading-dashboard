@@ -1,5 +1,5 @@
 // Shared drawing for the 1200 × 630 share images (stats card, calendar, trade).
-// The images always use the dark theme so they look the same wherever they are posted.
+// The images follow the app's theme: light or dark, whichever is on when the image is drawn.
 import { MARK } from "@/components/brand/mark"
 import qrcode from "qrcode-generator"
 import type { Filters } from "@/lib/api/types"
@@ -9,15 +9,40 @@ export const CARD_H = 630
 export const PAD = 64
 const SCALE = 2 // render at 2x for sharp text
 
-export const C = {
+export type Theme = "light" | "dark"
+
+const DARK = {
   bg: "#111823",
   line: "rgba(255,255,255,0.09)",
+  /** Quiet fills: empty calendar days, the time a trade was open. */
+  faint: "rgba(255,255,255,0.05)",
+  /** The entry level on the trade chart. */
+  level: "rgba(232,237,243,0.55)",
   text: "#e8edf3",
   muted: "#8c97a6",
   brand: "#f2bf3a",
   profit: "#3cc398",
   loss: "#f06a5d",
 }
+// The app's light tokens (index.css), on a white card.
+const LIGHT: typeof DARK = {
+  bg: "#ffffff",
+  line: "rgba(0,0,0,0.08)",
+  faint: "rgba(0,0,0,0.04)",
+  level: "rgba(29,29,31,0.45)",
+  text: "#1d1d1f",
+  muted: "#6e6e73",
+  brand: "#f5b82e",
+  profit: "#248a3d",
+  loss: "#d70015",
+}
+
+/** Colours of the card being drawn. startCard sets them for the theme. */
+export const C = { ...DARK }
+
+/** The theme the app shows now. */
+export const pageTheme = (): Theme => (document.documentElement.classList.contains("dark") ? "dark" : "light")
+
 // SF Pro on Apple devices, the system font elsewhere. Numbers use the same font.
 export const DISPLAY = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
 export const BODY = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
@@ -32,8 +57,9 @@ export function text(ctx: CanvasRenderingContext2D, s: string, x: number, y: num
   ctx.fillText(s, x, y)
 }
 
-/** Sizes the canvas, fills the background and returns a context in 1200 × 630 units. */
-export function startCard(canvas: HTMLCanvasElement) {
+/** Sets the colours for the theme, sizes the canvas, fills the background and returns a context in 1200 × 630 units. */
+export function startCard(canvas: HTMLCanvasElement, theme: Theme = pageTheme()) {
+  Object.assign(C, theme === "dark" ? DARK : LIGHT)
   canvas.width = CARD_W * SCALE
   canvas.height = CARD_H * SCALE
   const ctx = canvas.getContext("2d")!
@@ -96,7 +122,7 @@ export function drawFooter(ctx: CanvasRenderingContext2D, f: Footer) {
   text(ctx, f.site, right, base, `600 20px ${BODY}`, C.text, "right")
 }
 
-/** A QR code: dark modules on a light rounded square, so phones read it on the dark card. */
+/** A QR code: dark modules on a white rounded square in both themes, so phones read it. */
 function drawQr(ctx: CanvasRenderingContext2D, url: string, x: number, y: number, size: number) {
   const qr = qrcode(0, "M")
   qr.addData(url)
@@ -108,7 +134,10 @@ function drawQr(ctx: CanvasRenderingContext2D, url: string, x: number, y: number
   ctx.roundRect(x, y, size, size, 8)
   ctx.fillStyle = "#ffffff"
   ctx.fill()
-  ctx.fillStyle = C.bg
+  ctx.lineWidth = 1
+  ctx.strokeStyle = C.line // shows the tile's edge on the white card
+  ctx.stroke()
+  ctx.fillStyle = "#111823" // always dark on light: phones read that best
   for (let r = 0; r < n; r++)
     for (let c = 0; c < n; c++)
       // Overlap by a hair so no seams show between modules.

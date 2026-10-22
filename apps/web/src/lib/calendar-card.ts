@@ -51,7 +51,7 @@ export function drawCalendarCard(canvas: HTMLCanvasElement, d: CalendarCardData)
     ctx.globalAlpha = cell.inMonth ? 1 : 0.35
     ctx.beginPath()
     ctx.roundRect(x, y, colW, rowH, 10)
-    ctx.fillStyle = traded ? tone(cell.net) + "26" : "rgba(255,255,255,0.04)"
+    ctx.fillStyle = traded ? tone(cell.net) + "26" : C.faint
     ctx.fill()
     if (traded) {
       ctx.lineWidth = 1

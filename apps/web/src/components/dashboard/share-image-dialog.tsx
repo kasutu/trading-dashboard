@@ -2,7 +2,7 @@ import * as React from "react"
 import { Check, Copy, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { canvasToPng } from "@/lib/card-canvas"
+import { canvasToPng, pageTheme } from "@/lib/card-canvas"
 
 type Props = {
   /** The button that opens the dialog. Leave out and pass `open` to open it from outside. */
@@ -28,9 +28,12 @@ export function ShareImageDialog({ trigger, open, onOpenChange, controls, title,
   const canShare =
     typeof navigator.canShare === "function" && navigator.canShare({ files: [new File([], fileName, { type: "image/png" })] })
 
+  // The image follows the app theme; redraw when it changes while the dialog is open.
+  const theme = React.useSyncExternalStore(watchTheme, pageTheme)
+
   React.useEffect(() => {
     if (canvas) draw(canvas)
-  }, [canvas, draw])
+  }, [canvas, draw, theme])
 
   const flash = (s: typeof status) => {
     setStatus(s)
@@ -100,4 +103,11 @@ export function ShareImageDialog({ trigger, open, onOpenChange, controls, title,
       </DialogContent>
     </Dialog>
   )
+}
+
+/** Calls back when the `dark` class on <html> changes. */
+function watchTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+  return () => observer.disconnect()
 }
