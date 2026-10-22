@@ -47,9 +47,14 @@ function TradeShareDialog({ accountId, trade: t, tz, onClose }: Props & { onClos
   const { data: me } = useMe()
   const journal = useJournalContext()
   const { settings, update } = useSettings()
-  const tf = pickTimeframe(t.durationMin)
+  const [tf, setTf] = React.useState(() => pickTimeframe(t.durationMin))
   const range = React.useMemo(() => candleWindow(t.open, t.close, tf), [t.open, t.close, tf])
-  const { data: candles, error } = useCandles(accountId, t.symbol, tf, range)
+  const { data: fetched, error } = useCandles(accountId, t.symbol, tf, range)
+  // Far back, TradingView may only have longer candles than asked for, and the window sized for the
+  // short ones then holds only a few. Ask again with the window sized for the length that came back.
+  const coarser = fetched && fetched.tf !== tf ? fetched.tf : null
+  if (coarser) setTf(coarser) // during render, React's pattern for state that follows a value
+  const candles = coarser ? undefined : fetched
 
   const review = journal?.trades.get(t.ticket)
   const setup = review?.setupId ? journal?.setups.get(review.setupId)?.name : undefined
