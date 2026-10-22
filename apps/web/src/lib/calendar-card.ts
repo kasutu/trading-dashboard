@@ -1,5 +1,5 @@
 import { money, plural } from "@/lib/format"
-import { BODY, C, CARD_H, CARD_W, DISPLAY, PAD, drawBrand, drawFooter, startCard, text, tone, type Footer } from "./card-canvas"
+import { BODY, C, CARD_H, CARD_W, DISPLAY, FOOTER_H, PAD, drawBrand, drawFooter, startCard, text, tone, type Footer } from "./card-canvas"
 
 export type CalendarDayCell = {
   /** Day of the month, "1" to "31". */
@@ -38,7 +38,7 @@ export function drawCalendarCard(canvas: HTMLCanvasElement, d: CalendarCardData)
   // Grid
   const gap = 8
   const top = 150
-  const bottom = CARD_H - 104
+  const bottom = CARD_H - FOOTER_H - 12
   const rows = d.cells.length / 7
   const colW = (CARD_W - PAD * 2 - gap * 6) / 7
   const rowH = (bottom - top - 24 - gap * (rows - 1)) / rows

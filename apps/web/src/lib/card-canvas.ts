@@ -1,6 +1,7 @@
-// Shared drawing for the 1200 × 630 share images (stats card, calendar).
+// Shared drawing for the 1200 × 630 share images (stats card, calendar, trade).
 // The images always use the dark theme so they look the same wherever they are posted.
 import { MARK } from "@/components/brand/mark"
+import qrcode from "qrcode-generator"
 import type { Filters } from "@/lib/api/types"
 
 export const CARD_W = 1200
@@ -60,11 +61,11 @@ export function drawBrand(ctx: CanvasRenderingContext2D) {
 }
 
 export type Footer = {
-  /** Filters on the left, for example "All symbols · Buy and sell". */
+  /** Left side, for example the filters ("All symbols · Buy and sell"). */
   context: string
-  /** Show the "Track your trades free" invitation. Latte and owner hide it. */
+  /** Show the "Track your trades free" line above the address. Latte and owner hide it. */
   invite: boolean
-  /** Site address, for example "jurno.up.railway.app". */
+  /** Site address, for example "jurno.up.railway.app". Always shown, with a QR code to it. */
   site: string
 }
 
@@ -80,13 +81,38 @@ export function shareFooter(f: Filters, invite: boolean): Footer {
   }
 }
 
+/** Height of the footer band at the bottom of a card. Content above it must end before this. */
+export const FOOTER_H = 112
+const QR = 84 // QR code size, including its light border
+
+/** Context on the left; on the right the address with a QR code to it, and the invitation unless the plan hides it. */
 export function drawFooter(ctx: CanvasRenderingContext2D, f: Footer) {
-  text(ctx, f.context, PAD, CARD_H - 44, `400 18px ${BODY}`, C.muted)
-  if (f.invite) {
-    // Invitation: one quiet line, then the address people can type.
-    text(ctx, "Track your trades free", CARD_W - PAD, CARD_H - 70, `400 17px ${BODY}`, C.muted, "right")
-    text(ctx, f.site, CARD_W - PAD, CARD_H - 44, `600 20px ${BODY}`, C.text, "right")
-  }
+  const base = CARD_H - 40
+  text(ctx, f.context, PAD, base, `400 18px ${BODY}`, C.muted)
+  const qrX = CARD_W - PAD - QR
+  drawQr(ctx, `https://${f.site}`, qrX, CARD_H - 28 - QR, QR)
+  const right = qrX - 20
+  if (f.invite) text(ctx, "Track your trades free", right, base - 26, `400 17px ${BODY}`, C.muted, "right")
+  text(ctx, f.site, right, base, `600 20px ${BODY}`, C.text, "right")
+}
+
+/** A QR code: dark modules on a light rounded square, so phones read it on the dark card. */
+function drawQr(ctx: CanvasRenderingContext2D, url: string, x: number, y: number, size: number) {
+  const qr = qrcode(0, "M")
+  qr.addData(url)
+  qr.make()
+  const n = qr.getModuleCount()
+  const quiet = 2 // modules of light border
+  const cell = size / (n + quiet * 2)
+  ctx.beginPath()
+  ctx.roundRect(x, y, size, size, 8)
+  ctx.fillStyle = "#ffffff"
+  ctx.fill()
+  ctx.fillStyle = C.bg
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++)
+      // Overlap by a hair so no seams show between modules.
+      if (qr.isDark(r, c)) ctx.fillRect(x + (c + quiet) * cell, y + (r + quiet) * cell, cell + 0.3, cell + 0.3)
 }
 
 export const canvasToPng = (canvas: HTMLCanvasElement) =>
