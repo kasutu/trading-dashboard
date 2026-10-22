@@ -1,6 +1,7 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { TradeJournalCell } from "@/components/journal/trade-journal-cell"
+import { TradeChartButton } from "@/components/charts/trade-chart-dialog"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useTrades } from "@/hooks/use-api"
@@ -35,6 +36,7 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
             <TableHead>Closed by</TableHead>
             <TableHead className="pr-5 text-right">Net P&L</TableHead>
             <TableHead className="w-px pr-3"><span className="sr-only">Note</span></TableHead>
+            <TableHead className="w-10 pr-3"><span className="sr-only">Chart</span></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -43,7 +45,7 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
             {/* A header row each time the day changes, like Wallet and Mail. */}
             {t.day !== data.rows[i - 1]?.day && (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={10} className="bg-muted/40 py-1.5 pl-5 text-xs font-semibold text-muted-foreground">
+                <TableCell colSpan={11} className="bg-muted/40 py-1.5 pl-5 text-xs font-semibold text-muted-foreground">
                   {relativeDay(t.day, tz)}
                 </TableCell>
               </TableRow>
@@ -61,6 +63,7 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
               <TableCell><ReasonPill reason={t.reason} /></TableCell>
               <TableCell className={cn("pr-5", num, pnlClass(t.net))}>{money(t.net, true)}</TableCell>
               <TableCell className="py-1 pr-3"><TradeJournalCell trade={t} /></TableCell>
+              <TableCell className="py-0 pr-3"><TradeChartButton compact accountId={accountId} trade={t} tz={tz} /></TableCell>
             </TableRow>
             </React.Fragment>
           ))}

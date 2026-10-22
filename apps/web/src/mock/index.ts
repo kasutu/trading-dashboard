@@ -7,7 +7,10 @@ import type {
   SavedMapping, Trade, TradeEntry,
 } from "@/lib/api/types"
 import analytics from "./analytics.json"
-import trades from "./trades.json"
+import { candleResponse, withMarketPrices } from "./prices"
+import rawTrades from "./trades.json"
+
+const trades = withMarketPrices(rawTrades as Trade[])
 
 const SIGNED_OUT = "jurno:mock-signed-out"
 const PLAN = "jurno:mock-plan"
@@ -285,6 +288,12 @@ async function handle(method: string, url: URL, body: unknown): Promise<Response
       ;(store as Map<string, typeof entry>).set(key, entry)
       return json(entry)
     }
+  }
+
+  const k = path.match(/^\/accounts\/([^/]+)\/candles$/)
+  if (k && accounts.some((a) => a.id === k[1])) {
+    const r = candleResponse(trades, url.searchParams)
+    return json(r.body, r.status)
   }
 
   const m = path.match(/^\/accounts\/([^/]+)\/(analytics|trades|imports)$/)

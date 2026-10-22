@@ -181,3 +181,10 @@ export type JournalSummary = { byMood: MoodRow[]; minDays: number; locked?: unde
 
 export type Range = "7" | "30" | "90" | "all"
 export type Filters = { range: Range; symbol: string; side: Side | "all"; tz: string }
+
+/** Candle length. */
+export type Timeframe = "1m" | "5m" | "15m" | "1h" | "4h" | "1d"
+/** One OHLC bar. `time` is the bar's start, unix seconds UTC. */
+export type Candle = { time: number; open: number; high: number; low: number; close: number }
+/** GET /accounts/:id/candles (planned; the prototype generates them). Candles oldest first. */
+export type Candles = { symbol: string; tf: Timeframe; candles: Candle[] }

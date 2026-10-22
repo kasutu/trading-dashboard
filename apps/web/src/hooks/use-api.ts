@@ -1,8 +1,8 @@
 import * as React from "react"
 import { api, filterQuery } from "@/lib/api/client"
 import type {
-  Account, AnalyticsResponse, CashFlows, ColumnMapping, DayEntry, Filters, Import, Journal, JournalInput, JournalSummary, Me, SavedMapping,
-  TradeEntry, TradePage,
+  Account, AnalyticsResponse, Candles, CashFlows, ColumnMapping, DayEntry, Filters, Import, Journal, JournalInput, JournalSummary, Me,
+  SavedMapping, Timeframe, TradeEntry, TradePage,
 } from "@/lib/api/types"
 
 // Mounted queries listen here. invalidate() makes the ones whose path starts with a prefix fetch again.
@@ -67,3 +67,7 @@ export async function saveJournal(accountId: string, target: { day: string } | {
   await api<DayEntry | TradeEntry | undefined>(`${journalPath(accountId)}/${sub}`, { method: "PUT", body: input })
   invalidate(journalPath(accountId))
 }
+
+/** OHLC candles for a symbol between two ISO times. A null window fetches nothing. */
+export const useCandles = (accountId: string, symbol: string, tf: Timeframe, range: { from: string; to: string } | null) =>
+  useApi<Candles>(range && `/accounts/${accountId}/candles?${new URLSearchParams({ symbol, tf, from: range.from, to: range.to })}`)

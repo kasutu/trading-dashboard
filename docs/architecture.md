@@ -212,6 +212,33 @@ MoodRow         = { mood, days, net, avgPerDay, winRate }
 - P&L by mood counts only days that have a mood and at least one trade. `net` is the sum of those days, `avgPerDay = net / days`, `winRate` is the share of days with `net > 0`. The web app shows a mood in the chart once it has `minDays` days and says how many more it needs otherwise.
 - The daily check-in setting ("Ask for my mood each day") is kept in the browser for now. Planned: a column on `profiles`.
 
+## Trade chart
+
+**Planned. The prototype uses generated candles** (`apps/web/src/mock/prices.ts`, `VITE_MOCK=1`). No Rust route or table exists yet.
+
+Each trade can open a candlestick chart of its symbol with the entry and exit marked, lines at the entry, exit, stop loss and take profit, and the holding time shaded. The web app draws it with TradingView's open-source [Lightweight Charts](https://github.com/tradingview/lightweight-charts) (Apache 2.0, pinned in `apps/web/package.json`, loaded only when a chart opens). The library draws; it brings no market data, so the candles come from our API.
+
+| Method and path | Request | Response |
+| --- | --- | --- |
+| `GET /api/accounts/:id/candles` | query: `symbol`, `tf=1m\|5m\|15m\|1h\|4h\|1d`, `from`, `to` (ISO 8601, UTC) | `{ symbol, tf, candles: Candle[] }`, oldest first. `400` for a missing symbol, an unknown `tf` or `from` not before `to`. `422` when the window is more than 2000 candles. `404` when there are no prices for the symbol. |
+
+```ts
+Candle = { time, open, high, low, close }  // time: the bar's start, unix seconds UTC
+```
+
+- The web app picks the timeframe from the hold time (`apps/web/src/lib/timeframes.ts`: the shortest that fits the hold in 120 candles) and asks for a window of 30% of the hold time on each side, at least 20 candles. The user can switch the timeframe.
+- The route is per account so it can check ownership and, later, use the broker's own symbol names and quotes.
+- The mock gives each trade believable prices (a seeded walk per symbol, the close moved by the trade's profit) and builds candles as a Brownian bridge through every entry and exit, so the chart passes through the real fills.
+
+Where real candles could come from (not decided):
+
+- A market-data provider with historical intraday OHLC for FX, metals and crypto (for example Twelve Data, Polygon, Finnhub, Tiingo or OANDA's API). Check the license allows showing the data to users, and the cost per symbol and history depth.
+- Crypto exchange public APIs (for example Binance or Coinbase) for crypto symbols. Free, but prices differ a little from a CFD broker's.
+- The broker itself, for example MetaTrader 5 history exported by the user, or the broker's API. Matches the fills best, but needs work per broker.
+- TradingView does not sell or provide market data through Lightweight Charts or any public API; it is only the drawing library.
+
+Whichever source: cache candles in Postgres by `(symbol, tf, time)` so each window is fetched once, and expect small gaps against the broker's fills (different liquidity providers, spreads, and bid versus ask).
+
 ## Analytics split
 
 - **Engine (Rust):** parsing, normalizing, grouping, simulations, the optimizer, the deposit and withdrawal totals (`cash_report`). All numbers.
