@@ -76,7 +76,7 @@ const tradeReviews: Record<string, Map<string, TradeReview>> = {}
 const dayReviews: Record<string, Map<string, DayReview>> = {}
 
 const BLANK_TRADE: TradeReviewFields = {
-  followedPlan: null, setupId: null, grade: null, mood: null, mistakeIds: [], noMistakes: false, initialStop: null, note: null,
+  followedPlan: null, setupId: null, grade: null, mood: null, mistakeIds: [], noMistakes: false, initialStop: null, initialTarget: null, note: null,
 }
 const BLANK_DAY: DayReviewFields = { preMood: null, risks: [], noRisks: false, watchSetupIds: [], followedPlan: null, note: null }
 
@@ -118,6 +118,10 @@ function tradeInput(body: Record<string, unknown>): string | Partial<TradeReview
       case "initialStop":
         if (v !== null && !(typeof v === "number" && Number.isFinite(v) && v > 0)) return "The starting stop must be a price above 0."
         out.initialStop = v as number | null
+        break
+      case "initialTarget":
+        if (v !== null && !(typeof v === "number" && Number.isFinite(v) && v > 0)) return "The take profit must be a price above 0."
+        out.initialTarget = v as number | null
         break
       case "note":
         if (v !== null && typeof v !== "string") return "The note must be text."

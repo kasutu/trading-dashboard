@@ -4,11 +4,17 @@ import { pillGroup, pillItem } from "@/components/dashboard/filter-bar"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Input } from "@/components/ui/input"
+import { SaveStatus } from "@/components/journal/save-status"
+import { useTradeAnswers } from "@/hooks/use-answers"
 import { useCandles } from "@/hooks/use-api"
+import { useJournalContext } from "@/hooks/use-journal"
 import type { LocalTrade, Timeframe } from "@/lib/api/types"
-import { duration, formatTimeRange, money, pnlClass, relativeDay, tzLabel } from "@/lib/format"
+import { duration, formatTimeRange, money, pnlClass, price, relativeDay, tzLabel } from "@/lib/format"
+import { formatR, rFrom } from "@/lib/journal"
 import { MAX_CANDLES, TIMEFRAMES, candleWindow, pickTimeframe } from "@/lib/timeframes"
 import { cn } from "@/lib/utils"
+import type { Level, Levels } from "./trade-chart"
 
 // Lightweight Charts loads only when a chart is opened.
 const TradeChart = React.lazy(() => import("./trade-chart").then((m) => ({ default: m.TradeChart })))
@@ -44,7 +50,77 @@ export function TradeChartDialog({ open, onOpenChange, ...props }: Props & { ope
   )
 }
 
-function ChartBody({ accountId, trade, tz }: Props) {
+function ChartBody(props: Props) {
+  // Positions come from the journal. Without one there is no review to save the levels to, so the chart is read-only.
+  const editable = !!useJournalContext()?.positions.get(props.trade.ticket)
+  return editable ? <EditableBody {...props} /> : <Body {...props} />
+}
+
+/** The chart with draggable SL and TP, saved to the trade's review as the planned stop and target. */
+function EditableBody(props: Props) {
+  const { trade } = props
+  const answers = useTradeAnswers(trade.ticket)
+  const { v, set } = answers
+  const levels: Levels = { sl: v.initialStop ?? trade.sl, tp: v.initialTarget ?? trade.tp }
+  const onLevel = (level: Level, p: number | null) => set(level === "sl" ? { initialStop: p } : { initialTarget: p })
+  const changed = v.initialStop !== null || v.initialTarget !== null
+  const risk = levels.sl === null ? null : Math.abs(trade.openPrice - levels.sl)
+  const reward = levels.tp === null ? null : Math.abs(levels.tp - trade.openPrice)
+  const r = rFrom(trade, levels.sl)
+
+  return (
+    <Body {...props} levels={levels} onLevel={onLevel}>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <LevelInput label="SL" trade={trade} level="sl" value={levels.sl} onSave={(p) => onLevel("sl", p)} />
+        <LevelInput label="TP" trade={trade} level="tp" value={levels.tp} onSave={(p) => onLevel("tp", p)} />
+        <span className="text-muted-foreground">
+          R:R <span className="font-mono text-foreground tabular-nums">{risk && reward ? `1:${(reward / risk).toFixed(1)}` : "—"}</span>
+        </span>
+        <span className="text-muted-foreground">
+          Result <span className={cn("font-mono tabular-nums", r === null ? "text-foreground" : pnlClass(r))}>{r === null ? "—" : formatR(r)}</span>
+        </span>
+        <SaveStatus state={answers.state} />
+        {changed && (
+          <Button variant="ghost" size="sm" className="ml-auto" onClick={() => set({ initialStop: null, initialTarget: null })}>
+            Reset
+          </Button>
+        )}
+      </div>
+    </Body>
+  )
+}
+
+/** A price field for SL or TP. Saves on Enter or when focus leaves, if the price is on the right side of the entry. */
+function LevelInput({ label, trade, level, value, onSave }: { label: string; trade: LocalTrade; level: Level; value: number | null; onSave: (p: number | null) => void }) {
+  const [text, setText] = React.useState<string | null>(null)
+  const shown = text ?? (value === null ? "" : price(value))
+  const n = shown.trim() ? Number(shown.replace(",", ".")) : null
+  const below = (level === "sl") === (trade.side === "buy")
+  const ok = n === null || (Number.isFinite(n) && n > 0 && (below ? n < trade.openPrice : n > trade.openPrice))
+  const commit = () => {
+    if (text !== null && ok && n !== value) onSave(n)
+    if (ok) setText(null)
+  }
+  return (
+    <label className="flex items-center gap-1.5">
+      <span className={cn("text-xs font-medium", level === "sl" ? "text-loss" : "text-profit")}>{label}</span>
+      <Input
+        inputMode="decimal"
+        autoComplete="off"
+        value={shown}
+        placeholder={below ? "Below entry" : "Above entry"}
+        aria-invalid={!ok}
+        title={ok ? undefined : `${label} goes ${below ? "below" : "above"} the entry (${price(trade.openPrice)}).`}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === "Enter" && commit()}
+        className="h-8 w-28 font-mono tabular-nums"
+      />
+    </label>
+  )
+}
+
+function Body({ accountId, trade, tz, levels, onLevel, children }: Props & { levels?: Levels; onLevel?: (level: Level, p: number) => void; children?: React.ReactNode }) {
   const [tf, setTf] = React.useState<Timeframe>(() => pickTimeframe(trade.durationMin))
   const range = React.useMemo(() => candleWindow(trade.open, trade.close, tf), [trade.open, trade.close, tf])
   const { data, error, loading } = useCandles(accountId, trade.symbol, tf, range)
@@ -84,7 +160,15 @@ function ChartBody({ accountId, trade, tz }: Props) {
       <div className="relative min-w-0" aria-busy={loading}>
         <React.Suspense fallback={<Placeholder />}>
           {data ? (
-            <TradeChart trade={trade} candles={data.candles} tf={data.tf} tz={tz} className={cn("transition-opacity", loading && "opacity-60")} />
+            <TradeChart
+              trade={trade}
+              candles={data.candles}
+              tf={data.tf}
+              tz={tz}
+              levels={levels}
+              onLevel={onLevel}
+              className={cn("transition-opacity", loading && "opacity-60")}
+            />
           ) : (
             <Placeholder text={error ? "" : "Loading prices…"} />
           )}
@@ -96,8 +180,10 @@ function ChartBody({ accountId, trade, tz }: Props) {
         )}
       </div>
 
+      {children}
+
       <p className="text-xs text-muted-foreground">
-        Times in {tzLabel(tz)}. The shaded area is the time the trade was open.
+        Times in {tzLabel(tz)}.{onLevel && " Drag the SL and TP lines to set your plan."}
         {import.meta.env.VITE_MOCK && " Sample prices for the prototype."}
       </p>
     </>

@@ -192,6 +192,8 @@ export type TradeReviewFields = {
   /** The trader tapped "None" for mistakes. */
   noMistakes: boolean
   initialStop: number | null
+  /** The planned take profit, set on the trade chart. Null: the CSV take profit. */
+  initialTarget: number | null
   note: string | null
 }
 /** PATCH body: fields left out are kept, null clears. */

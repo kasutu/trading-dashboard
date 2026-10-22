@@ -24,7 +24,8 @@ The API below is the contract for building them.
 | 3 | How good was the setup? | Tap A, B or C | `grade: 'A' \| 'B' \| 'C' \| null` | Whether A setups beat C setups |
 | 4 | What went wrong? | Tap any number of mistake chips ("None" is a chip too) | `mistakeIds: string[]` | The cost of each mistake |
 | 5 | How did you feel? | Tap one of five faces | `mood: 1-5 \| null` | P&L by mood |
-| 6 | What did you risk? | Confirm or edit the starting stop, asked only when the CSV stop looks moved | `initialStop: number \| null` | Result in R |
+| 6 | What did you risk? | Confirm or edit the starting stop, asked only when the CSV stop looks moved. Or drag the SL line on the trade chart | `initialStop: number \| null` | Result in R |
+| 6b | What was your target? | Drag the TP line on the trade chart, or type it under the chart | `initialTarget: number \| null` | Planned reward to risk |
 | 7 | Anything else? | Text, last, optional, up to 500 characters | `note: string \| null` | Context |
 
 Moods: 1 Awful, 2 Bad, 3 Okay, 4 Good, 5 Great.
@@ -115,6 +116,7 @@ create table trade_reviews (
   mood smallint check (mood between 1 and 5),
   no_mistakes boolean not null default false,
   initial_stop double precision,
+  initial_target double precision,
   note text check (char_length(note) <= 500),
   updated_at timestamptz not null default now(),
   primary key (account_id, ticket)
@@ -169,8 +171,8 @@ archived (case-insensitive).
 Setup       = { id, name, archived }
 MistakeTag  = { id, name, group: 'entry' | 'exit' | 'size' | 'mindset', preset, archived }
 
-TradeReviewInput = { followedPlan?, setupId?, grade?, mood?, mistakeIds?, noMistakes?, initialStop?, note? }
-TradeReview = { ticket, followedPlan, setupId, grade, mood, mistakeIds, noMistakes, initialStop, note, updatedAt }
+TradeReviewInput = { followedPlan?, setupId?, grade?, mood?, mistakeIds?, noMistakes?, initialStop?, initialTarget?, note? }
+TradeReview = { ticket, followedPlan, setupId, grade, mood, mistakeIds, noMistakes, initialStop, initialTarget, note, updatedAt }
 DayReviewInput = { preMood?, risks?, noRisks?, watchSetupIds?, followedPlan?, note? }
 DayReview   = { day, preMood, risks, noRisks, watchSetupIds, followedPlan, note, updatedAt }
 

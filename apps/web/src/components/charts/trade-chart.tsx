@@ -199,19 +199,41 @@ function digitsOf(t: LocalTrade) {
   return Math.min(5, Math.max(2, d(t.openPrice), d(t.closePrice), d(t.sl), d(t.tp)))
 }
 
-type Props = { trade: LocalTrade; candles: Candle[]; tf: Timeframe; tz: string; className?: string }
+export type Level = "sl" | "tp"
+/** Stop loss and take profit to draw. Null hides the line. */
+export type Levels = Record<Level, number | null>
+
+type Props = {
+  trade: LocalTrade
+  candles: Candle[]
+  tf: Timeframe
+  tz: string
+  /** Defaults to the trade's own SL and TP. */
+  levels?: Levels
+  /** Makes the SL and TP lines draggable. Called with the new price when a drag ends. */
+  onLevel?: (level: Level, price: number) => void
+  className?: string
+}
+
+/** Pixels from a line that still grab it. */
+const GRAB = 6
 
 /** Candlesticks around one trade, with where it was entered and exited, its stop loss and take
  *  profit, and the time it was open shaded. Lightweight Charts by TradingView. */
-export function TradeChart({ trade, candles, tf, tz, className }: Props) {
+export function TradeChart({ trade, candles, tf, tz, levels: given, onLevel, className }: Props) {
   const box = React.useRef<HTMLDivElement>(null)
   const parts = React.useRef<{
     chart: IChartApi
     series: ISeriesApi<"Candlestick">
     overlay: TradeOverlay
     lines: IPriceLine[]
+    levels: Partial<Record<Level, IPriceLine>>
   } | null>(null)
   const palette = usePalette()
+  const levels = given ?? { sl: trade.sl, tp: trade.tp }
+  // Read by the autoscale and the drag handlers, which outlive a render.
+  const live = React.useRef({ levels, onLevel, trade })
+  React.useEffect(() => { live.current = { levels, onLevel, trade } })
 
   // Create the chart once; remove it on unmount.
   React.useEffect(() => {
@@ -225,7 +247,7 @@ export function TradeChart({ trade, candles, tf, tz, className }: Props) {
     const series = chart.addSeries(CandlestickSeries, { priceLineVisible: false, lastValueVisible: false })
     const overlay = new TradeOverlay()
     series.attachPrimitive(overlay)
-    parts.current = { chart, series, overlay, lines: [] }
+    parts.current = { chart, series, overlay, lines: [], levels: {} }
     return () => {
       parts.current = null
       chart.remove()
@@ -278,21 +300,22 @@ export function TradeChart({ trade, candles, tf, tz, className }: Props) {
     })
   }, [palette, tz, tf])
 
-  // Candles, markers and price lines.
+  // Candles, the A to B path and the entry and exit labels. Fits the view, so it runs only when the trade or candles change.
   React.useEffect(() => {
     const p = parts.current
     if (!p) return
     const sec = tfSeconds(tf)
     const digits = digitsOf(trade)
-    // Keep the stop loss and take profit lines on screen, even when the candles never reach them.
-    const levels = [trade.openPrice, trade.closePrice, trade.sl, trade.tp].filter((n): n is number => n !== null)
     p.series.applyOptions({
       priceFormat: { type: "price", precision: digits, minMove: 10 ** -digits },
+      // Keep the stop loss and take profit lines on screen, even when the candles never reach them.
       autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
         const r = original()
         if (!r?.priceRange) return r
+        const { sl, tp } = live.current.levels
+        const all = [trade.openPrice, trade.closePrice, sl, tp].filter((n): n is number => n !== null)
         const { minValue, maxValue } = r.priceRange
-        return { ...r, priceRange: { minValue: Math.min(minValue, ...levels), maxValue: Math.max(maxValue, ...levels) } }
+        return { ...r, priceRange: { minValue: Math.min(minValue, ...all), maxValue: Math.max(maxValue, ...all) } }
       },
     })
     p.series.setData(candles.map((c) => ({ ...c, time: c.time as UTCTimestamp })))
@@ -305,10 +328,8 @@ export function TradeChart({ trade, candles, tf, tz, className }: Props) {
       value === null
         ? []
         : [p.series.createPriceLine({ price: value, color, title, lineStyle: LineStyle.Dashed, lineWidth: 1, lineVisible, axisLabelVisible: true })]
+    // Entry and exit: axis labels only. The A to B line shows them on the chart.
     p.lines = [
-      ...line(trade.sl, palette.loss, "SL"),
-      ...line(trade.tp, palette.profit, "TP"),
-      // Entry and exit: axis labels only. The A to B line shows them on the chart.
       ...line(trade.openPrice, palette.muted, "A", false),
       ...line(trade.closePrice, result, "B", false),
     ]
@@ -327,6 +348,99 @@ export function TradeChart({ trade, candles, tf, tz, className }: Props) {
     )
     p.chart.timeScale().fitContent()
   }, [trade, candles, tf, palette])
+
+  // Stop loss and take profit lines. Their own effect, so moving one keeps the zoom.
+  React.useEffect(() => {
+    const p = parts.current
+    if (!p) return
+    for (const k of ["sl", "tp"] as const) {
+      const value = levels[k]
+      const old = p.levels[k]
+      if (value === null) {
+        if (old) p.series.removePriceLine(old)
+        delete p.levels[k]
+        continue
+      }
+      const opts = {
+        price: value,
+        color: k === "sl" ? palette.loss : palette.profit,
+        title: k === "sl" ? "SL" : "TP",
+        lineStyle: onLevel ? LineStyle.Solid : LineStyle.Dashed,
+        lineWidth: 1 as const,
+        axisLabelVisible: true,
+      }
+      if (old) old.applyOptions(opts)
+      else p.levels[k] = p.series.createPriceLine(opts)
+    }
+  }, [levels.sl, levels.tp, palette, onLevel]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Drag the SL or TP line up and down. The chart does not pan while a line is held.
+  React.useEffect(() => {
+    const el = box.current
+    if (!el || !onLevel) return
+    let held: { level: Level; id: number } | null = null
+    const yOf = (e: PointerEvent) => e.clientY - el.getBoundingClientRect().top
+    const near = (y: number): Level | null => {
+      const p = parts.current
+      if (!p) return null
+      for (const k of ["sl", "tp"] as const) {
+        const v = live.current.levels[k]
+        const ly = v === null ? null : p.series.priceToCoordinate(v)
+        if (ly !== null && Math.abs(ly - y) <= GRAB) return k
+      }
+      return null
+    }
+    /** The price under the pointer, kept on the right side of the entry and rounded to the price digits. */
+    const priceAt = (level: Level, y: number) => {
+      const p = parts.current!
+      const t = live.current.trade
+      const raw = p.series.coordinateToPrice(y)
+      if (raw === null) return null
+      const digits = digitsOf(t)
+      const step = 10 ** -digits
+      const below = (level === "sl") === (t.side === "buy")
+      const v = below ? Math.min(raw, t.openPrice - step) : Math.max(raw, t.openPrice + step)
+      return +Math.max(step, v).toFixed(digits)
+    }
+    const down = (e: PointerEvent) => {
+      const level = near(yOf(e))
+      if (!level) return
+      // Capture phase on the box: the chart below never sees the press, so it does not pan.
+      e.preventDefault()
+      e.stopPropagation()
+      held = { level, id: e.pointerId }
+      el.setPointerCapture(e.pointerId)
+    }
+    const move = (e: PointerEvent) => {
+      if (!held) {
+        el.style.cursor = near(yOf(e)) ? "ns-resize" : ""
+        return
+      }
+      if (e.pointerId !== held.id) return
+      e.stopPropagation()
+      const v = priceAt(held.level, yOf(e))
+      if (v !== null) parts.current?.levels[held.level]?.applyOptions({ price: v })
+    }
+    const up = (e: PointerEvent) => {
+      if (!held || e.pointerId !== held.id) return
+      e.stopPropagation()
+      const v = priceAt(held.level, yOf(e))
+      const level = held.level
+      held = null
+      if (v !== null) live.current.onLevel?.(level, v)
+    }
+    el.addEventListener("pointerdown", down, true)
+    el.addEventListener("pointermove", move, true)
+    el.addEventListener("pointerup", up, true)
+    el.addEventListener("pointercancel", up, true)
+    return () => {
+      el.removeEventListener("pointerdown", down, true)
+      el.removeEventListener("pointermove", move, true)
+      el.removeEventListener("pointerup", up, true)
+      el.removeEventListener("pointercancel", up, true)
+      el.style.cursor = ""
+    }
+  }, [!!onLevel]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <div ref={box} className={cn("h-[260px] w-full sm:h-[360px]", className)} />
 }

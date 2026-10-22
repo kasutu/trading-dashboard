@@ -4,7 +4,7 @@ import { useAutosave } from "./use-autosave"
 import { useJournalContext } from "./use-journal"
 
 export const BLANK_TRADE: TradeReviewFields = {
-  followedPlan: null, setupId: null, grade: null, mood: null, mistakeIds: [], noMistakes: false, initialStop: null, note: null,
+  followedPlan: null, setupId: null, grade: null, mood: null, mistakeIds: [], noMistakes: false, initialStop: null, initialTarget: null, note: null,
 }
 export const BLANK_DAY: DayReviewFields = { preMood: null, risks: [], noRisks: false, watchSetupIds: [], followedPlan: null, note: null }
 
