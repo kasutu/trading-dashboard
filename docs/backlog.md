@@ -13,6 +13,21 @@ The prototype ([#5](https://github.com/kasutu/trading-dashboard/pull/5)) runs on
 - Move the check-in setting from the browser to `profiles`.
 - Pick a price-data provider for the trade chart's candles (options in `docs/architecture.md`).
 
+### Overtrading chart and trade timeline
+
+**Overtrading line chart.** For each trading day, show how many trades I took against how many my best trade duration allows.
+
+- Trades taken: count of trades opened that day (user's timezone).
+- Trades my best duration allows: take my best duration bucket from `by_duration` (highest net P&L, same minimum-trades rule as `bestLots`), then divide the time I traded that day (first open to last close) by that bucket's median duration. Example: best bucket 15–60m with a 30 min median, 4 hours of trading → about 8 trades.
+- Two lines on one chart: trades taken, and trades allowed. Days where taken is above allowed are overtrading days; mark them, and show the day's net P&L in the tooltip.
+- Computed in the engine (Rust), with a parity test against the TS mock.
+
+**Trade timeline (Gantt).** For a chosen day, one bar per trade from open time to close time, in the user's timezone.
+
+- Rows ordered by open time; bar color by win or loss; overlapping bars show trades held at the same time.
+- Tooltip: symbol, side, lots, duration, net P&L. Click opens the trade chart dialog.
+- Reachable from the calendar day sheet and from an overtrading day on the chart above.
+
 ## Done
 
 - **P&L by hour uses the opening time.** Already the case: the engine takes the hour from the opening time and the chart says "Hour the trade was opened". No change needed.
