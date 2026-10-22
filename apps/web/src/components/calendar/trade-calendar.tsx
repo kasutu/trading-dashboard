@@ -73,7 +73,7 @@ export function TradeCalendar({ accountId, filters, period }: Props) {
         ))}
       </div>
 
-      <DaySheet day={open} trades={open ? byDay.get(open) ?? [] : []} tz={filters.tz} onClose={() => setOpen(null)} />
+      <DaySheet accountId={accountId} day={open} trades={open ? byDay.get(open) ?? [] : []} tz={filters.tz} onClose={() => setOpen(null)} />
     </div>
   )
 }

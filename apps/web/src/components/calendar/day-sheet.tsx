@@ -1,13 +1,14 @@
+import { TradeChartButton } from "@/components/charts/trade-chart-dialog"
 import { SideBadge } from "@/components/dashboard/side-badge"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import type { LocalTrade } from "@/lib/api/types"
 import { duration, formatLongDay, formatTimeRange, money, pct, pnlClass, price, tradeKey, tzLabel } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-type Props = { day: string | null; trades: LocalTrade[]; tz: string; onClose: () => void }
+type Props = { accountId: string; day: string | null; trades: LocalTrade[]; tz: string; onClose: () => void }
 
 /** Side sheet with the stats and every trade of one day. */
-export function DaySheet({ day, trades, tz, onClose }: Props) {
+export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
   const net = trades.reduce((s, t) => s + t.net, 0)
   const wins = trades.filter((t) => t.net > 0).length
 
@@ -45,6 +46,7 @@ export function DaySheet({ day, trades, tz, onClose }: Props) {
                     <Field label="Stop loss" value={price(t.sl)} />
                     <Field label="Take profit" value={price(t.tp)} />
                   </dl>
+                  <TradeChartButton accountId={accountId} trade={t} tz={tz} className="mt-3" />
                 </li>
               ))}
             </ul>
