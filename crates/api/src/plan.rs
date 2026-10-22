@@ -17,7 +17,7 @@ pub enum Plan {
 
 /// Analytics fields that only paid plans get: timing statistics, recommendations
 /// and everything that simulates or optimizes the user's trading.
-pub const PAID_FIELDS: [&str; 10] = [
+pub const PAID_FIELDS: [&str; 11] = [
     "byHour",
     "byWeekday",
     "heatmap",
@@ -27,6 +27,7 @@ pub const PAID_FIELDS: [&str; 10] = [
     "capSim",
     "lossLimitSim",
     "afterLoss",
+    "overtrading",
     "optimization",
 ];
 

@@ -12,12 +12,14 @@ import { DaySheet } from "./day-sheet"
 
 type Props = { accountId: string; filters: Filters; period: [string, string] }
 
-/** Month calendar of daily net P&L. Only months inside the data period can be shown. */
+/** Month calendar of daily net P&L. Only months inside the data period, and the current month (for today's journal), can be shown. */
 export function TradeCalendar({ accountId, filters, period }: Props) {
   const first = monthOf(period[0])
-  const last = monthOf(period[1])
+  const now = today(filters.tz)
+  const dataLast = monthOf(period[1])
+  const last = monthOf(now) > dataLast ? monthOf(now) : dataLast
   const [picked, setPicked] = React.useState<string | null>(null)
-  const month = picked && picked >= first && picked <= last ? picked : last
+  const month = picked && picked >= first && picked <= last ? picked : dataLast
   const grid = monthGrid(month)
   const [open, setOpen] = React.useState<string | null>(null)
 
@@ -31,7 +33,6 @@ export function TradeCalendar({ accountId, filters, period }: Props) {
 
   const inMonth = grid.filter((d) => monthOf(d) === month).flatMap((d) => byDay.get(d) ?? [])
   const monthNet = inMonth.reduce((s, t) => s + t.net, 0)
-  const now = today(filters.tz)
 
   return (
     <div className="space-y-3">
@@ -73,7 +74,7 @@ export function TradeCalendar({ accountId, filters, period }: Props) {
         ))}
       </div>
 
-      <DaySheet day={open} trades={open ? byDay.get(open) ?? [] : []} tz={filters.tz} onClose={() => setOpen(null)} />
+      <DaySheet accountId={accountId} day={open} trades={open ? byDay.get(open) ?? [] : []} tz={filters.tz} onClose={() => setOpen(null)} />
     </div>
   )
 }

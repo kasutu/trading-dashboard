@@ -2,14 +2,16 @@
 
 mod accounts;
 mod analytics;
+mod candles;
 mod cash_flows;
 mod health;
 mod imports;
+mod journal;
 mod mappings;
 mod me;
 
 use axum::extract::DefaultBodyLimit;
-use axum::routing::{delete, get, patch};
+use axum::routing::{delete, get, patch, post};
 use axum::Router;
 use sqlx::PgPool;
 use tower_http::limit::RequestBodyLimitLayer;
@@ -42,6 +44,25 @@ pub fn app(pool: PgPool) -> Router {
         )
         .route("/accounts/{id}/analytics", get(analytics::analytics))
         .route("/accounts/{id}/trades", get(analytics::trades))
+        .route("/accounts/{id}/candles", get(candles::candles))
+        .route("/accounts/{id}/journal", get(journal::journal))
+        .route("/accounts/{id}/journal/summary", get(journal::summary))
+        .route(
+            "/accounts/{id}/journal/trades/{ticket}",
+            patch(journal::patch_trade),
+        )
+        .route(
+            "/accounts/{id}/journal/days/{day}",
+            patch(journal::patch_day),
+        )
+        .route("/journal/tags", get(journal::tags))
+        .route("/journal/setups", post(journal::create_setup))
+        .route("/journal/setups/{setup}", patch(journal::update_setup))
+        .route("/journal/mistakes", post(journal::create_mistake))
+        .route(
+            "/journal/mistakes/{mistake}",
+            patch(journal::update_mistake),
+        )
         .route("/mappings", get(mappings::list).post(mappings::create))
         .route("/mappings/{id}", delete(mappings::remove));
 

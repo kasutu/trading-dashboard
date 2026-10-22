@@ -14,10 +14,10 @@ export const hourLabel = (h: number | string) => {
   const n = Number(h)
   return `${n % 12 || 12} ${n < 12 ? "AM" : "PM"}`
 }
-/** Short 12-hour label for tight axes: 0 → "12a", 13 → "1p" */
+/** Short 12-hour label for axes: 0 → "12am", 13 → "1pm" */
 export const hourShort = (h: number | string) => {
-  const n = Number(h)
-  return `${n % 12 || 12}${n < 12 ? "a" : "p"}`
+  const n = Number(h) % 24
+  return `${n % 12 || 12}${n < 12 ? "am" : "pm"}`
 }
 /** Hold time in words: "45 sec", "12 min", "1 hr 24 min", "2 days 3 hr". */
 export function duration(min: number) {

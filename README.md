@@ -27,7 +27,6 @@ Ctrl+C stops all of them. Run `just` to see every task:
 | Task | What it does |
 | --- | --- |
 | `just db`, `just auth`, `just api`, `just web` | Start one part on its own, each in its own terminal |
-| `just mock` | Web app with fake data, no backend |
 | `just plan alice espresso` | Put a user on a plan (`free`, `espresso`, `latte` or `owner`) |
 | `just owner alice` | Give a user the owner plan: everything, no account limit |
 | `just delete-user alice` | Delete a user and all their data (cannot be undone) |

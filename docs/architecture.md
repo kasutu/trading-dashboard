@@ -10,6 +10,7 @@ This document is the contract between the services. Change it together with the 
 | Auth | Better Auth (TypeScript) in `apps/auth`, username and password only. The Rust API reads the same session table. |
 | Front end | `apps/web` (Vite, React). A thin client: it renders the analytics that the API returns. |
 | Hosting | Railway. One service each for web, api and auth, plus Railway Postgres. |
+| Market data | Chart candles from TradingView's chart websocket, without an account (`crates/api/src/tradingview.rs`, the messages of the unofficial [TradingView-API](https://github.com/Mathieu2301/TradingView-API)). Free, and no extra service. Every bar is kept in Postgres. |
 | Brokers | Exness preset, plus a column mapper for any CSV. |
 | Data | Trades are stored on the server. There is no local-only mode. |
 | Plans | Free, Espresso ($9) and Latte ($15). See [Plans](#plans). Billing is not built yet. |
@@ -20,7 +21,8 @@ This document is the contract between the services. Change it together with the 
 browser ──► web (Caddy: static files + reverse proxy)
               ├── /api/auth/*  ──► auth (Node, Better Auth)  ─┐
               └── /api/*       ──► api  (Rust, axum)          ├──► Postgres
-                                                              ┘
+                                        │                     ┘
+                                        └── candles not stored yet ──► TradingView (websocket)
 ```
 
 - All traffic goes through the web service, so the browser sees one origin. No CORS. Cookies are first-party.
@@ -122,7 +124,27 @@ create table cash_flows (
   created_at timestamptz not null default now()
 );
 create index on cash_flows (account_id);
+
+-- Every bar from TradingView, and every range already asked for (with or without bars).
+create table candles (
+  symbol text not null,      -- the broker's symbol, as trades have it
+  tf text not null,          -- 1m, 5m, 15m, 1h, 4h, 1d
+  time timestamptz not null, -- the bar's start
+  open double precision not null, high double precision not null,
+  low double precision not null, close double precision not null,
+  primary key (symbol, tf, time)
+);
+create table candle_ranges (
+  symbol text not null,
+  tf text not null,
+  from_at timestamptz not null,
+  to_at timestamptz not null,
+  primary key (symbol, tf, from_at, to_at)
+);
 ```
+
+The journal tables (`setups`, `mistake_tags`, `trade_reviews`, `trade_mistakes`, `day_reviews`) are in
+[journal-data.md](journal-data.md#data-model). Migration: `crates/api/migrations/0004_journal.sql`.
 
 ## HTTP API
 
@@ -164,6 +186,45 @@ Deposits and withdrawals are on every plan. They are not trades: they never chan
 
 Every route that takes `:id` checks that the account belongs to the session user (404 otherwise).
 
+## Journal
+
+Built: `crates/api/src/routes/journal.rs` (routes and validation) and `crates/engine/src/journal.rs` (positions, R, summary).
+
+The questions, the review flow, the tables (`setups`, `mistake_tags`, `trade_reviews`, `trade_mistakes`, `day_reviews`), the
+types and the rules (when to ask for the starting stop, result in R, validation, the summary) are in
+[journal-data.md](journal-data.md). Routes:
+
+| Method and path | Response |
+| --- | --- |
+| `GET /api/journal/tags` | The person's setups and mistake tags (presets created on first call) |
+| `POST /api/journal/setups`, `PATCH /api/journal/setups/:setupId` | `Setup` |
+| `POST /api/journal/mistakes`, `PATCH /api/journal/mistakes/:mistakeId` | `MistakeTag` |
+| `GET /api/accounts/:id/journal` | `Journal`: positions with `askStop` and `r`, trade and day reviews, day stats. Every plan. Not affected by the dashboard filters. |
+| `PATCH /api/accounts/:id/journal/trades/:ticket` | `TradeReview`, or `204` when every answer is blank |
+| `PATCH /api/accounts/:id/journal/days/:day` | `DayReview`, or `204` |
+| `GET /api/accounts/:id/journal/summary` | `JournalSummary`; `{ locked: true }` on Free |
+
+The before-trading check-in setting is kept in the browser for now. Planned: a column on `profiles`.
+
+## Trade chart
+
+Each trade can open a candlestick chart of its symbol. Entry (A) and exit (B) sit at their exact time and price, MT5 style, joined by a dashed line; the stop loss and take profit are lines you can drag (saved as the review's `initialStop` and `initialTarget`); the holding time is shaded. The web app draws it with TradingView's open-source [Lightweight Charts](https://github.com/tradingview/lightweight-charts) (Apache 2.0, pinned in `apps/web/package.json`, loaded only when a chart opens). The library draws; it brings no market data, so the candles come from our API.
+
+| Method and path | Request | Response |
+| --- | --- | --- |
+| `GET /api/accounts/:id/candles` | query: `symbol`, `tf=1m\|5m\|15m\|1h\|4h\|1d`, `from`, `to` (ISO 8601) | `{ symbol, tf, candles: Candle[] }`, oldest first. `tf` is the length served, which can be longer than asked. `400` for a missing symbol, an unknown `tf` or `from` not before `to`. `422` when the window is more than 2000 candles. `404` when TradingView does not know the symbol or has no bars in the window. |
+
+```ts
+Candle = { time, open, high, low, close }  // time: the bar's start, unix seconds UTC
+```
+
+- The web app picks the timeframe from the hold time (`apps/web/src/lib/timeframes.ts`: the shortest that fits the hold in 120 candles) and asks for a window of 30% of the hold time on each side, at least 20 candles. The user can switch the timeframe.
+- The API keeps every bar in `candles` and every range it asked for in `candle_ranges`, also when the range had no bars. A window that the stored ranges cover is answered from Postgres; only a window with a gap goes to TradingView, so each range is asked once. Ranges in the future are not recorded.
+- `src/tradingview.rs` opens TradingView's chart websocket without an account: `set_auth_token`, `chart_create_session`, `resolve_symbol`, `create_series` with `bar_count` up to `to`, then reads `timescale_update` until `series_completed`. It maps the broker symbol to TradingView symbols (`XAUUSDm` → `OANDA:XAUUSD`, then `FX:`, `FOREXCOM:`; coins → `BITSTAMP:`, `COINBASE:`, `BINANCE:`) and remembers the one that worked.
+- Without an account, TradingView gives about 7,000 one-minute bars (a few days back), so for older trades the API steps up to the next length that has bars (1m → 5m → 15m → 1h → 4h → 1d). The chart says when it shows longer candles than asked, and when the fills are more than 3% outside the candles (likely a different instrument).
+- Yahoo Finance and Dukascopy were tried as free sources for forex and gold; both refused server requests (429, 503).
+- The websocket protocol is not a public TradingView API; TradingView-API is an independent, unofficial project. It can break when TradingView changes its site, and TradingView's terms and market-data licenses apply to how the data is shown. Check them before charging for the chart.
+
 ## Analytics split
 
 - **Engine (Rust):** parsing, normalizing, grouping, simulations, the optimizer, the deposit and withdrawal totals (`cash_report`). All numbers.
@@ -176,8 +237,8 @@ Billing (a payment provider) is not built yet. Every new user is on `free`. To p
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list, deposits and withdrawals. Share card with "Made with Jurno". |
-| Espresso | $9 / month | Everything in Free. Notes, Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
+| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list, deposits and withdrawals, the journal (trade and day reviews, setups and mistake tags). Share card with "Made with Jurno". |
+| Espresso | $9 / month | Everything in Free. Notes (the automatic insights and what the journal says: P&L by setup, grade, mistake, plan and mood), Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
 | Latte | $15 / month | Everything in Espresso. Up to 5 trading accounts. Share card without the footer. |
 
 Yearly billing: 10 months' price for 12 months.
@@ -186,8 +247,9 @@ There is also an `owner` plan for the creator: everything in Latte, with no acco
 
 The API enforces the limits (`crates/api/src/plan.rs`):
 
-- Analytics on Free: the server removes `byHour`, `byWeekday`, `heatmap`, `byDuration`, `nthTrade`, `dayBuckets`, `capSim`, `lossLimitSim`, `afterLoss` and `optimization`, and adds `locked: true`. The web app shows a locked panel for those views. Everything else stays, including `byWeek`, `byMonth` and `bestLots`.
+- Analytics on Free: the server removes `byHour`, `byWeekday`, `heatmap`, `byDuration`, `nthTrade`, `dayBuckets`, `capSim`, `lossLimitSim`, `afterLoss`, `overtrading` and `optimization`, and adds `locked: true`. The web app shows a locked panel for those views. Everything else stays, including `byWeek`, `byMonth` and `bestLots`.
 - `POST /api/accounts` returns 403 when the user has reached the plan's account limit.
 - `POST /api/mappings` returns 403 on Free.
+- `GET /api/accounts/:id/journal/summary` returns `{ "locked": true }` on Free (see [Journal](#journal)). The journal itself is on every plan.
 
 The plan list for the web app is in `apps/web/src/lib/plans.ts`. Keep it, `plan.rs` and this table in step.

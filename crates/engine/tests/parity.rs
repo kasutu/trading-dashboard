@@ -7,7 +7,7 @@ use serde_json::Value;
 
 /// Analytics fields added after the port. The TS engine never had them, so the goldens
 /// do not either; they have their own unit tests in `src/stats.rs`.
-const AFTER_PORT: [&str; 3] = ["byWeek", "byMonth", "bestLots"];
+const AFTER_PORT: [&str; 4] = ["byWeek", "byMonth", "bestLots", "overtrading"];
 
 fn fixture(name: &str) -> String {
     std::fs::read_to_string(

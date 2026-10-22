@@ -33,16 +33,12 @@ dev: db
     #!/usr/bin/env bash
     set -euo pipefail
     [ -f .env ] || { echo "No .env file. Run: just setup"; exit 1; }
-    # On Ctrl+C, or when any of the three exits, stop the others too.
+    # On Ctrl+C, or when any of them exits, stop the others too.
     trap 'trap - INT TERM EXIT; kill 0' INT TERM EXIT
     (cd apps/auth && npm run dev) &
     cargo run -p api &
     (cd apps/web && npm run dev) &
     wait -n
-
-# Run the web app with fake data and no backend
-mock:
-    cd apps/web && VITE_MOCK=1 npm run dev
 
 # Run every service in containers (production builds)
 up:
