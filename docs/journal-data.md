@@ -72,6 +72,8 @@ Day risk chips are a fixed list for now: `tired`, `news`, `distracted`, `chasing
 ## Review flow
 
 The day sheet gets a "Review trades" button that opens a stack of cards, one per position not reviewed yet, oldest first.
+A position counts as reviewed once its plan question (`followedPlan`) is answered, since that is what the card asks; a trade
+with only a note or a face still gets a card. The Notes tab opens the same stack for the newest day with a trade to review.
 
 1. Swipe right (or press the right arrow, or tap "On plan"): `followedPlan = true`. The next card comes up.
 2. Swipe left (or left arrow, or "Off plan"): `followedPlan = false`, and the mistake chips open. Tap one or more, then "Next".
@@ -137,11 +139,18 @@ create table day_reviews (
 );
 ```
 
-A review row whose answers are all blank is deleted.
+A review row whose answers are all blank is deleted. Blank means null, an empty list, or `false` for `no_mistakes` and
+`no_risks`; `followed_plan = false` is an answer.
 
 ## API
 
 All JSON, camelCase, session required, errors `{ "error": "<plain message>" }`. Routes with `:id` check that the trading account belongs to the user (404).
+
+Validation (400): unknown fields; a grade other than A, B or C; a mood outside 1-5; a setup or mistake id the person does not
+have; a risk outside the fixed list; a starting stop that is not a price above 0; a note over 500 characters (notes are trimmed,
+empty is null); `noMistakes: true` together with mistakes (or `noRisks: true` with risks); a day that is not `yyyy-mm-dd`. A
+ticket the account does not have is 404. Tag names are trimmed, 1-40 characters, and unique per person among tags that are not
+archived (case-insensitive).
 
 | Method and path | Request | Response |
 | --- | --- | --- |
@@ -164,20 +173,27 @@ TradeReview = { ticket, followedPlan, setupId, grade, mood, mistakeIds, noMistak
 DayReviewInput = { preMood?, risks?, noRisks?, watchSetupIds?, followedPlan?, note? }
 DayReview   = { day, preMood, risks, noRisks, watchSetupIds, followedPlan, note, updatedAt }
 
-Position    = { ticket, day, open, symbol, side, lots, net, openPrice, closePrice, stopLoss,
+Position    = { ticket, day, open, symbol, side, lots, net, openPrice, closePrice, stopLoss,  // open: ISO time of the first fill
                 askStop: boolean,   // the CSV stop looks moved, so ask for the starting stop
                 r: number | null }  // result in R from initialStop, else the CSV stop when not moved
 Journal     = { positions: Position[],             // every position in the account, newest first
                 trades: TradeReview[], days: DayReview[],
                 stats: { day, trades, net }[] }    // one row per day with a review or a trade
 
-Row         = { key, trades, net, winRate, avgR }  // key: a mood 1-5, setup id, grade, mistake id, 'yes'/'no'
+Row         = { key: string, trades, net, winRate, avgR: number | null }
+              // key: a mood '1'-'5', setup id, grade, mistake id, 'yes'/'no'. avgR: mean R of the trades that have one.
 JournalSummary = { minTrades: 10, minDays: 10,
                    byMood: Row[],          // days, from day preMood (trades = days here)
                    bySetup: Row[], byGrade: Row[], byMistake: Row[], byPlan: Row[] }  // trades
 ```
 
 The server computes `askStop`, `r` and the summary (numbers stay on the server, see `architecture.md`).
+
+- Summary rows count positions (one per ticket) whose review answers that question; `winRate` is the share with net above 0.
+  `byGrade` always lists A, B and C, `byPlan` 'yes' and 'no', `byMood` 1 to 5; `bySetup` and `byMistake` list only tags with
+  trades, most trades first. A trade with two mistakes counts in both.
+- `byMood` counts trading days that have a `preMood`: `trades` is the number of days, `net` their total, `winRate` the share
+  of green days, `avgR` the mean R of their trades.
 The web app shows a group in a chart once it has `minTrades` trades (`minDays` days for moods), and "needs N more" otherwise.
 
 ## Plans

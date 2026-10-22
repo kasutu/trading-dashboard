@@ -166,51 +166,23 @@ Every route that takes `:id` checks that the account belongs to the session user
 
 ## Journal
 
-**Planned. The prototype runs on the mock API only (`VITE_MOCK=1`, `apps/web/src/mock/index.ts`); there are no tables or Rust routes yet.**
+**Planned. The prototype runs on the mock API only (`VITE_MOCK=1`, `apps/web/src/mock/journal.ts`); there are no tables or Rust routes yet.**
 
-A mood (1 Awful, 2 Bad, 3 Okay, 4 Good, 5 Great) and a note (up to 500 characters) for a trading day or a trade. Day entries belong to a trading account and are keyed by the day (`yyyy-mm-dd`) in the dashboard timezone at the time of writing. Trade entries are keyed by `(account, ticket)`, so every partial close of a position shares one.
+The questions, the review flow, the tables (`setups`, `mistake_tags`, `trade_reviews`, `trade_mistakes`, `day_reviews`), the
+types and the rules (when to ask for the starting stop, result in R, validation, the summary) are in
+[journal-data.md](journal-data.md). Routes:
 
-```sql
-create table day_journal (
-  account_id uuid not null references trading_accounts on delete cascade,
-  day date not null,
-  mood smallint check (mood between 1 and 5),
-  note text check (char_length(note) <= 500),
-  updated_at timestamptz not null default now(),
-  primary key (account_id, day),
-  check (mood is not null or note is not null)
-);
+| Method and path | Response |
+| --- | --- |
+| `GET /api/journal/tags` | The person's setups and mistake tags (presets created on first call) |
+| `POST /api/journal/setups`, `PATCH /api/journal/setups/:setupId` | `Setup` |
+| `POST /api/journal/mistakes`, `PATCH /api/journal/mistakes/:mistakeId` | `MistakeTag` |
+| `GET /api/accounts/:id/journal` | `Journal`: positions with `askStop` and `r`, trade and day reviews, day stats. Every plan. Not affected by the dashboard filters. |
+| `PATCH /api/accounts/:id/journal/trades/:ticket` | `TradeReview`, or `204` when every answer is blank |
+| `PATCH /api/accounts/:id/journal/days/:day` | `DayReview`, or `204` |
+| `GET /api/accounts/:id/journal/summary` | `JournalSummary`; `{ locked: true }` on Free |
 
-create table trade_journal (
-  account_id uuid not null references trading_accounts on delete cascade,
-  ticket text not null,
-  mood smallint check (mood between 1 and 5),
-  note text check (char_length(note) <= 500),
-  updated_at timestamptz not null default now(),
-  primary key (account_id, ticket),
-  check (mood is not null or note is not null)
-);
-```
-
-| Method and path | Request | Response |
-| --- | --- | --- |
-| `GET /api/accounts/:id/journal` | query: `tz` (default `UTC`) | `Journal`. Every plan. Not affected by the dashboard filters. |
-| `PUT /api/accounts/:id/journal/days/:day` | `{ mood: 1-5 \| null, note: string \| null }` | `DayEntry`. The note is trimmed; empty is `null`. A null mood and an empty note delete the entry: `204`. `400` for a bad day, mood or a note over 500 characters. |
-| `PUT /api/accounts/:id/journal/trades/:ticket` | same | `TradeEntry`, or `204` when deleted. `404` when the account has no trade with this ticket. |
-| `GET /api/accounts/:id/journal/summary` | query: `tz` | `{ byMood: MoodRow[], minDays: 10 }`, one row per mood (1 to 5). `{ locked: true }` on Free. |
-
-```ts
-DayEntry        = { day, mood: 1|2|3|4|5 | null, note: string | null, updatedAt }
-TradeEntry      = { ticket, mood, note, updatedAt }
-JournalPosition = { day, symbol, side, lots, net }  // the position summed over its partial closes; day = opening day in tz
-JournalDayStat  = { day, trades, net }               // all trades opened that day in tz
-Journal         = { days: DayEntry[], trades: (TradeEntry & { position: JournalPosition | null })[], stats: JournalDayStat[] }
-MoodRow         = { mood, days, net, avgPerDay, winRate }
-```
-
-- `days` newest first. `trades` newest first by position day; `position` is null when the trades of that ticket are gone. `stats` has one row for every day in `days` and every position day (`trades: 0, net: 0` when nothing was traded).
-- P&L by mood counts only days that have a mood and at least one trade. `net` is the sum of those days, `avgPerDay = net / days`, `winRate` is the share of days with `net > 0`. The web app shows a mood in the chart once it has `minDays` days and says how many more it needs otherwise.
-- The daily check-in setting ("Ask for my mood each day") is kept in the browser for now. Planned: a column on `profiles`.
+The before-trading check-in setting is kept in the browser for now. Planned: a column on `profiles`.
 
 ## Trade chart
 
@@ -251,8 +223,8 @@ Billing (a payment provider) is not built yet. Every new user is on `free`. To p
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list, deposits and withdrawals, the journal (mood and note for each day and trade). Share card with "Made with Jurno". |
-| Espresso | $9 / month | Everything in Free. Notes (the automatic insights and P&L by mood), Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
+| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list, deposits and withdrawals, the journal (trade and day reviews, setups and mistake tags). Share card with "Made with Jurno". |
+| Espresso | $9 / month | Everything in Free. Notes (the automatic insights and what the journal says: P&L by setup, grade, mistake, plan and mood), Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
 | Latte | $15 / month | Everything in Espresso. Up to 5 trading accounts. Share card without the footer. |
 
 Yearly billing: 10 months' price for 12 months.
