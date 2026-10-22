@@ -123,14 +123,7 @@ pub fn summary(ts: &Ts) -> Summary {
         .map(|t| t.day.as_str())
         .collect::<HashSet<_>>()
         .len() as u32;
-    let mut durations: Vec<f64> = ts.iter().map(|t| t.duration_min).collect();
-    durations.sort_by(f64::total_cmp);
-    let m = durations.len() / 2;
-    let median = match durations.len() {
-        0 => 0.0,
-        n if !n.is_multiple_of(2) => durations[m],
-        _ => (durations[m - 1] + durations[m]) / 2.0,
-    };
+    let median = median(ts.iter().map(|t| t.duration_min).collect());
     let profit_factor = if g.gross_loss != 0.0 {
         Some((g.gross_win / g.gross_loss).abs())
     } else if g.gross_win > 0.0 {
@@ -261,20 +254,31 @@ const DURATION: [(&str, f64); 6] = [
     ("4h+", f64::INFINITY),
 ];
 
+pub(crate) fn duration_label(m: f64) -> &'static str {
+    DURATION
+        .iter()
+        .find(|(_, max)| m < *max)
+        .map_or("4h+", |d| d.0)
+}
+
 pub fn by_duration(ts: &Ts) -> Vec<Group> {
-    let label = |m: f64| {
-        DURATION
-            .iter()
-            .find(|(_, max)| m < *max)
-            .map_or("4h+", |d| d.0)
-    };
     let order = DURATION.map(|d| d.0);
     let g = group_by(
         ts.iter()
-            .map(|t| (label(t.duration_min).to_string(), net(t))),
+            .map(|t| (duration_label(t.duration_min).to_string(), net(t))),
         &order,
     );
     g.into_iter().filter(|g| g.trades > 0).collect()
+}
+
+pub(crate) fn median(mut xs: Vec<f64>) -> f64 {
+    xs.sort_by(f64::total_cmp);
+    let m = xs.len() / 2;
+    match xs.len() {
+        0 => 0.0,
+        n if !n.is_multiple_of(2) => xs[m],
+        _ => (xs[m - 1] + xs[m]) / 2.0,
+    }
 }
 
 /// Lot sizes per symbol, keys "XAUUSD · 0.2", sorted by symbol then lots.

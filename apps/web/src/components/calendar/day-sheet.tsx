@@ -1,3 +1,4 @@
+import { TradeTimeline } from "@/components/charts/day-timeline-dialog"
 import { TradeChartButton } from "@/components/charts/trade-chart-dialog"
 import { SideBadge } from "@/components/dashboard/side-badge"
 import { YourDay } from "@/components/journal/day-review"
@@ -9,30 +10,36 @@ import { cn } from "@/lib/utils"
 
 type Props = { accountId: string; day: string | null; trades: LocalTrade[]; tz: string; onClose: () => void }
 
-/** Side sheet for one day: your day review, its stats and every trade with its review. */
+/** Side sheet for one day: its stats and timeline, your day review, and every trade with its review. */
 export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
   const net = trades.reduce((s, t) => s + t.net, 0)
   const wins = trades.filter((t) => t.net > 0).length
 
   return (
     <Sheet open={day !== null} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent>
+      <SheetContent className="sm:max-w-lg">
         {day && (
           <div className="space-y-5 p-5">
             <div className="space-y-1 pr-8">
               <SheetTitle className="font-display text-xl font-bold">{formatLongDay(day)}</SheetTitle>
               <SheetDescription>Trades opened on this day. Times are in {tzLabel(tz)}.</SheetDescription>
             </div>
-            <YourDay day={day} />
             {trades.length ? (
-              <dl className="grid grid-cols-3 gap-2">
-                <Stat label="Total trades" value={String(trades.length)} />
-                <Stat label="Win rate" value={pct(wins / trades.length)} />
-                <Stat label="Net P&L" value={money(net, true)} tone={pnlClass(net)} />
-              </dl>
+              <>
+                <dl className="grid grid-cols-3 gap-2">
+                  <Stat label="Total trades" value={String(trades.length)} />
+                  <Stat label="Win rate" value={pct(wins / trades.length)} />
+                  <Stat label="Net P&L" value={money(net, true)} tone={pnlClass(net)} />
+                </dl>
+                <section aria-label="Timeline" className="rounded-xl border bg-card p-4 shadow-card">
+                  <h3 className="mb-2 font-display text-base font-bold">Timeline</h3>
+                  <TradeTimeline accountId={accountId} trades={trades} day={day} tz={tz} />
+                </section>
+              </>
             ) : (
               <p className="py-4 text-center text-sm text-muted-foreground">{day === today(tz) ? "No trades yet today." : "No trades on this day."}</p>
             )}
+            <YourDay day={day} />
             <ul className="space-y-3">
               {trades.map((t) => (
                 <li key={tradeKey(t)} className="rounded-xl border bg-card p-4 shadow-card">

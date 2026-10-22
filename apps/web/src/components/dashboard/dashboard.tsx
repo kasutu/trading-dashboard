@@ -15,6 +15,7 @@ import { SummaryCard } from "./summary-card"
 import { TradesTable } from "./trades-table"
 import { Frequency } from "./views/frequency"
 import { Funding } from "./views/funding"
+import { Journal } from "./views/journal"
 import { Notes } from "./views/notes"
 import { Overview } from "./views/overview"
 import { Plan } from "./views/plan"
@@ -29,7 +30,7 @@ const tab =
 const LOCKED = {
   plan: ["What made money: your best hours, weekdays, symbol and holding time", "Limits tested on your own trades, then checked on days they were not fitted to"],
   timing: ["Net P&L by hour of the day", "A weekday and hour grid", "Net P&L by weekday and by holding time"],
-  frequency: ["Net P&L if you stop after a set number of trades each day", "Results of your 1st, 2nd, 3rd trade of the day", "Busy days and quiet days"],
+  frequency: ["Overtrading: trades taken each day against the trades your best holding time allows", "Net P&L if you stop after a set number of trades each day", "Results of your 1st, 2nd, 3rd trade of the day", "Busy days and quiet days"],
 }
 
 /** The dashboard for one trading account. The server computes every number. */
@@ -75,6 +76,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
             <Tabs defaultValue="overview" className="gap-5">
               <TabsList className="h-auto max-w-full justify-start gap-0.5 overflow-x-auto rounded-full p-1">
                 <TabsTrigger className={tab} value="overview">Overview</TabsTrigger>
+                <TabsTrigger className={tab} value="journal">Journal</TabsTrigger>
                 <TabsTrigger className={tab} value="notes">
                   Notes
                   {insights.length > 0 && (
@@ -89,6 +91,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
                 <TabsTrigger className={tab} value="funding">Funding</TabsTrigger>
               </TabsList>
               <TabsContent value="overview"><Overview a={a} accountId={accountId} filters={filters} /></TabsContent>
+              <TabsContent value="journal"><Journal /></TabsContent>
               <TabsContent value="notes">
                 <Notes insights={insights} locked={!full} />
               </TabsContent>
@@ -99,7 +102,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
                 {full ? <Timing a={full} /> : <LockedPanel title="Timing" items={LOCKED.timing} />}
               </TabsContent>
               <TabsContent value="frequency">
-                {full ? <Frequency a={full} /> : <LockedPanel title="Frequency" items={LOCKED.frequency} />}
+                {full ? <Frequency a={full} accountId={accountId} filters={filters} /> : <LockedPanel title="Frequency" items={LOCKED.frequency} />}
               </TabsContent>
               <TabsContent value="risk"><Risk a={a} /></TabsContent>
               <TabsContent value="trades">

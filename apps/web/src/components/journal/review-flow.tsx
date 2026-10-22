@@ -1,5 +1,6 @@
 import * as React from "react"
 import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronLeft, Undo2 } from "lucide-react"
+import { SessionStrip } from "@/components/charts/day-timeline"
 import { SideBadge } from "@/components/dashboard/side-badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -7,14 +8,14 @@ import { useDayAnswers, useTradeAnswers } from "@/hooks/use-answers"
 import { useJournalContext } from "@/hooks/use-journal"
 import { useReducedMotion } from "@/hooks/use-reduced-motion"
 import type { Position } from "@/lib/api/types"
-import { formatDay, formatTime, money, plural, pnlClass, price, relativeDay, today } from "@/lib/format"
+import { duration, formatDay, formatTime, money, plural, pnlClass, price, relativeDay, today } from "@/lib/format"
 import { isReviewed, toReview } from "@/lib/journal"
 import { cn } from "@/lib/utils"
 import { DayAfter } from "./day-review"
 import { PlanDot, RValue } from "./review-bits"
 import { SaveStatus } from "./save-status"
 import { type Direction, Swipeable } from "./swipeable"
-import { MistakeQuestion, TradeReviewEditor } from "./trade-review-editor"
+import { MistakeQuestion, SetupQuestion, TradeReviewEditor } from "./trade-review-editor"
 
 const LEAVE_MS = 220
 
@@ -62,8 +63,14 @@ function Flow({ day, onClose }: { day: string; onClose: () => void }) {
           </div>
         </div>
         {stack.length > 0 && (
-          <div className="h-1 overflow-hidden rounded-full bg-muted" aria-hidden>
-            <div className="h-full rounded-full bg-foreground transition-[width] duration-300 ease-out" style={{ width: `${(Math.min(i, stack.length) / stack.length) * 100}%` }} />
+          // One segment per trade: done, this one, still to come.
+          <div className="flex gap-1" aria-hidden>
+            {stack.map((s, k) => (
+              <div
+                key={s.ticket}
+                className={cn("h-1 flex-1 rounded-full transition-colors duration-300", k < i ? "bg-foreground" : k === i ? "bg-foreground/35" : "bg-muted")}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -100,6 +107,12 @@ function ReviewCard({ position, left, onNext }: { position: Position; left: numb
   // The latest copy, so R updates once a starting stop is saved.
   const p = j.positions.get(position.ticket) ?? position
   const answers = useTradeAnswers(p.ticket)
+  // The day around this trade, for the strip on the card.
+  const dayTrades = React.useMemo(
+    () => (j.journal?.positions ?? []).filter((x) => x.day === p.day).map((x) => ({ ...x, id: x.ticket })),
+    [j.journal, p.day]
+  )
+  const held = (Date.parse(p.close) - Date.parse(p.open)) / 60000
   const { v, set } = answers
   const reduced = useReducedMotion()
   // Off plan opens the mistake chips; coming back to a card answered off plan shows them again.
@@ -158,6 +171,8 @@ function ReviewCard({ position, left, onNext }: { position: Position; left: numb
               </div>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
                 <span className="font-mono tabular-nums">{p.day === today(j.tz) ? "" : `${formatDay(p.day)}, `}{formatTime(p.open, j.tz)}</span>
+                <span aria-hidden>·</span>
+                <span>Held {duration(held)}</span>
                 {v.followedPlan !== null && <span className="inline-flex items-center gap-1.5"><PlanDot value={v.followedPlan} />{v.followedPlan ? "On plan" : "Off plan"}</span>}
               </p>
               <dl className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs">
@@ -165,6 +180,16 @@ function ReviewCard({ position, left, onNext }: { position: Position; left: numb
                 <Mini label="Exit" value={price(p.closePrice)} />
                 <Mini label="Result" value={p.r === null ? "—" : <RValue r={p.r} />} />
               </dl>
+              {dayTrades.length > 1 && (
+                <div className="mt-3 space-y-1">
+                  <p className="text-xs text-muted-foreground">Your day, this trade highlighted</p>
+                  <SessionStrip trades={dayTrades} day={p.day} tz={j.tz} focus={p.ticket} />
+                </div>
+              )}
+            </div>
+
+            <div className="border-t p-4">
+              <SetupQuestion value={v.setupId} onChange={(setupId) => set({ setupId })} size="sm" />
             </div>
 
             {mistakes && (
@@ -182,20 +207,20 @@ function ReviewCard({ position, left, onNext }: { position: Position; left: numb
                 className="flex w-full cursor-pointer items-center gap-1.5 px-4 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
               >
                 {more ? "Less" : "More"}
-                <span className="truncate text-xs">{more ? "" : p.askStop ? "Setup, grade, feeling, starting stop, note" : "Setup, grade, feeling, note"}</span>
+                <span className="truncate text-xs">{more ? "" : p.askStop ? "Grade, feeling, starting stop, note" : "Grade, feeling, note"}</span>
                 <ChevronDown className={cn("ml-auto size-4 shrink-0 transition-transform", more && "rotate-180")} aria-hidden />
               </button>
               {more && (
                 <div id={`${id}-more`} className="border-t p-4">
-                  <TradeReviewEditor position={p} answers={answers} ask={{}} size="sm" />
+                  <TradeReviewEditor position={p} answers={answers} ask={{ setup: false }} size="sm" />
                 </div>
               )}
             </div>
           </Swipeable>
         </div>
         <p id={`${id}-hint`} className="mt-5 text-center text-xs text-muted-foreground">
-          {mistakes ? "Pick what went wrong, then Next." : "Swipe right if you followed your plan, left if not."}
-          <span className="hidden sm:inline"> Arrow keys work too.</span>
+          {mistakes ? "Pick what went wrong, then select Next." : "Swipe right: on plan. Swipe left: off plan."}
+          <span className="hidden sm:inline"> Or use the arrow keys.</span>
         </p>
       </div>
       <div className="flex items-center gap-2 border-t px-5 py-4">

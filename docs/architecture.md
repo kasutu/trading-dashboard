@@ -233,7 +233,7 @@ There is also an `owner` plan for the creator: everything in Latte, with no acco
 
 The API enforces the limits (`crates/api/src/plan.rs`):
 
-- Analytics on Free: the server removes `byHour`, `byWeekday`, `heatmap`, `byDuration`, `nthTrade`, `dayBuckets`, `capSim`, `lossLimitSim`, `afterLoss` and `optimization`, and adds `locked: true`. The web app shows a locked panel for those views. Everything else stays, including `byWeek`, `byMonth` and `bestLots`.
+- Analytics on Free: the server removes `byHour`, `byWeekday`, `heatmap`, `byDuration`, `nthTrade`, `dayBuckets`, `capSim`, `lossLimitSim`, `afterLoss`, `overtrading` and `optimization`, and adds `locked: true`. The web app shows a locked panel for those views. Everything else stays, including `byWeek`, `byMonth` and `bestLots`.
 - `POST /api/accounts` returns 403 when the user has reached the plan's account limit.
 - `POST /api/mappings` returns 403 on Free.
 - `GET /api/accounts/:id/journal/summary` returns `{ "locked": true }` on Free (planned, see [Journal](#journal)). The journal itself is on every plan.

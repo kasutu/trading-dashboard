@@ -5,7 +5,7 @@ import { useDayAnswers } from "@/hooks/use-answers"
 import { useJournalContext } from "@/hooks/use-journal"
 import { useSettings } from "@/hooks/use-settings"
 import type { DayReview } from "@/lib/api/types"
-import { today } from "@/lib/format"
+import { relativeDay, today } from "@/lib/format"
 import { storage } from "@/lib/storage"
 import { DayBefore } from "./day-review"
 import { SaveStatus } from "./save-status"
@@ -53,20 +53,32 @@ export function DailyCheckIn() {
 }
 
 function CheckIn({ day, onSkip, onDone }: { day: string; onSkip: () => void; onDone: () => void }) {
+  const j = useJournalContext()!
   const answers = useDayAnswers(day)
   const { v } = answers
   const any = !!v.preMood || v.risks.length > 0 || v.noRisks || v.watchSetupIds.length > 0
+  // The newest "one thing to change" from an earlier day, so the lesson comes back before the next session.
+  const lesson = j.journal?.days.filter((d) => d.day < day && d.note?.trim()).sort((a, b) => b.day.localeCompare(a.day))[0]
   return (
     <>
       <div className="space-y-1 pr-6">
         <DialogTitle className="font-display text-xl font-bold">Before you trade</DialogTitle>
-        <DialogDescription>A few taps for today's journal. Answer what you like.</DialogDescription>
+        <DialogDescription>A few taps for today's journal. Every question is optional.</DialogDescription>
       </div>
+      {lesson && (
+        <figure className="rounded-xl border-l-[3px] border-brand bg-muted/60 px-4 py-3">
+          <figcaption className="text-xs text-muted-foreground">Your note from {relativeDay(lesson.day, j.tz)}</figcaption>
+          <blockquote className="mt-1 text-sm font-medium break-words whitespace-pre-line">{lesson.note}</blockquote>
+        </figure>
+      )}
       <DayBefore answers={answers} size="lg" />
       <div className="flex items-center gap-2">
         <SaveStatus state={answers.state} />
-        <Button variant="ghost" className="ml-auto" onClick={onSkip}>Skip today</Button>
-        <Button onClick={onDone} disabled={!any}>Done</Button>
+        {any ? (
+          <Button className="ml-auto" onClick={onDone}>Done</Button>
+        ) : (
+          <Button variant="outline" className="ml-auto" onClick={onSkip}>Skip today</Button>
+        )}
       </div>
     </>
   )

@@ -20,7 +20,7 @@ const plan = (): Me["plan"] => {
   return p && PLAN_IDS.includes(p) ? p : "free"
 }
 /** Fields the API leaves out of analytics on Free (crates/api/src/plan.rs). */
-const PAID_FIELDS = ["byHour", "byWeekday", "heatmap", "byDuration", "nthTrade", "dayBuckets", "capSim", "lossLimitSim", "afterLoss", "optimization"]
+const PAID_FIELDS = ["byHour", "byWeekday", "heatmap", "byDuration", "nthTrade", "dayBuckets", "capSim", "lossLimitSim", "afterLoss", "overtrading", "optimization"]
 const forPlan = (a: typeof analytics) =>
   plan() === "free" ? { ...Object.fromEntries(Object.entries(a).filter(([k]) => !PAID_FIELDS.includes(k))), locked: true } : a
 const user = { id: "u1", name: "demo", username: "demo", email: "demo@users.jurno.invalid", emailVerified: false, createdAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-01T00:00:00Z" }

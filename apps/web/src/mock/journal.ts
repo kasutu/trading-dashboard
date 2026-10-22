@@ -195,7 +195,7 @@ function positions(accountId: string, trades: Trade[], tz: string): Position[] {
       const closePrice = lots ? fills.reduce((s, t) => s + t.closePrice * t.lots, 0) / lots : last.closePrice
       const base = { side: first.side, openPrice: first.openPrice, closePrice, stopLoss: last.sl }
       return {
-        ticket, day: dayIn(first.open, tz), open: first.open, symbol: first.symbol, side: first.side,
+        ticket, day: dayIn(first.open, tz), open: first.open, close: last.close, symbol: first.symbol, side: first.side,
         lots: cents(lots), net: cents(fills.reduce((s, t) => s + t.net, 0)),
         openPrice: first.openPrice, closePrice: +closePrice.toFixed(5), stopLoss: last.sl,
         askStop: stopLooksMoved(base.side, base.openPrice, base.stopLoss),

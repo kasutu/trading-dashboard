@@ -1,5 +1,5 @@
 import type { FullAnalytics, Group } from "@/lib/api/types"
-import { REASONS, formatDay, hourLabel, hourShort, money, ordinal, pct, sizeLabel, splitSizeKey } from "@/lib/format"
+import { REASONS, formatDay, hourLabel, hourShort, money, ordinal, pct, plural, sizeLabel, splitSizeKey } from "@/lib/format"
 import { best } from "@/lib/utils"
 
 export type Insight = {
@@ -138,6 +138,19 @@ export function buildInsights(a: FullAnalytics): Insight[] {
       detail: `${al.after.trades} trades opened within ${al.windowMin} min of a loss, ${pct(al.after.winRate)} win rate. Other trades: ${money(al.other.avg, true)} / trade.`,
       viz: compare([["After a loss", al.after.avg, true], ["Other trades", al.other.avg, false]]),
     })
+
+  // Overtrading: compare the average day over the limit with the other days. Needs a few of each.
+  const ot = a.overtrading
+  if (ot.best && ot.over.trades >= 3 && ot.within.trades >= 3) {
+    const worse = ot.over.avg < ot.within.avg
+    out.push({
+      tone: worse ? "bad" : "info",
+      title: worse ? "Overtrading days" : "Busy days did fine",
+      figure: `${money(ot.over.avg, true)} / day`,
+      detail: `${plural(ot.over.trades, "day")} with more trades than your best holding time (${ot.best.key}) fits. Other days: ${money(ot.within.avg, true)} / day. See Frequency.`,
+      viz: compare([["Days over", ot.over.avg, true], ["Other days", ot.within.avg, false]]),
+    })
+  }
 
   const dur = a.byDuration.filter((g) => g.trades >= MIN)
   const bestDur = pick(dur, 1)

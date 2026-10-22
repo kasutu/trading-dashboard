@@ -14,8 +14,8 @@ import { MoodPicker } from "./mood-picker"
 type Props = {
   position: Position
   answers: TradeAnswers
-  /** Which questions to show. The review flow asks the plan and mistakes on the card itself. */
-  ask?: { plan?: boolean; mistakes?: boolean }
+  /** Which questions to show. The review flow asks the plan, the setup and the mistakes on the card itself. */
+  ask?: { plan?: boolean; mistakes?: boolean; setup?: boolean }
   size?: "sm" | "md"
   className?: string
 }
@@ -39,7 +39,7 @@ export function TradeReviewEditor({ position, answers, ask = { plan: true, mista
           />
         </div>
       )}
-      <SetupQuestion value={v.setupId} onChange={(setupId) => set({ setupId })} size={size} />
+      {ask.setup !== false && <SetupQuestion value={v.setupId} onChange={(setupId) => set({ setupId })} size={size} />}
       <div>
         <Question>How good was the setup?</Question>
         <ChoiceChips

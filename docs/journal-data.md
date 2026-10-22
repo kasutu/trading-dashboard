@@ -73,11 +73,12 @@ Day risk chips are a fixed list for now: `tired`, `news`, `distracted`, `chasing
 
 The day sheet gets a "Review trades" button that opens a stack of cards, one per position not reviewed yet, oldest first.
 A position counts as reviewed once its plan question (`followedPlan`) is answered, since that is what the card asks; a trade
-with only a note or a face still gets a card. The Notes tab opens the same stack for the newest day with a trade to review.
+with only a note or a face still gets a card. The Journal tab opens the same stack for the newest day with a trade to review.
 
 1. Swipe right (or press the right arrow, or tap "On plan"): `followedPlan = true`. The next card comes up.
 2. Swipe left (or left arrow, or "Off plan"): `followedPlan = false`, and the mistake chips open. Tap one or more, then "Next".
-3. Tap the card (or "More") for the rest: setup, grade, face, starting stop when asked, note.
+3. The setup chips are on the card. Tap the card (or "More") for the rest: grade, face, starting stop when asked, note.
+   The card also shows a strip of the day's trades with this one highlighted, and how long it was held.
 4. After the last card: "Day reviewed", with the after-trading questions for the day.
 
 Buttons always do the same as the swipes, so the flow works with a mouse, a keyboard and a screen reader.
@@ -173,7 +174,8 @@ TradeReview = { ticket, followedPlan, setupId, grade, mood, mistakeIds, noMistak
 DayReviewInput = { preMood?, risks?, noRisks?, watchSetupIds?, followedPlan?, note? }
 DayReview   = { day, preMood, risks, noRisks, watchSetupIds, followedPlan, note, updatedAt }
 
-Position    = { ticket, day, open, symbol, side, lots, net, openPrice, closePrice, stopLoss,  // open: ISO time of the first fill
+Position    = { ticket, day, open, close, symbol, side, lots, net, openPrice, closePrice, stopLoss,
+                // open: ISO time of the first fill. close: ISO time of the last close (for the day timeline).
                 askStop: boolean,   // the CSV stop looks moved, so ask for the starting stop
                 r: number | null }  // result in R from initialStop, else the CSV stop when not moved
 Journal     = { positions: Position[],             // every position in the account, newest first
