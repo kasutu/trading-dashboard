@@ -3,6 +3,7 @@ import { Check, Layers } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { useDayAnswers, type DayAnswers } from "@/hooks/use-answers"
+import { createSetup } from "@/hooks/use-api"
 import { useJournalContext } from "@/hooks/use-journal"
 import type { DayRisk, Mood } from "@/lib/api/types"
 import { plural, today } from "@/lib/format"
@@ -12,42 +13,62 @@ import { MoodPicker } from "./mood-picker"
 import { SaveStatus } from "./save-status"
 import { NoteCount } from "./trade-review-editor"
 
-/** Before trading: face, what could get in the way, setups to watch. */
-export function DayBefore({ answers, size = "md", isToday = true }: { answers: DayAnswers; size?: "sm" | "md" | "lg"; isToday?: boolean }) {
+type BeforeProps = { answers: DayAnswers; size?: "sm" | "md" }
+
+/** How you feel before trading: five faces. */
+export function FeelAnswer({ answers }: BeforeProps) {
+  const { v, set } = answers
+  return <MoodPicker value={v.preMood} onChange={(preMood: Mood | null) => set({ preMood })} size="lg" label="How do you feel?" />
+}
+
+/** What could get in the way today, or None. */
+export function RisksAnswer({ answers, size = "sm" }: BeforeProps) {
+  const { v, set } = answers
+  return (
+    <MultiChips
+      label="Anything in the way?"
+      size={size}
+      options={RISKS.map((r) => ({ value: r.value, label: r.label }))}
+      value={v.risks}
+      onChange={(risks) => set({ risks: risks as DayRisk[], noRisks: false })}
+      none={{ checked: v.noRisks, onChange: (on) => set({ noRisks: on, risks: on ? [] : v.risks }) }}
+    />
+  )
+}
+
+/** The setups to watch for. Archived ones only show when already picked. */
+export function WatchAnswer({ answers, size = "sm" }: BeforeProps) {
   const j = useJournalContext()!
   const { v, set } = answers
-  const setups = j.tags?.setups.filter((s) => !s.archived || v.watchSetupIds.includes(s.id)) ?? []
-  const chip = size === "lg" ? "md" : "sm"
+  if (!j.tags) return <p className="text-sm text-muted-foreground">Loading…</p>
+  const setups = j.tags.setups.filter((s) => !s.archived || v.watchSetupIds.includes(s.id))
+  return (
+    <MultiChips
+      label="Watching"
+      size={size}
+      options={setups.map((s) => ({ value: s.id, label: s.name }))}
+      value={v.watchSetupIds}
+      onChange={(watchSetupIds) => set({ watchSetupIds })}
+      onAdd={async (name) => set({ watchSetupIds: [...v.watchSetupIds, (await createSetup(name)).id] })}
+    />
+  )
+}
+
+/** Before trading, all on one page (the day sheet): face, what could get in the way, setups to watch. */
+export function DayBefore({ answers, isToday = true }: { answers: DayAnswers; isToday?: boolean }) {
   return (
     <div className="space-y-4">
       <div>
-        <Question>{isToday ? "How do you feel?" : "How did you feel before trading?"}</Question>
-        <MoodPicker value={v.preMood} onChange={(preMood: Mood | null) => set({ preMood })} size={size === "lg" ? "lg" : "md"} label="How do you feel?" />
+        <Question>{isToday ? "How do you feel?" : "How did you feel?"}</Question>
+        <FeelAnswer answers={answers} />
       </div>
       <div>
-        <Question hint="Pick any">What could get in the way{isToday ? " today" : ""}?</Question>
-        <MultiChips
-          label="What could get in the way?"
-          size={chip}
-          options={RISKS.map((r) => ({ value: r.value, label: r.label }))}
-          value={v.risks}
-          onChange={(risks) => set({ risks: risks as DayRisk[], noRisks: false })}
-          none={{ checked: v.noRisks, onChange: (on) => set({ noRisks: on, risks: on ? [] : v.risks }) }}
-        />
+        <Question>Anything in the way?</Question>
+        <RisksAnswer answers={answers} />
       </div>
       <div>
-        <Question hint="Pick any">What are you watching?</Question>
-        {setups.length ? (
-          <MultiChips
-            label="What are you watching?"
-            size={chip}
-            options={setups.map((s) => ({ value: s.id, label: s.name }))}
-            value={v.watchSetupIds}
-            onChange={(watchSetupIds) => set({ watchSetupIds })}
-          />
-        ) : (
-          <p className="text-sm text-muted-foreground">{j.tags ? "No setups yet. Add yours in Settings." : "Loading…"}</p>
-        )}
+        <Question>Watching</Question>
+        <WatchAnswer answers={answers} />
       </div>
     </div>
   )

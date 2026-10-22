@@ -1,4 +1,6 @@
 import * as React from "react"
+import { Plus } from "lucide-react"
+import { NAME_MAX } from "@/lib/journal"
 import { cn } from "@/lib/utils"
 
 /** `title` is also the accessible name, for chips whose label is short (like "A"). */
@@ -31,12 +33,14 @@ type SingleProps = {
   value: string | null
   /** Tapping the picked chip clears it (null). */
   onChange: (value: string | null) => void
+  /** Shows a "+" chip that turns into a field. Called with the typed name. */
+  onAdd?: (name: string) => Promise<unknown>
   size?: "sm" | "md"
   className?: string
 }
 
 /** Pick one, as a radio group. */
-export function ChoiceChips({ label, options, value, onChange, size, className }: SingleProps) {
+export function ChoiceChips({ label, options, value, onChange, onAdd, size, className }: SingleProps) {
   const focusable = options.some((o) => o.value === value) ? value : options[0]?.value
   return (
     <div role="radiogroup" aria-label={label} className={cn("flex flex-wrap gap-1.5", className)}>
@@ -59,6 +63,7 @@ export function ChoiceChips({ label, options, value, onChange, size, className }
           </button>
         )
       })}
+      {onAdd && <AddChip label={label} onAdd={onAdd} size={size} />}
     </div>
   )
 }
@@ -70,12 +75,14 @@ type MultiProps = {
   onChange: (value: string[]) => void
   /** A "None" chip that clears the others. Picking another chip clears it. */
   none?: { checked: boolean; onChange: (checked: boolean) => void; label?: string }
+  /** Shows a "+" chip that turns into a field. Called with the typed name. */
+  onAdd?: (name: string) => Promise<unknown>
   size?: "sm" | "md"
   className?: string
 }
 
 /** Pick any number, as checkboxes. */
-export function MultiChips({ label, options, value, onChange, none, size, className }: MultiProps) {
+export function MultiChips({ label, options, value, onChange, none, onAdd, size, className }: MultiProps) {
   return (
     <div role="group" aria-label={label} className={cn("flex flex-wrap gap-1.5", className)}>
       {options.map((o) => {
@@ -108,16 +115,99 @@ export function MultiChips({ label, options, value, onChange, none, size, classN
           {none.label ?? "None"}
         </button>
       )}
+      {onAdd && <AddChip label={label} onAdd={onAdd} size={size} />}
     </div>
   )
 }
 
-/** A question title above its answers. */
-export function Question({ id, children, hint }: { id?: string; children: React.ReactNode; hint?: React.ReactNode }) {
+/** A "+" chip that grows into a text field. Enter or leaving the field adds the name, Escape closes it. */
+function AddChip({ label, onAdd, size = "md" }: { label: string; onAdd: (name: string) => Promise<unknown>; size?: "sm" | "md" }) {
+  const [open, setOpen] = React.useState(false)
+  const [name, setName] = React.useState("")
+  const [error, setError] = React.useState<string | null>(null)
+  const busy = React.useRef(false)
+  const close = () => {
+    setOpen(false)
+    setName("")
+    setError(null)
+  }
+  const submit = async () => {
+    if (!name.trim()) return close()
+    if (busy.current) return
+    busy.current = true
+    try {
+      await onAdd(name.trim())
+      close()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      busy.current = false
+    }
+  }
+  // Escape closes the field, not the dialog or sheet around it. Radix listens on the document in the
+  // capture phase, so catch the key earlier, on the window.
+  const field = React.useRef<HTMLInputElement>(null)
+  React.useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.target !== field.current) return
+      e.stopPropagation()
+      close()
+    }
+    window.addEventListener("keydown", onKey, true)
+    return () => window.removeEventListener("keydown", onKey, true)
+  }, [open])
+  const h = size === "sm" ? "h-7" : "h-8"
   return (
-    <p id={id} className="mb-1.5 flex items-baseline gap-2 text-sm font-medium">
-      {children}
-      {hint && <span className="text-xs font-normal text-muted-foreground">{hint}</span>}
-    </p>
+    <>
+      <span
+        className={cn(
+          "inline-flex items-center overflow-hidden rounded-full border bg-card transition-[width,border-color] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
+          h,
+          open ? "w-44" : size === "sm" ? "w-7" : "w-8",
+          error ? "border-destructive" : open && "border-foreground/40"
+        )}
+      >
+        {open ? (
+          <input
+            ref={field}
+            autoFocus
+            value={name}
+            maxLength={NAME_MAX}
+            placeholder="New tag"
+            aria-label={`New tag for ${label}`}
+            aria-invalid={!!error}
+            onChange={(e) => {
+              setName(e.target.value)
+              setError(null)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault()
+                submit()
+              }
+            }}
+            onBlur={submit}
+            className={cn("w-full min-w-0 bg-transparent px-3 outline-none placeholder:text-muted-foreground", size === "sm" ? "text-xs" : "text-sm")}
+          />
+        ) : (
+          <button
+            type="button"
+            aria-label={`Add a tag to ${label}`}
+            title="Add a tag"
+            onClick={() => setOpen(true)}
+            className="flex size-full cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-95"
+          >
+            <Plus className="size-3.5" />
+          </button>
+        )}
+      </span>
+      {error && <span role="alert" className="self-center text-xs text-destructive">{error}</span>}
+    </>
   )
+}
+
+/** A question title above its answers. */
+export function Question({ id, children }: { id?: string; children: React.ReactNode }) {
+  return <p id={id} className="mb-1.5 text-sm font-medium">{children}</p>
 }

@@ -14,7 +14,9 @@ use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 
 mod cash;
+pub mod journal;
 mod optimize;
+mod overtrade;
 mod parse;
 mod stats;
 
@@ -309,6 +311,48 @@ pub struct Optimization {
     pub curve: Vec<ComparePoint>,
 }
 
+/// The holding time that made the most: the yardstick for how many trades fit in a day.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BestDuration {
+    /// A `by_duration` key, e.g. "15–60m".
+    pub key: String,
+    /// Median holding time of the trades in this bucket, in minutes.
+    pub median_min: f64,
+    pub trades: u32,
+    pub net: f64,
+}
+
+/// One trading day: trades taken against trades that fit at the best holding time.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OvertradeDay {
+    /// yyyy-mm-dd
+    pub day: String,
+    pub trades: u32,
+    /// Minutes with at least one trade open (overlaps count once).
+    pub span_min: f64,
+    /// `span_min / best.median_min`, rounded down, at least 1. None without a best duration.
+    pub allowed: Option<u32>,
+    /// More trades than allowed.
+    pub over: bool,
+    pub net: f64,
+}
+
+/// Overtrading: each day's trade count against the count the best holding time allows.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Overtrading {
+    /// None when no holding time with enough trades made money.
+    pub best: Option<BestDuration>,
+    /// Sorted by day.
+    pub days: Vec<OvertradeDay>,
+    /// Day nets of the days over the limit. `trades` counts days.
+    pub over: Group,
+    /// Day nets of the other days. `trades` counts days.
+    pub within: Group,
+}
+
 /// Everything the dashboard shows, for one set of filters.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -344,6 +388,7 @@ pub struct Analytics {
     pub cap_sim: Vec<CapRow>,
     pub loss_limit_sim: Vec<LimitRow>,
     pub after_loss: AfterLoss,
+    pub overtrading: Overtrading,
     /// None with fewer than 10 days or 30 trades.
     pub optimization: Option<Optimization>,
 }
@@ -386,6 +431,7 @@ pub fn analyze(trades: &[Trade], filters: &Filters) -> Option<Analytics> {
         cap_sim: cap_sim(&ts),
         loss_limit_sim: loss_limit_sim(&ts),
         after_loss: after_loss(&ts),
+        overtrading: overtrade::overtrading(&ts),
         optimization: optimize::optimize(&ts),
     })
 }

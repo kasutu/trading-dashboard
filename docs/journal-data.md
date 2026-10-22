@@ -4,8 +4,8 @@ What Jurno asks about each trade and each day, how each answer is entered, and h
 The goal is the information a full trading journal collects (setup, grade, mistakes, plan, emotion,
 risk) with almost no typing: taps, swipes and a confirm, and one optional text box last.
 
-Status: the prototype runs on the mock API (`VITE_MOCK=1`). There are no tables or Rust routes yet.
-The API below is the contract for building them.
+Status: built. Tables in `crates/api/migrations/0004_journal.sql`, routes in `crates/api/src/routes/journal.rs`,
+positions, R and the summary in `crates/engine/src/journal.rs`.
 
 ## Principles
 
@@ -24,7 +24,8 @@ The API below is the contract for building them.
 | 3 | How good was the setup? | Tap A, B or C | `grade: 'A' \| 'B' \| 'C' \| null` | Whether A setups beat C setups |
 | 4 | What went wrong? | Tap any number of mistake chips ("None" is a chip too) | `mistakeIds: string[]` | The cost of each mistake |
 | 5 | How did you feel? | Tap one of five faces | `mood: 1-5 \| null` | P&L by mood |
-| 6 | What did you risk? | Confirm or edit the starting stop, asked only when the CSV stop looks moved | `initialStop: number \| null` | Result in R |
+| 6 | What did you risk? | Confirm or edit the starting stop, asked only when the CSV stop looks moved. Or drag the SL line on the trade chart | `initialStop: number \| null` | Result in R |
+| 6b | What was your target? | Drag the TP line on the trade chart, or type it under the chart | `initialTarget: number \| null` | Planned reward to risk |
 | 7 | Anything else? | Text, last, optional, up to 500 characters | `note: string \| null` | Context |
 
 Moods: 1 Awful, 2 Bad, 3 Okay, 4 Good, 5 Great.
@@ -73,11 +74,12 @@ Day risk chips are a fixed list for now: `tired`, `news`, `distracted`, `chasing
 
 The day sheet gets a "Review trades" button that opens a stack of cards, one per position not reviewed yet, oldest first.
 A position counts as reviewed once its plan question (`followedPlan`) is answered, since that is what the card asks; a trade
-with only a note or a face still gets a card. The Notes tab opens the same stack for the newest day with a trade to review.
+with only a note or a face still gets a card. The Journal tab opens the same stack for the newest day with a trade to review.
 
 1. Swipe right (or press the right arrow, or tap "On plan"): `followedPlan = true`. The next card comes up.
 2. Swipe left (or left arrow, or "Off plan"): `followedPlan = false`, and the mistake chips open. Tap one or more, then "Next".
-3. Tap the card (or "More") for the rest: setup, grade, face, starting stop when asked, note.
+3. The setup chips are on the card. Tap the card (or "More") for the rest: grade, face, starting stop when asked, note.
+   The card also shows a strip of the day's trades with this one highlighted, and how long it was held.
 4. After the last card: "Day reviewed", with the after-trading questions for the day.
 
 Buttons always do the same as the swipes, so the flow works with a mouse, a keyboard and a screen reader.
@@ -114,6 +116,7 @@ create table trade_reviews (
   mood smallint check (mood between 1 and 5),
   no_mistakes boolean not null default false,
   initial_stop double precision,
+  initial_target double precision,
   note text check (char_length(note) <= 500),
   updated_at timestamptz not null default now(),
   primary key (account_id, ticket)
@@ -168,12 +171,13 @@ archived (case-insensitive).
 Setup       = { id, name, archived }
 MistakeTag  = { id, name, group: 'entry' | 'exit' | 'size' | 'mindset', preset, archived }
 
-TradeReviewInput = { followedPlan?, setupId?, grade?, mood?, mistakeIds?, noMistakes?, initialStop?, note? }
-TradeReview = { ticket, followedPlan, setupId, grade, mood, mistakeIds, noMistakes, initialStop, note, updatedAt }
+TradeReviewInput = { followedPlan?, setupId?, grade?, mood?, mistakeIds?, noMistakes?, initialStop?, initialTarget?, note? }
+TradeReview = { ticket, followedPlan, setupId, grade, mood, mistakeIds, noMistakes, initialStop, initialTarget, note, updatedAt }
 DayReviewInput = { preMood?, risks?, noRisks?, watchSetupIds?, followedPlan?, note? }
 DayReview   = { day, preMood, risks, noRisks, watchSetupIds, followedPlan, note, updatedAt }
 
-Position    = { ticket, day, open, symbol, side, lots, net, openPrice, closePrice, stopLoss,  // open: ISO time of the first fill
+Position    = { ticket, day, open, close, symbol, side, lots, net, openPrice, closePrice, stopLoss,
+                // open: ISO time of the first fill. close: ISO time of the last close (for the day timeline).
                 askStop: boolean,   // the CSV stop looks moved, so ask for the starting stop
                 r: number | null }  // result in R from initialStop, else the CSV stop when not moved
 Journal     = { positions: Position[],             // every position in the account, newest first

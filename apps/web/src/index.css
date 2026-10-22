@@ -112,6 +112,14 @@
   body { font-variant-numeric: tabular-nums; }
 }
 
+/* Day timeline: bars grow from their open time, once, when the chart appears. */
+@keyframes timeline-bar-in {
+  from { transform: scaleX(0); opacity: 0; }
+}
+.timeline-bar {
+  transform-origin: left center;
+  animation: timeline-bar-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
 
 /* Respect system settings: no slides or springs, and solid surfaces instead of glass. */
 @media (prefers-reduced-motion: reduce) {

@@ -9,5 +9,6 @@ pub mod extract;
 pub mod plan;
 pub mod routes;
 pub mod trade_row;
+pub mod tradingview;
 
 pub use routes::app;

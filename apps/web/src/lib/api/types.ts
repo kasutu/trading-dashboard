@@ -83,6 +83,13 @@ export type AfterLoss = { windowMin: number; after: Group; other: Group }
 /** Best and worst lot size on one symbol. Group keys are lots ("0.02"). Sizes with fewer than 5 trades are left out. */
 export type BestLots = { symbol: string; best: Group | null; worst: Group | null; sizes: number }
 
+/** The holding time that made the most. `key` is a byDuration key ("5–15m"). */
+export type BestDuration = { key: string; medianMin: number; trades: number; net: number }
+/** One trading day. `spanMin`: minutes with a trade open. `allowed`: trades of the best holding time that fit, null without one. */
+export type OvertradeDay = { day: string; trades: number; spanMin: number; allowed: number | null; over: boolean; net: number }
+/** `over` and `within` group the day nets; their `trades` counts days. */
+export type Overtrading = { best: BestDuration | null; days: OvertradeDay[]; over: Group; within: Group }
+
 export type Rules = { skipHours: number[]; skipWeekdays: number[]; cap: number | null; lossLimit: number | null }
 export type Merged = { trades: number; net: number; winRate: number }
 export type FocusItem = { kind: "hour" | "weekday" | "symbol" | "duration"; keys: string[]; fit: Merged; test: Merged }
@@ -131,6 +138,7 @@ export type PaidAnalytics = {
   capSim: CapRow[]
   lossLimitSim: LimitRow[]
   afterLoss: AfterLoss
+  overtrading: Overtrading
   optimization: Optimization | null
 }
 
@@ -184,6 +192,8 @@ export type TradeReviewFields = {
   /** The trader tapped "None" for mistakes. */
   noMistakes: boolean
   initialStop: number | null
+  /** The planned take profit, set on the trade chart. Null: the CSV take profit. */
+  initialTarget: number | null
   note: string | null
 }
 /** PATCH body: fields left out are kept, null clears. */
@@ -209,6 +219,8 @@ export type Position = {
   day: string
   /** ISO time of the first fill. */
   open: string
+  /** ISO time of the last close. */
+  close: string
   symbol: string
   side: Side
   lots: number

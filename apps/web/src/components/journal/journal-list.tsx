@@ -1,5 +1,6 @@
 import * as React from "react"
-import { Layers, NotebookPen } from "lucide-react"
+import { ChevronDown, Layers, NotebookPen } from "lucide-react"
+import { SessionStrip } from "@/components/charts/day-timeline"
 import { pillGroup, pillItem } from "@/components/dashboard/filter-bar"
 import { Panel } from "@/components/dashboard/panel"
 import { SideBadge } from "@/components/dashboard/side-badge"
@@ -7,26 +8,29 @@ import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useJournalContext } from "@/hooks/use-journal"
 import type { Position, TradeReview } from "@/lib/api/types"
-import { money, plural, pnlClass, relativeDay } from "@/lib/format"
-import { MOODS, RISKS, isReviewed, moodOf } from "@/lib/journal"
+import { formatMonth, money, plural, pnlClass } from "@/lib/format"
+import { MOODS, RISKS, firstLine, isReviewed, moodOf } from "@/lib/journal"
 import { cn } from "@/lib/utils"
 import { PlanDot, RValue, ReviewBits } from "./review-bits"
 
 const PAGE = 15
 type Item = { p: Position; r: TradeReview }
 
-/** Every day with a day review or a reviewed trade, newest first, with its reviewed trades. Every plan. */
+/** Every day with a day review or a reviewed trade, newest first and grouped by month. Each day is one line with a
+ *  picture of its trades; open it for the answers. Every plan. */
 export function JournalList() {
   const j = useJournalContext()
   const [filter, setFilter] = React.useState("all")
   const [shown, setShown] = React.useState(PAGE)
   const journal = j?.journal
 
-  const { days, byDay, unreviewed, latest, counts, offDays } = React.useMemo(() => {
+  const { days, byDay, positionsByDay, unreviewed, counts, offDays } = React.useMemo(() => {
     const reviews = new Map(journal?.trades.map((t) => [t.ticket, t]))
     const byDay = new Map<string, Item[]>()
+    const positionsByDay = new Map<string, Position[]>()
     const unreviewed = new Map<string, number>()
     for (const p of [...(journal?.positions ?? [])].reverse()) {
+      positionsByDay.set(p.day, [...(positionsByDay.get(p.day) ?? []), p])
       const r = reviews.get(p.ticket)
       if (r) byDay.set(p.day, [...(byDay.get(p.day) ?? []), { p, r }])
       if (!isReviewed(r)) unreviewed.set(p.day, (unreviewed.get(p.day) ?? 0) + 1)
@@ -36,34 +40,22 @@ export function JournalList() {
     for (const d of journal?.days ?? []) if (d.preMood) counts.set(d.preMood, (counts.get(d.preMood) ?? 0) + 1)
     const dayOff = new Map(journal?.days.map((d) => [d.day, d.followedPlan === false]))
     const offDays = new Set(days.filter((d) => dayOff.get(d) || byDay.get(d)?.some((i) => i.r.followedPlan === false)))
-    // The newest day with a trade still to review.
-    const latest = journal?.positions.find((p) => !isReviewed(reviews.get(p.ticket)))?.day
-    return { days, byDay, unreviewed, latest, counts, offDays }
+    return { days, byDay, positionsByDay, unreviewed, counts, offDays }
   }, [journal])
 
   if (!j) return null
   const visible = filter === "all" ? days : filter === "off" ? days.filter((d) => offDays.has(d)) : days.filter((d) => String(j.days.get(d)?.preMood) === filter)
+  const page = visible.slice(0, shown)
 
   return (
-    <Panel
-      title="Journal"
-      description="Your answers for each day and trade."
-      action={
-        latest && (
-          <Button size="sm" onClick={() => j.review(latest)}>
-            <Layers /> Review {relativeDay(latest, j.tz)}
-            <span className="font-mono tabular-nums opacity-70">{unreviewed.get(latest)}</span>
-          </Button>
-        )
-      }
-    >
+    <Panel title="Journal" description="Your answers for each day and trade. Open a day to see them.">
       {!journal ? (
         <p className="py-10 text-center text-sm text-muted-foreground">Loading your journal…</p>
       ) : !days.length ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
           <NotebookPen className="size-5 text-muted-foreground" aria-hidden />
           <p className="font-medium">No reviews yet</p>
-          <p className="max-w-sm text-sm text-muted-foreground">Click a day on the calendar and Review trades. It takes a swipe per trade.</p>
+          <p className="max-w-sm text-sm text-muted-foreground">Open a day on the calendar and select Review trades. One swipe for each trade.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -93,14 +85,23 @@ export function JournalList() {
             ))}
           </ToggleGroup>
 
-          {!visible.length ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No days like this yet.</p>
+          {!page.length ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No days match this filter.</p>
           ) : (
-            <ul className="divide-y">
-              {visible.slice(0, shown).map((day) => (
-                <JournalDay key={day} day={day} items={byDay.get(day) ?? []} left={unreviewed.get(day) ?? 0} />
+            <div className="space-y-5">
+              {months(page).map(([month, list]) => (
+                <section key={month} aria-label={formatMonth(month, true)}>
+                  <h4 className="sticky top-14 z-10 -mx-1 mb-1 bg-card/90 px-1 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase backdrop-blur">
+                    {formatMonth(month, true)}
+                  </h4>
+                  <ul className="divide-y">
+                    {list.map((day) => (
+                      <JournalDay key={day} day={day} items={byDay.get(day) ?? []} positions={positionsByDay.get(day) ?? []} left={unreviewed.get(day) ?? 0} />
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
+            </div>
           )}
           {visible.length > shown && (
             <Button variant="outline" size="sm" className="w-full" onClick={() => setShown(shown + PAGE)}>
@@ -113,60 +114,108 @@ export function JournalList() {
   )
 }
 
-function JournalDay({ day, items, left }: { day: string; items: Item[]; left: number }) {
+/** Days split by month (yyyy-mm), order kept. */
+function months(days: string[]) {
+  const out: [string, string[]][] = []
+  for (const d of days) {
+    const m = d.slice(0, 7)
+    if (out.at(-1)?.[0] === m) out.at(-1)![1].push(d)
+    else out.push([m, [d]])
+  }
+  return out
+}
+
+function JournalDay({ day, items, positions, left }: { day: string; items: Item[]; positions: Position[]; left: number }) {
   const j = useJournalContext()!
+  const [open, setOpen] = React.useState(false)
+  const id = React.useId()
   const d = j.days.get(day)
   const stat = j.stats.get(day)
   const m = moodOf(d?.preMood)
   const risks = d?.risks.map((r) => RISKS.find((x) => x.value === r)?.label).filter(Boolean) ?? []
-  const watch = d?.watchSetupIds.map((id) => j.setups.get(id)?.name).filter(Boolean) ?? []
+  const watch = d?.watchSetupIds.map((sid) => j.setups.get(sid)?.name).filter(Boolean) ?? []
+  const date = new Date(day + "T00:00")
+  const strip = React.useMemo(() => positions.map((p) => ({ ...p, id: p.ticket })), [positions])
+  const line = firstLine(d?.note)
+  const offTrades = items.filter((i) => i.r.followedPlan === false).length
 
   return (
-    <li className="py-4 first:pt-0 last:pb-0">
-      <div className="flex items-start gap-3">
-        <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-xl leading-none">
-          {m?.emoji ?? <NotebookPen className="size-4 text-muted-foreground" />}
+    <li>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={`${id}-body`}
+        onClick={() => setOpen(!open)}
+        className="group grid w-full cursor-pointer grid-cols-[2.75rem_minmax(0,1fr)_auto] items-start gap-3 rounded-lg py-3 text-left transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+      >
+        <span className="flex flex-col items-center leading-none" aria-hidden>
+          <span className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">{date.toLocaleDateString("en-US", { weekday: "short" })}</span>
+          <span className="mt-1 font-display text-2xl font-semibold tabular-nums">{date.getDate()}</span>
         </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2">
-            <p className="text-sm font-medium">{relativeDay(day, j.tz)}</p>
-            {m && <p className="text-xs text-muted-foreground">{m.label}</p>}
-            {stat && (
-              <p className="ml-auto shrink-0 text-right text-xs text-muted-foreground">
-                <span className={cn("font-mono text-sm font-medium tabular-nums", pnlClass(stat.net))}>{stat.trades ? money(stat.net, true) : ""}</span>
-                <span className="block sm:ml-2 sm:inline">{stat.trades ? plural(stat.trades, "trade") : "No trades"}</span>
-              </p>
+        <span className="min-w-0 space-y-1.5">
+          <span className="sr-only">{date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}.</span>
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm whitespace-nowrap">
+            {m ? (
+              <span className="inline-flex items-center gap-1"><span aria-hidden>{m.emoji}</span>{m.label}</span>
+            ) : (
+              <span className="text-muted-foreground">No check-in</span>
             )}
-          </div>
-          {d && (risks.length > 0 || d.noRisks || watch.length > 0 || d.followedPlan !== null) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-              {d.followedPlan !== null && (
-                <span className="inline-flex items-center gap-1.5 pr-1">
-                  <PlanDot value={d.followedPlan} /> {d.followedPlan ? "Stuck to the plan" : "Off plan"}
-                </span>
-              )}
-              {risks.map((r) => <span key={r} className="rounded-full border px-2 py-0.5">{r}</span>)}
-              {d.noRisks && <span className="rounded-full border px-2 py-0.5">Nothing in the way</span>}
-              {watch.length > 0 && <span className="truncate">Watching {watch.join(", ")}</span>}
-            </div>
+            {d?.followedPlan != null && (
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <PlanDot value={d.followedPlan} />
+                {d.followedPlan ? "On plan" : "Off plan"}
+              </span>
+            )}
+            {offTrades > 0 && <span className="text-xs text-loss">{offTrades} off plan</span>}
+            {left > 0 && <span className="text-xs text-muted-foreground">{left} to review</span>}
+          </span>
+          {strip.length > 0 && <SessionStrip trades={strip} day={day} tz={j.tz} className="max-w-md" />}
+          {line && <span className="block truncate text-sm text-muted-foreground">{line}</span>}
+        </span>
+        <span className="flex items-start gap-2">
+          {stat && (
+            <span className="text-right">
+              <span className={cn("block font-mono text-sm font-medium tabular-nums", pnlClass(stat.net))}>{stat.trades ? money(stat.net, true) : "—"}</span>
+              <span className="block text-xs text-muted-foreground">{stat.trades ? plural(stat.trades, "trade") : "No trades"}</span>
+            </span>
           )}
-          {d?.note && <p className="mt-1.5 text-sm break-words whitespace-pre-line">{d.note}</p>}
+          <ChevronDown className={cn("mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")} aria-hidden />
+        </span>
+      </button>
+
+      {open && (
+        <div id={`${id}-body`} className="space-y-3 pb-4 pl-[3.5rem]">
+          {(risks.length > 0 || d?.noRisks || watch.length > 0) && (
+            <dl className="grid gap-1 text-xs sm:grid-cols-[7rem_minmax(0,1fr)]">
+              {(risks.length > 0 || d?.noRisks) && (
+                <>
+                  <dt className="text-muted-foreground">In the way</dt>
+                  <dd className="flex flex-wrap gap-1">
+                    {d?.noRisks ? <span>Nothing</span> : risks.map((r) => <span key={r} className="rounded-full border px-2 py-0.5">{r}</span>)}
+                  </dd>
+                </>
+              )}
+              {watch.length > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Watching</dt>
+                  <dd>{watch.join(", ")}</dd>
+                </>
+              )}
+            </dl>
+          )}
+          {d?.note && <p className="text-sm break-words whitespace-pre-line">{d.note}</p>}
           {items.length > 0 && (
-            <ul className="mt-3 space-y-1.5">
+            <ul className="space-y-1.5">
               {items.map((i) => <TradeItem key={i.p.ticket} {...i} />)}
             </ul>
           )}
           {left > 0 && (
-            <button
-              type="button"
-              onClick={() => j.review(day)}
-              className="mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-md text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-            >
-              <Layers className="size-3.5" aria-hidden /> {plural(left, "trade")} to review
-            </button>
+            <Button variant="outline" size="sm" onClick={() => j.review(day)}>
+              <Layers /> Review {plural(left, "trade")}
+            </Button>
           )}
         </div>
-      </div>
+      )}
     </li>
   )
 }

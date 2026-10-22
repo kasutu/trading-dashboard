@@ -86,8 +86,9 @@ async fn users(pool: &PgPool) -> Result<String, String> {
     Ok(out)
 }
 
-/// Deletes a user and everything they own: trading accounts (with trades and imports),
-/// saved mappings, profile, sessions and sign-in records. Runs in one transaction.
+/// Deletes a user and everything they own: trading accounts (with trades, imports and journal
+/// reviews), setups and mistake tags, saved mappings, profile, sessions and sign-in records.
+/// Runs in one transaction.
 pub async fn delete_user(pool: &PgPool, username: &str) -> Result<String, String> {
     let db = |e: sqlx::Error| format!("Database error: {e}");
     let mut tx = pool.begin().await.map_err(db)?;
@@ -101,6 +102,8 @@ pub async fn delete_user(pool: &PgPool, username: &str) -> Result<String, String
     for sql in [
         "delete from trading_accounts where user_id = $1",
         "delete from column_mappings where user_id = $1",
+        "delete from setups where user_id = $1",
+        "delete from mistake_tags where user_id = $1",
         "delete from profiles where user_id = $1",
         r#"delete from "session" where "userId" = $1"#,
         r#"delete from "account" where "userId" = $1"#,

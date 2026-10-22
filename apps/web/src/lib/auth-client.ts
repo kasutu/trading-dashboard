@@ -6,8 +6,6 @@ export const authClient = createAuthClient({
   baseURL: window.location.origin,
   basePath: "/api/auth",
   plugins: [usernameClient()],
-  // Look up fetch on each call, so the dev mock (VITE_MOCK) can replace it after this module loads.
-  fetchOptions: { customFetchImpl: (input, init) => fetch(input, init) },
 })
 
 /** Better Auth needs an email at sign up, but Jurno has none, so we send a hidden placeholder.

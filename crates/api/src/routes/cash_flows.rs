@@ -33,7 +33,7 @@ const COLUMNS: &str = "id, occurred_at, kind, amount, note, created_at";
 
 #[derive(Deserialize)]
 pub struct TzQuery {
-    tz: Option<String>,
+    pub tz: Option<String>,
 }
 
 /// `{ rows, summary, daily }`: the entries newest first, each with its `day` in `tz`,
