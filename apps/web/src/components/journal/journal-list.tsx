@@ -9,7 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useJournalContext } from "@/hooks/use-journal"
 import type { Position, TradeReview } from "@/lib/api/types"
 import { formatMonth, money, plural, pnlClass } from "@/lib/format"
-import { MOODS, RISKS, firstLine, isReviewed, moodOf } from "@/lib/journal"
+import { MOODS, RISKS, isReviewed, moodOf } from "@/lib/journal"
 import { cn } from "@/lib/utils"
 import { PlanDot, RValue, ReviewBits } from "./review-bits"
 
@@ -136,7 +136,6 @@ function JournalDay({ day, items, positions, left }: { day: string; items: Item[
   const watch = d?.watchSetupIds.map((sid) => j.setups.get(sid)?.name).filter(Boolean) ?? []
   const date = new Date(day + "T00:00")
   const strip = React.useMemo(() => positions.map((p) => ({ ...p, id: p.ticket })), [positions])
-  const line = firstLine(d?.note)
   const offTrades = items.filter((i) => i.r.followedPlan === false).length
 
   return (
@@ -170,7 +169,17 @@ function JournalDay({ day, items, positions, left }: { day: string; items: Item[
             {left > 0 && <span className="text-xs text-muted-foreground">{left} to review</span>}
           </span>
           {strip.length > 0 && <SessionStrip trades={strip} day={day} tz={j.tz} className="max-w-md" />}
-          {line && <span className="block truncate text-sm text-muted-foreground">{line}</span>}
+          {d?.note && (
+            // One note that grows from a one-line preview into the full text when the day opens.
+            <span
+              className={cn(
+                "block overflow-hidden text-sm break-words whitespace-pre-line transition-[max-height,color] duration-300 ease-out",
+                open ? "max-h-96 text-foreground" : "line-clamp-1 max-h-5 text-muted-foreground"
+              )}
+            >
+              {d.note}
+            </span>
+          )}
         </span>
         <span className="flex items-start gap-2">
           {stat && (
@@ -203,7 +212,6 @@ function JournalDay({ day, items, positions, left }: { day: string; items: Item[
               )}
             </dl>
           )}
-          {d?.note && <p className="text-sm break-words whitespace-pre-line">{d.note}</p>}
           {items.length > 0 && (
             <ul className="space-y-1.5">
               {items.map((i) => <TradeItem key={i.p.ticket} {...i} />)}
