@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import type { TradeAnswers } from "@/hooks/use-answers"
+import { createMistake, createSetup } from "@/hooks/use-api"
 import { useJournalContext } from "@/hooks/use-journal"
 import type { Grade, Mood, Position } from "@/lib/api/types"
 import { price } from "@/lib/format"
@@ -53,7 +54,7 @@ export function TradeReviewEditor({ position, answers, ask = { plan: true, mista
       {ask.mistakes && <MistakeQuestion answers={answers} size={size} />}
       <div>
         <Question>How did you feel?</Question>
-        <MoodPicker value={v.mood} onChange={(mood: Mood | null) => set({ mood })} size={size === "sm" ? "sm" : "md"} label="How did you feel?" />
+        <MoodPicker value={v.mood} onChange={(mood: Mood | null) => set({ mood })} label="How did you feel?" />
       </div>
       {position.askStop && <StopQuestion position={position} answers={answers} />}
       <div className="space-y-1">
@@ -90,10 +91,17 @@ export function SetupQuestion({ value, onChange, size }: { value: string | null;
   return (
     <div>
       <Question>Which setup was it?</Question>
-      {setups.length ? (
-        <ChoiceChips label="Which setup was it?" size={size} options={setups.map((s) => ({ value: s.id, label: s.name }))} value={value} onChange={onChange} />
+      {j.tags ? (
+        <ChoiceChips
+          label="Which setup was it?"
+          size={size}
+          options={setups.map((s) => ({ value: s.id, label: s.name }))}
+          value={value}
+          onChange={onChange}
+          onAdd={async (name) => onChange((await createSetup(name)).id)}
+        />
       ) : (
-        <p className="text-sm text-muted-foreground">{j.tags ? "No setups yet. Add yours in Settings." : "Loading…"}</p>
+        <p className="text-sm text-muted-foreground">Loading…</p>
       )}
     </div>
   )
@@ -106,7 +114,7 @@ export function MistakeQuestion({ answers, size, title = "What went wrong?" }: {
   const tags = j.tags?.mistakes.filter((m) => !m.archived || v.mistakeIds.includes(m.id)) ?? []
   return (
     <div>
-      <Question hint="Pick any">{title}</Question>
+      <Question>{title}</Question>
       <div className="space-y-2">
         {MISTAKE_GROUPS.map((g) => {
           const of = tags.filter((m) => m.group === g.value)
@@ -120,6 +128,7 @@ export function MistakeQuestion({ answers, size, title = "What went wrong?" }: {
                 options={of.map((m) => ({ value: m.id, label: m.name }))}
                 value={v.mistakeIds}
                 onChange={(ids) => set({ mistakeIds: ids, noMistakes: false })}
+                onAdd={async (name) => set({ mistakeIds: [...v.mistakeIds, (await createMistake(name, g.value)).id], noMistakes: false })}
               />
             </div>
           )

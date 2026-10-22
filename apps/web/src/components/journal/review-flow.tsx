@@ -181,10 +181,7 @@ function ReviewCard({ position, left, onNext }: { position: Position; left: numb
                 <Mini label="Result" value={p.r === null ? "—" : <RValue r={p.r} />} />
               </dl>
               {dayTrades.length > 1 && (
-                <div className="mt-3 space-y-1">
-                  <p className="text-xs text-muted-foreground">Your day, this trade highlighted</p>
-                  <SessionStrip trades={dayTrades} day={p.day} tz={j.tz} focus={p.ticket} />
-                </div>
+                <SessionStrip trades={dayTrades} day={p.day} tz={j.tz} focus={p.ticket} className="mt-3" />
               )}
             </div>
 

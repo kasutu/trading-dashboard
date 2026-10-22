@@ -1,7 +1,7 @@
 import * as React from "react"
 import type { Side } from "@/lib/api/types"
-import { duration, formatTime, formatTimeRange, money, pnlClass } from "@/lib/format"
-import { type Span, clockShort, hourTicks, hourWindow, inMarket, lanes, toSpan } from "@/lib/timeline"
+import { duration, formatTime, formatTimeRange, hourShort, money, pnlClass } from "@/lib/format"
+import { type Span, hourTicks, hourWindow, inMarket, lanes, toSpan } from "@/lib/timeline"
 import { cn } from "@/lib/utils"
 
 /** What the timeline needs from a trade or a position. */
@@ -48,7 +48,7 @@ export function DayTimeline({ trades, day, tz, onSelect, className }: Props) {
         <div aria-hidden className="relative col-start-2 h-6">
           {ticks.map((m) => (
             <span key={m} className="absolute top-0 -translate-x-1/2 font-mono text-[11px] text-muted-foreground" style={{ left: `${pctOf(m, w)}%` }}>
-              {clockShort(m)}
+              {hourShort(m / 60)}
             </span>
           ))}
         </div>
@@ -151,7 +151,7 @@ export function SessionStrip({ trades, day, tz, focus, className }: { trades: Ti
   const used = Math.min(MAX_LANES, Math.max(...spans.map((s) => s.lane)) + 1)
   return (
     <div className={cn("flex items-center gap-2", className)} aria-hidden>
-      <span className="w-6 shrink-0 text-right font-mono text-[10px] text-muted-foreground">{clockShort(w.from)}</span>
+      <span className="w-9 shrink-0 text-right font-mono text-[10px] text-muted-foreground">{hourShort(w.from / 60)}</span>
       <div className="relative flex-1 rounded-full bg-muted/70" style={{ height: used * (LANE_H + LANE_GAP) + LANE_GAP }}>
         {spans.map((s) => (
           <div
@@ -165,7 +165,7 @@ export function SessionStrip({ trades, day, tz, focus, className }: { trades: Ti
           />
         ))}
       </div>
-      <span className="w-6 shrink-0 font-mono text-[10px] text-muted-foreground">{clockShort(w.to)}</span>
+      <span className="w-9 shrink-0 font-mono text-[10px] text-muted-foreground">{hourShort(w.to / 60)}</span>
     </div>
   )
 }

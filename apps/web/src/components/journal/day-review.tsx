@@ -3,6 +3,7 @@ import { Check, Layers } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { useDayAnswers, type DayAnswers } from "@/hooks/use-answers"
+import { createSetup } from "@/hooks/use-api"
 import { useJournalContext } from "@/hooks/use-journal"
 import type { DayRisk, Mood } from "@/lib/api/types"
 import { plural, today } from "@/lib/format"
@@ -13,22 +14,21 @@ import { SaveStatus } from "./save-status"
 import { NoteCount } from "./trade-review-editor"
 
 /** Before trading: face, what could get in the way, setups to watch. */
-export function DayBefore({ answers, size = "md", isToday = true }: { answers: DayAnswers; size?: "sm" | "md" | "lg"; isToday?: boolean }) {
+export function DayBefore({ answers, size = "sm", isToday = true }: { answers: DayAnswers; size?: "sm" | "md"; isToday?: boolean }) {
   const j = useJournalContext()!
   const { v, set } = answers
   const setups = j.tags?.setups.filter((s) => !s.archived || v.watchSetupIds.includes(s.id)) ?? []
-  const chip = size === "lg" ? "md" : "sm"
   return (
     <div className="space-y-4">
       <div>
-        <Question>{isToday ? "How do you feel?" : "How did you feel before trading?"}</Question>
-        <MoodPicker value={v.preMood} onChange={(preMood: Mood | null) => set({ preMood })} size={size === "lg" ? "lg" : "md"} label="How do you feel?" />
+        <Question>{isToday ? "How do you feel?" : "How did you feel?"}</Question>
+        <MoodPicker value={v.preMood} onChange={(preMood: Mood | null) => set({ preMood })} size="lg" label="How do you feel?" />
       </div>
       <div>
-        <Question hint="Pick any">What could get in the way{isToday ? " today" : ""}?</Question>
+        <Question>Anything in the way?</Question>
         <MultiChips
-          label="What could get in the way?"
-          size={chip}
+          label="Anything in the way?"
+          size={size}
           options={RISKS.map((r) => ({ value: r.value, label: r.label }))}
           value={v.risks}
           onChange={(risks) => set({ risks: risks as DayRisk[], noRisks: false })}
@@ -36,17 +36,18 @@ export function DayBefore({ answers, size = "md", isToday = true }: { answers: D
         />
       </div>
       <div>
-        <Question hint="Pick any">What are you watching?</Question>
-        {setups.length ? (
+        <Question>Watching</Question>
+        {j.tags ? (
           <MultiChips
-            label="What are you watching?"
-            size={chip}
+            label="Watching"
+            size={size}
             options={setups.map((s) => ({ value: s.id, label: s.name }))}
             value={v.watchSetupIds}
             onChange={(watchSetupIds) => set({ watchSetupIds })}
+            onAdd={async (name) => set({ watchSetupIds: [...v.watchSetupIds, (await createSetup(name)).id] })}
           />
         ) : (
-          <p className="text-sm text-muted-foreground">{j.tags ? "No setups yet. Add yours in Settings." : "Loading…"}</p>
+          <p className="text-sm text-muted-foreground">Loading…</p>
         )}
       </div>
     </div>

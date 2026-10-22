@@ -49,12 +49,6 @@ export function hourTicks({ from, to }: { from: number; to: number }) {
   return out
 }
 
-/** Minutes past midnight as a short clock label: 540 → "9a", 1440 → "12a". */
-export const clockShort = (min: number) => {
-  const h = Math.floor(min / 60) % 24
-  return `${h % 12 || 12}${h < 12 ? "a" : "p"}`
-}
-
 /** Spans in rows so no two in a row overlap. Opens first; each span takes the first free row. */
 export function lanes<T extends Span>(spans: T[]) {
   const ends: number[] = []
