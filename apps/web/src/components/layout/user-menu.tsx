@@ -1,4 +1,5 @@
-import { LogOut, Sparkles, Tag, User } from "lucide-react"
+import * as React from "react"
+import { LogOut, Settings, Sparkles, Tag, User } from "lucide-react"
 import { navigate } from "wouter/use-browser-location"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,10 +14,12 @@ import { useMe } from "@/hooks/use-api"
 import { authClient } from "@/lib/auth-client"
 import { planName } from "@/lib/plans"
 import { PlanBadge } from "./plan-badge"
+import { SettingsDialog } from "./settings-dialog"
 
-/** The signed-in user: name, plan, pricing and sign out. */
+/** The signed-in user: name, plan, pricing, settings and sign out. */
 export function UserMenu() {
   const { data: me } = useMe()
+  const [settings, setSettings] = React.useState(false)
 
   const signOut = async () => {
     await authClient.signOut()
@@ -24,27 +27,31 @@ export function UserMenu() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2 px-2" aria-label={me ? `Account menu: ${me.username}, ${planName(me.plan)} plan` : "Account menu"}>
-          <User />
-          <span className="hidden max-w-32 truncate sm:inline">{me?.username}</span>
-          {me && <PlanBadge plan={me.plan} />}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel className="flex min-w-48 items-center justify-between gap-3">
-          <span className="truncate font-medium">{me?.username ?? "…"}</span>
-          {me && <PlanBadge plan={me.plan} />}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {me?.plan === "free" ? (
-          <DropdownMenuItem onSelect={() => navigate("/pricing")}><Sparkles /> Upgrade</DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem onSelect={() => navigate("/pricing")}><Tag /> Plans and prices</DropdownMenuItem>
-        )}
-        <DropdownMenuItem onSelect={signOut}><LogOut /> Sign out</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="gap-2 px-2" aria-label={me ? `Account menu: ${me.username}, ${planName(me.plan)} plan` : "Account menu"}>
+            <User />
+            <span className="hidden max-w-32 truncate sm:inline">{me?.username}</span>
+            {me && <PlanBadge plan={me.plan} />}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel className="flex min-w-48 items-center justify-between gap-3">
+            <span className="truncate font-medium">{me?.username ?? "…"}</span>
+            {me && <PlanBadge plan={me.plan} />}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {me?.plan === "free" ? (
+            <DropdownMenuItem onSelect={() => navigate("/pricing")}><Sparkles /> Upgrade</DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onSelect={() => navigate("/pricing")}><Tag /> Plans and prices</DropdownMenuItem>
+          )}
+          <DropdownMenuItem onSelect={() => setSettings(true)}><Settings /> Settings</DropdownMenuItem>
+          <DropdownMenuItem onSelect={signOut}><LogOut /> Sign out</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <SettingsDialog open={settings} onOpenChange={setSettings} />
+    </>
   )
 }
