@@ -1,7 +1,7 @@
 import { InsightCard } from "@/components/dashboard/insight-card"
 import { LockedPanel } from "@/components/dashboard/locked-panel"
 import { JournalList } from "@/components/journal/journal-list"
-import { MoodPnl } from "@/components/journal/mood-pnl"
+import { JournalInsights } from "@/components/journal/journal-insights"
 import type { Insight } from "@/lib/insights"
 
 const GROUPS = [
@@ -13,13 +13,13 @@ const GROUPS = [
 /** What the automatic notes hold, for the locked panel on the Free plan. */
 const LOCKED = ["Your best and worst hours, weekdays and days", "What helps and what hurts your results, with a chart for each"]
 
-/** Your journal (every plan), P&L by mood and the automatic notes (paid plans). */
+/** Your journal (every plan), what it says and the automatic notes (paid plans). */
 export function Notes({ insights, locked }: { insights: Insight[]; locked: boolean }) {
   return (
     <div className="space-y-8">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
         <JournalList />
-        <MoodPnl />
+        <JournalInsights />
       </div>
       {locked ? <LockedPanel title="What helps and what hurts" items={LOCKED} /> : <Insights insights={insights} />}
     </div>

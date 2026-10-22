@@ -1,7 +1,7 @@
 import { TradeChartButton } from "@/components/charts/trade-chart-dialog"
 import { SideBadge } from "@/components/dashboard/side-badge"
-import { DayJournal } from "@/components/journal/day-journal"
-import { TradeNote } from "@/components/journal/trade-note"
+import { YourDay } from "@/components/journal/day-review"
+import { TradeReviewPanel } from "@/components/journal/trade-review-panel"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import type { LocalTrade } from "@/lib/api/types"
 import { duration, formatLongDay, formatTimeRange, money, pct, pnlClass, price, today, tradeKey, tzLabel } from "@/lib/format"
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 
 type Props = { accountId: string; day: string | null; trades: LocalTrade[]; tz: string; onClose: () => void }
 
-/** Side sheet with your mood and note for one day, its stats and every trade. */
+/** Side sheet for one day: your day review, its stats and every trade with its review. */
 export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
   const net = trades.reduce((s, t) => s + t.net, 0)
   const wins = trades.filter((t) => t.net > 0).length
@@ -23,7 +23,7 @@ export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
               <SheetTitle className="font-display text-xl font-bold">{formatLongDay(day)}</SheetTitle>
               <SheetDescription>Trades opened on this day. Times are in {tzLabel(tz)}.</SheetDescription>
             </div>
-            <DayJournal day={day} />
+            <YourDay day={day} />
             {trades.length ? (
               <dl className="grid grid-cols-3 gap-2">
                 <Stat label="Total trades" value={String(trades.length)} />
@@ -54,7 +54,7 @@ export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
                     <Field label="Stop loss" value={price(t.sl)} />
                     <Field label="Take profit" value={price(t.tp)} />
                   </dl>
-                  <TradeNote ticket={t.ticket} />
+                  <TradeReviewPanel ticket={t.ticket} />
                 </li>
               ))}
             </ul>

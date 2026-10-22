@@ -19,12 +19,12 @@ type Props = {
 // Narrow screens: no dollar sign or cents, "+12", "−1.2k".
 const short = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${compactMoney(Math.abs(n))}`
 
-/** One day box: day number, net P&L, trade count and the day's mood. Hover lists the trades, click opens the day.
- *  Today and days with a journal entry open too, even without trades. */
+/** One day box: day number, net P&L, trade count and how you felt before trading. Hover lists the trades, click opens the day.
+ *  Today and days with a day review open too, even without trades. */
 export function CalendarDay({ day, trades, inMonth, weekend, isToday, onOpen }: Props) {
   const n = trades.length
   const entry = useJournalContext()?.days.get(day)
-  const mood = moodOf(entry?.mood)
+  const mood = moodOf(entry?.preMood)
   const net = trades.reduce((s, t) => s + t.net, 0)
   // Empty days stay quiet (no border, faint fill) so trading days stand out.
   const tint = !n
@@ -91,10 +91,10 @@ export function CalendarDay({ day, trades, inMonth, weekend, isToday, onOpen }: 
           <span className="text-sm font-medium">{formatDay(day, true)}</span>
           <span className={cn("font-mono text-sm font-medium tabular-nums", pnlClass(net))}>{money(net, true)}</span>
         </div>
-        {entry && (
+        {(entry?.note || mood) && (
           <div className="flex items-start gap-2 border-b px-3 py-2.5 text-sm">
             {mood && <span aria-hidden className="leading-5">{mood.emoji}</span>}
-            <p className="line-clamp-2 text-muted-foreground">{entry.note || mood?.label}</p>
+            <p className="line-clamp-2 text-muted-foreground">{entry?.note || mood?.label}</p>
           </div>
         )}
         <ul className="max-h-64 overflow-y-auto px-3 py-1.5">

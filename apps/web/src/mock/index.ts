@@ -2,11 +2,9 @@
 // the API and auth services. analytics.json and trades.json come from exness-winning.csv (generated
 // once with the old TypeScript engine). Analytics ignores the filters; trades honors them.
 // The plan is Free. Open any page with ?plan=espresso (or latte, owner, free) to switch; it is remembered.
-import type {
-  Account, CashDay, CashFlow, ColumnMapping, DayEntry, Import, Journal, JournalInput, JournalPosition, LocalTrade, Me, Mood, MoodRow,
-  SavedMapping, Trade, TradeEntry,
-} from "@/lib/api/types"
+import type { Account, CashDay, CashFlow, ColumnMapping, Import, LocalTrade, Me, SavedMapping, Trade } from "@/lib/api/types"
 import analytics from "./analytics.json"
+import { journalRoute } from "./journal"
 import { candleResponse, withMarketPrices } from "./prices"
 import rawTrades from "./trades.json"
 
@@ -53,51 +51,6 @@ const cashFlows: Record<string, CashFlow[]> = {
   ],
 }
 let nextId = 2
-
-// Journal: moods on 30 of the 44 trading days, worse moods on worse days. Days are UTC dates.
-const SEED_MOODS: Record<Mood, string[]> = {
-  1: ["2026-09-09", "2026-09-14"],
-  2: ["2026-09-01", "2026-09-07", "2026-09-04", "2026-09-17", "2026-08-17", "2026-08-31", "2026-08-21", "2026-09-10", "2026-09-29", "2026-09-08"],
-  3: ["2026-08-28", "2026-08-03", "2026-09-16", "2026-09-22", "2026-08-07"],
-  4: ["2026-08-11", "2026-08-20", "2026-08-13", "2026-09-24", "2026-08-06", "2026-09-23", "2026-09-21", "2026-09-15", "2026-09-18", "2026-08-26", "2026-09-02"],
-  5: ["2026-08-25", "2026-08-05"],
-}
-const SEED_NOTES: Record<string, string> = {
-  "2026-09-09": "Revenge traded after the first EURUSD loss. Kept adding size. Should have stopped at two losses.",
-  "2026-09-14": "Slept badly. Took setups I would normally skip.",
-  "2026-09-01": "Back from the weekend and rusty. Too many trades in the first hour.",
-  "2026-09-07": "Chased BTC after missing the move.",
-  "2026-08-17": "Distracted, trading between meetings.",
-  "2026-08-25": "Waited for my levels and let the winners run. Best day this month.",
-  "2026-08-05": "Clear head, followed the plan.\nStopped after the target.",
-  "2026-09-18": "Calm session. Small size, clean entries.",
-  "2026-08-26": "Good day. One sloppy BTC trade at the end.",
-  "2026-08-03": "First day on the new account. Just getting a feel.",
-  "2026-09-28": "Long day, no energy. Didn't set a mood.",
-}
-const SEED_TRADES: [string, Mood | null, string | null][] = [
-  ["1216", 1, "Doubled down against the trend. No stop."],
-  ["1206", 2, "Entered early, before the candle closed."],
-  ["1236", 2, "Took it out of boredom."],
-  ["1125", 5, "Textbook breakout and retest."],
-  ["1018", 4, "Held to target."],
-  ["1131", 4, null],
-  ["1137", null, "Moved my stop. Don't."],
-  ["1298", 2, "Late entry after news."],
-]
-const seededAt = (day: string) => `${day}T20:00:00Z`
-const dayEntries: Record<string, Map<string, DayEntry>> = { a1: new Map() }
-for (const [mood, days] of Object.entries(SEED_MOODS))
-  for (const day of days) dayEntries.a1.set(day, { day, mood: Number(mood) as Mood, note: SEED_NOTES[day] ?? null, updatedAt: seededAt(day) })
-for (const [day, note] of Object.entries(SEED_NOTES))
-  if (!dayEntries.a1.has(day)) dayEntries.a1.set(day, { day, mood: null, note, updatedAt: seededAt(day) })
-const tradeEntries: Record<string, Map<string, TradeEntry>> = {
-  a1: new Map(SEED_TRADES.map(([ticket, mood, note]) => {
-    const close = (trades as Trade[]).find((t) => t.ticket === ticket)!.close
-    return [ticket, { ticket, mood, note, updatedAt: close }]
-  })),
-}
-const MIN_MOOD_DAYS = 10
 
 const json = (body: unknown, status = 200) =>
   new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
@@ -158,66 +111,6 @@ function cashReport(flows: CashFlow[], tz: string) {
   return { rows, summary: { deposits, withdrawals, net: cents(deposits.total - withdrawals.total) }, daily }
 }
 
-/** Trades of the account per day in tz: count and net. */
-function dayStats(accountTrades: Trade[], tz: string) {
-  const m = new Map<string, { day: string; trades: number; net: number }>()
-  for (const t of accountTrades) {
-    const day = dayIn(t.open, tz)
-    const s = m.get(day) ?? { day, trades: 0, net: 0 }
-    s.trades += 1
-    s.net += t.net
-    m.set(day, s)
-  }
-  for (const s of m.values()) s.net = cents(s.net)
-  return m
-}
-
-/** A position summed over its partial closes. */
-function position(accountTrades: Trade[], ticket: string, tz: string): JournalPosition | null {
-  const fills = accountTrades.filter((t) => t.ticket === ticket)
-  if (!fills.length) return null
-  const first = fills.reduce((a, b) => (a.open <= b.open ? a : b))
-  return {
-    day: dayIn(first.open, tz), symbol: first.symbol, side: first.side,
-    lots: cents(fills.reduce((s, t) => s + t.lots, 0)), net: cents(fills.reduce((s, t) => s + t.net, 0)),
-  }
-}
-
-function journal(accountId: string, accountTrades: Trade[], tz: string): Journal {
-  const days = [...(dayEntries[accountId]?.values() ?? [])].sort((a, b) => b.day.localeCompare(a.day))
-  const tradeRows = [...(tradeEntries[accountId]?.values() ?? [])]
-    .map((e) => ({ ...e, position: position(accountTrades, e.ticket, tz) }))
-    .sort((a, b) => (b.position?.day ?? "").localeCompare(a.position?.day ?? ""))
-  const all = dayStats(accountTrades, tz)
-  const wanted = new Set([...days.map((d) => d.day), ...tradeRows.flatMap((t) => (t.position ? [t.position.day] : []))])
-  const stats = [...wanted].sort().reverse().map((day) => all.get(day) ?? { day, trades: 0, net: 0 })
-  return { days, trades: tradeRows, stats }
-}
-
-/** P&L by mood: trading days only (a mood on a day without trades does not count). */
-function moodSummary(accountId: string, accountTrades: Trade[], tz: string) {
-  const all = dayStats(accountTrades, tz)
-  const byMood: MoodRow[] = ([1, 2, 3, 4, 5] as Mood[]).map((mood) => {
-    const days = [...(dayEntries[accountId]?.values() ?? [])].filter((d) => d.mood === mood && all.has(d.day)).map((d) => all.get(d.day)!)
-    const net = cents(days.reduce((s, d) => s + d.net, 0))
-    return {
-      mood, days: days.length, net,
-      avgPerDay: days.length ? cents(net / days.length) : 0,
-      winRate: days.length ? days.filter((d) => d.net > 0).length / days.length : 0,
-    }
-  })
-  return { byMood, minDays: MIN_MOOD_DAYS }
-}
-
-/** Validates a PUT body. Returns an error message, or the cleaned input. */
-function journalInput(body: unknown): string | JournalInput {
-  const { mood = null, note = null } = (body ?? {}) as Partial<JournalInput>
-  if (mood !== null && !(Number.isInteger(mood) && mood >= 1 && mood <= 5)) return "The mood must be a number from 1 to 5, or empty."
-  if (note !== null && typeof note !== "string") return "The note must be text."
-  if (note && note.length > 500) return "A note can be up to 500 characters."
-  return { mood, note: note?.trim() || null }
-}
-
 async function handle(method: string, url: URL, body: unknown): Promise<Response> {
   const path = url.pathname.replace(/^\/api/, "")
   const b = (body ?? {}) as Record<string, string>
@@ -265,30 +158,11 @@ async function handle(method: string, url: URL, body: unknown): Promise<Response
     return json(f)
   }
 
-  const jr = path.match(/^\/accounts\/([^/]+)\/journal(?:\/(summary|days|trades)(?:\/([^/]+))?)?$/)
-  const jAccount = jr && accounts.find((a) => a.id === jr[1])
-  if (jr && jAccount) {
-    const accountTrades = jAccount.trades ? (trades as Trade[]) : []
-    const tz = url.searchParams.get("tz") ?? "UTC"
-    if (!jr[2] && method === "GET") return json(journal(jAccount.id, accountTrades, tz))
-    if (jr[2] === "summary" && method === "GET")
-      return json(plan() === "free" ? { locked: true } : moodSummary(jAccount.id, accountTrades, tz))
-    if ((jr[2] === "days" || jr[2] === "trades") && jr[3] && method === "PUT") {
-      const key = decodeURIComponent(jr[3])
-      if (jr[2] === "days" && !/^\d{4}-\d{2}-\d{2}$/.test(key)) return json({ error: "The day must be yyyy-mm-dd." }, 400)
-      if (jr[2] === "trades" && !accountTrades.some((t) => t.ticket === key)) return json({ error: "This trade does not exist." }, 404)
-      const input = journalInput(body)
-      if (typeof input === "string") return json({ error: input }, 400)
-      const store = jr[2] === "days" ? (dayEntries[jAccount.id] ??= new Map()) : (tradeEntries[jAccount.id] ??= new Map())
-      if (input.mood === null && input.note === null) {
-        store.delete(key)
-        return json(undefined, 204)
-      }
-      const entry = { ...input, updatedAt: new Date().toISOString(), ...(jr[2] === "days" ? { day: key } : { ticket: key }) }
-      ;(store as Map<string, typeof entry>).set(key, entry)
-      return json(entry)
-    }
-  }
+  const j = journalRoute(method, path, url.searchParams, body, (id) => {
+    const a = accounts.find((x) => x.id === id)
+    return a ? (a.trades ? trades : []) : null
+  }, plan() === "free")
+  if (j) return json(j.body, j.status)
 
   const k = path.match(/^\/accounts\/([^/]+)\/candles$/)
   if (k && accounts.some((a) => a.id === k[1])) {

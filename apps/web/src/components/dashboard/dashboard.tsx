@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Lock } from "lucide-react"
-import { DailyMoodDialog } from "@/components/journal/daily-mood-dialog"
+import { DailyCheckIn } from "@/components/journal/daily-check-in"
 import { JournalProvider } from "@/components/journal/journal-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAnalytics, useCashFlows, useMe } from "@/hooks/use-api"
@@ -50,7 +50,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
 
   return (
     <JournalProvider accountId={accountId} tz={filters.tz}>
-      <DailyMoodDialog />
+      <DailyCheckIn />
       <div className="space-y-5">
         <FilterBar filters={filters} symbols={symbols} onChange={set}>
           {a && <ShareDialog a={a} filters={filters} footer={me?.plan !== "latte" && me?.plan !== "owner"} />}

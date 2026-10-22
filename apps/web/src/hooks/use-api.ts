@@ -1,8 +1,8 @@
 import * as React from "react"
 import { api, filterQuery } from "@/lib/api/client"
 import type {
-  Account, AnalyticsResponse, Candles, CashFlows, ColumnMapping, DayEntry, Filters, Import, Journal, JournalInput, JournalSummary, Me,
-  SavedMapping, Timeframe, TradeEntry, TradePage,
+  Account, AnalyticsResponse, Candles, CashFlows, ColumnMapping, DayReview, DayReviewInput, Filters, Import, Journal, JournalSummary,
+  JournalTags, Me, MistakeGroup, MistakeTag, SavedMapping, Setup, Timeframe, TradePage, TradeReview, TradeReviewInput,
 } from "@/lib/api/types"
 
 // Mounted queries listen here. invalidate() makes the ones whose path starts with a prefix fetch again.
@@ -61,12 +61,36 @@ export const useJournal = (accountId: string, tz: string) =>
 export const useJournalSummary = (accountId: string, tz: string) =>
   useApi<JournalSummary>(`${journalPath(accountId)}/summary?${new URLSearchParams({ tz })}`)
 
-/** Save the mood and note of a day or a trade (by ticket), then refresh every journal query of the account. */
-export async function saveJournal(accountId: string, target: { day: string } | { ticket: string }, input: JournalInput) {
-  const sub = "day" in target ? `days/${target.day}` : `trades/${encodeURIComponent(target.ticket)}`
-  await api<DayEntry | TradeEntry | undefined>(`${journalPath(accountId)}/${sub}`, { method: "PUT", body: input })
+/** Change some answers of a trade review (fields left out are kept, null clears), then refresh the account's journal.
+ *  Undefined when every answer is blank and the server deleted the review. */
+export async function saveTradeReview(accountId: string, ticket: string, input: TradeReviewInput) {
+  const r = await api<TradeReview | undefined>(`${journalPath(accountId)}/trades/${encodeURIComponent(ticket)}`, { method: "PATCH", body: input })
   invalidate(journalPath(accountId))
+  return r
 }
+
+/** Same for a day (yyyy-mm-dd in the dashboard timezone). */
+export async function saveDayReview(accountId: string, day: string, input: DayReviewInput) {
+  const r = await api<DayReview | undefined>(`${journalPath(accountId)}/days/${day}`, { method: "PATCH", body: input })
+  invalidate(journalPath(accountId))
+  return r
+}
+
+/** Setups and mistake tags belong to the person, so they are shared by every trading account. */
+export const TAGS_PATH = "/journal/tags"
+export const useJournalTags = () => useApi<JournalTags>(TAGS_PATH)
+
+async function tagCall<T>(path: string, method: "POST" | "PATCH", body: unknown) {
+  const r = await api<T>(path, { method, body })
+  invalidate(TAGS_PATH)
+  return r
+}
+export const createSetup = (name: string) => tagCall<Setup>("/journal/setups", "POST", { name })
+export const updateSetup = (id: string, patch: { name?: string; archived?: boolean }) =>
+  tagCall<Setup>(`/journal/setups/${encodeURIComponent(id)}`, "PATCH", patch)
+export const createMistake = (name: string, group: MistakeGroup) => tagCall<MistakeTag>("/journal/mistakes", "POST", { name, group })
+export const updateMistake = (id: string, patch: { name?: string; archived?: boolean }) =>
+  tagCall<MistakeTag>(`/journal/mistakes/${encodeURIComponent(id)}`, "PATCH", patch)
 
 /** OHLC candles for a symbol between two ISO times. A null window fetches nothing. */
 export const useCandles = (accountId: string, symbol: string, tf: Timeframe, range: { from: string; to: string } | null) =>
