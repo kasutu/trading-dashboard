@@ -3,7 +3,10 @@
 // once with the old TypeScript engine). Analytics ignores the filters; trades honors them.
 import type { Account, CashDay, CashFlow, ColumnMapping, Import, LocalTrade, SavedMapping, Trade } from "@/lib/api/types"
 import analytics from "./analytics.json"
-import trades from "./trades.json"
+import { candleResponse, withMarketPrices } from "./prices"
+import rawTrades from "./trades.json"
+
+const trades = withMarketPrices(rawTrades as Trade[])
 
 const SIGNED_OUT = "jurno:mock-signed-out"
 const user = { id: "u1", name: "demo", username: "demo", email: "demo@users.jurno.invalid", emailVerified: false, createdAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-01T00:00:00Z" }
@@ -139,6 +142,12 @@ async function handle(method: string, url: URL, body: unknown): Promise<Response
     const f = flow(`cf${nextId++}`, new Date(occurredAt).toISOString().replace(".000Z", "Z"), kind, amount, note?.trim() || null)
     list.push(f)
     return json(f)
+  }
+
+  const k = path.match(/^\/accounts\/([^/]+)\/candles$/)
+  if (k && accounts.some((a) => a.id === k[1])) {
+    const r = candleResponse(trades, url.searchParams)
+    return json(r.body, r.status)
   }
 
   const m = path.match(/^\/accounts\/([^/]+)\/(analytics|trades|imports)$/)

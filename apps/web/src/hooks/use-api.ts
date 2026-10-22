@@ -1,6 +1,6 @@
 import * as React from "react"
 import { api, filterQuery } from "@/lib/api/client"
-import type { Account, AnalyticsResponse, CashFlows, ColumnMapping, Filters, Import, Me, SavedMapping, TradePage } from "@/lib/api/types"
+import type { Account, AnalyticsResponse, Candles, CashFlows, ColumnMapping, Filters, Import, Me, SavedMapping, Timeframe, TradePage } from "@/lib/api/types"
 
 // Mounted queries listen here. invalidate() makes the ones whose path starts with a prefix fetch again.
 const listeners = new Set<(prefix: string) => void>()
@@ -51,3 +51,6 @@ export const useTrades = (accountId: string, f: Filters, extra: Record<string, s
 export const cashFlowsPath = (accountId: string) => `/accounts/${accountId}/cash-flows`
 export const useCashFlows = (accountId: string, tz: string) =>
   useApi<CashFlows>(`${cashFlowsPath(accountId)}?${new URLSearchParams({ tz })}`)
+/** OHLC candles for a symbol between two ISO times. A null window fetches nothing. */
+export const useCandles = (accountId: string, symbol: string, tf: Timeframe, range: { from: string; to: string } | null) =>
+  useApi<Candles>(range && `/accounts/${accountId}/candles?${new URLSearchParams({ symbol, tf, from: range.from, to: range.to })}`)
