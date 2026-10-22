@@ -36,14 +36,16 @@ type SingleProps = {
   /** Shows a "+" chip that turns into a field. Called with the typed name. */
   onAdd?: (name: string) => Promise<unknown>
   size?: "sm" | "md"
+  /** Chips share the row equally, as wide buttons (for a short list such as Yes and No). */
+  wide?: boolean
   className?: string
 }
 
 /** Pick one, as a radio group. */
-export function ChoiceChips({ label, options, value, onChange, onAdd, size, className }: SingleProps) {
+export function ChoiceChips({ label, options, value, onChange, onAdd, size, wide, className }: SingleProps) {
   const focusable = options.some((o) => o.value === value) ? value : options[0]?.value
   return (
-    <div role="radiogroup" aria-label={label} className={cn("flex flex-wrap gap-1.5", className)}>
+    <div role="radiogroup" aria-label={label} className={cn("flex flex-wrap gap-1.5", wide && "grid grid-cols-2 gap-2", className)}>
       {options.map((o) => {
         const on = o.value === value
         return (
@@ -57,7 +59,7 @@ export function ChoiceChips({ label, options, value, onChange, onAdd, size, clas
             tabIndex={o.value === focusable ? 0 : -1}
             onClick={() => onChange(on ? null : o.value)}
             onKeyDown={onArrows}
-            className={chipClass(on, size)}
+            className={cn(chipClass(on, size), wide && "h-10 justify-center text-sm")}
           >
             <span className="truncate">{o.label}</span>
           </button>

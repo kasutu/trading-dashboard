@@ -74,17 +74,19 @@ export function DayBefore({ answers, isToday = true }: { answers: DayAnswers; is
   )
 }
 
-/** After trading: did you stick to the plan, and one thing to change (text, last). */
+/** After trading, about the whole day (not one trade): did you stick to the plan, and one thing to change (text, last). */
 export function DayAfter({ answers, size = "sm", isToday = true }: { answers: DayAnswers; size?: "sm" | "md"; isToday?: boolean }) {
   const { v, set } = answers
   const id = React.useId()
   return (
     <div className="space-y-4">
       <div>
-        <Question>Did you stick to your plan{isToday ? " today" : ""}?</Question>
+        <Question>Overall, did you stick to your plan{isToday ? " today" : " that day"}?</Question>
+        <p className="-mt-1 mb-2 text-xs text-muted-foreground">For the whole day, not one trade.</p>
         <ChoiceChips
-          label="Did you stick to your plan?"
+          label="Overall, did you stick to your plan?"
           size={size}
+          wide
           options={[{ value: "yes", label: "Yes" }, { value: "no", label: "No" }]}
           value={v.followedPlan === null ? null : v.followedPlan ? "yes" : "no"}
           onChange={(x) => set({ followedPlan: x === null ? null : x === "yes" })}
