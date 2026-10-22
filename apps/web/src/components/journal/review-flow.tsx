@@ -248,27 +248,15 @@ function Mini({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-/** After the last card: what was reviewed, then the after-trading questions for the day. */
+/** After the last card: what was reviewed, then the questions about the whole day (buttons, not a swipe card). */
 function DayDone({ day, reviewed, onClose }: { day: string; reviewed: Position[]; onClose: () => void }) {
   const j = useJournalContext()!
   const answers = useDayAnswers(day)
-  const reduced = useReducedMotion()
-  const [leaving, setLeaving] = React.useState<Direction | null>(null)
   const isToday = day === today(j.tz)
   const on = reviewed.filter((p) => j.trades.get(p.ticket)?.followedPlan === true).length
   const off = reviewed.filter((p) => j.trades.get(p.ticket)?.followedPlan === false).length
   const all = j.journal?.positions.filter((p) => p.day === day) ?? []
   const net = all.reduce((s, p) => s + p.net, 0)
-  // The question card stays until it has flown off.
-  const answered = answers.v.followedPlan !== null && !leaving
-
-  const answer = (yes: boolean) => {
-    answers.set({ followedPlan: yes })
-    if (reduced) return
-    setLeaving(yes ? "right" : "left")
-    setTimeout(() => setLeaving(null), LEAVE_MS)
-  }
-  useArrowKeys(answered || leaving ? {} : { right: () => answer(true), left: () => answer(false) })
 
   return (
     <>
@@ -289,26 +277,8 @@ function DayDone({ day, reviewed, onClose }: { day: string; reviewed: Position[]
           </div>
         </div>
 
-        <div>
-          {answered ? (
-            <DayAfter answers={answers} isToday={isToday} />
-          ) : (
-            <>
-              <Swipeable
-                onSwipe={(d) => answer(d === "right")}
-                leaving={leaving}
-                hints={{ left: "No", right: "Yes" }}
-                className="rounded-xl border bg-card p-5 text-center shadow-card"
-              >
-                <p className="font-display text-lg font-bold">Did you stick to your plan{isToday ? " today" : ""}?</p>
-                <p className="mt-1 text-sm text-muted-foreground">Swipe right for yes, left for no.</p>
-              </Swipeable>
-              <div className="mt-4 flex gap-2">
-                <Button variant="outline" className="flex-1 text-loss" onClick={() => answer(false)}><ArrowLeft /> No</Button>
-                <Button className="flex-1 bg-profit text-white hover:bg-profit/90" onClick={() => answer(true)}>Yes <ArrowRight /></Button>
-              </div>
-            </>
-          )}
+        <div className="border-t pt-5">
+          <DayAfter answers={answers} isToday={isToday} size="md" />
         </div>
       </div>
       <div className="flex items-center gap-2 border-t px-5 py-4">
