@@ -3,8 +3,10 @@
 
 use std::collections::{HashMap, HashSet};
 
+use chrono::{Days, NaiveDate};
+
 use crate::{
-    AfterLoss, CapRow, DayBucket, EquityPoint, Group, LimitRow, LocalTrade, Side, Summary,
+    AfterLoss, BestLots, CapRow, DayBucket, EquityPoint, Group, LimitRow, LocalTrade, Side, Summary,
 };
 
 pub type Ts<'b, 'a> = [&'b LocalTrade<'a>];
@@ -189,6 +191,32 @@ pub fn daily(ts: &Ts) -> Vec<Group> {
     g
 }
 
+/// Monday of the week that holds `day` (yyyy-mm-dd), as yyyy-mm-dd.
+fn week_of(day: &str, weekday: u32) -> String {
+    NaiveDate::parse_from_str(day, "%Y-%m-%d")
+        .ok()
+        .and_then(|d| d.checked_sub_days(Days::new(weekday.into())))
+        .map_or_else(|| day.to_string(), |d| d.format("%Y-%m-%d").to_string())
+}
+
+/// One group per week, keyed by its Monday. Same open-time day as `daily`.
+pub fn by_week(ts: &Ts) -> Vec<Group> {
+    let mut g = group_by(ts.iter().map(|t| (week_of(&t.day, t.weekday), net(t))), &[]);
+    g.sort_by(|a, b| a.key.cmp(&b.key));
+    g
+}
+
+/// One group per month, key yyyy-mm. Same open-time day as `daily`.
+pub fn by_month(ts: &Ts) -> Vec<Group> {
+    let mut g = group_by(
+        ts.iter()
+            .map(|t| (t.day.get(..7).unwrap_or(&t.day).to_string(), net(t))),
+        &[],
+    );
+    g.sort_by(|a, b| a.key.cmp(&b.key));
+    g
+}
+
 pub fn by_hour(ts: &Ts) -> Vec<Group> {
     let order: Vec<String> = (0..24).map(|h| h.to_string()).collect();
     let order: Vec<&str> = order.iter().map(String::as_str).collect();
@@ -271,6 +299,42 @@ pub fn by_lots(ts: &Ts) -> Vec<Group> {
             .then(x.1.partial_cmp(&y.1).unwrap_or(std::cmp::Ordering::Equal))
     });
     g
+}
+
+/// A lot size needs this many trades on a symbol before it can be the best or worst,
+/// so one lucky trade does not win.
+pub const MIN_LOT_TRADES: u32 = 5;
+
+/// Per symbol (most traded first): the lot size with the highest net and the one with the
+/// lowest. Ties go to the smaller size.
+pub fn best_lots(ts: &Ts) -> Vec<BestLots> {
+    by_symbol(ts)
+        .into_iter()
+        .map(|s| {
+            let mine = ts.iter().filter(|t| t.trade.symbol == s.key);
+            let mut sizes: Vec<Group> = group_by(mine.map(|t| (js_num(t.trade.lots), net(t))), &[])
+                .into_iter()
+                .filter(|g| g.trades >= MIN_LOT_TRADES)
+                .collect();
+            let lots = |g: &Group| g.key.parse::<f64>().unwrap_or(f64::NAN);
+            sizes.sort_by(|a, b| lots(a).total_cmp(&lots(b)));
+            let pick = |better: fn(f64, f64) -> bool| {
+                sizes
+                    .iter()
+                    .fold(None::<&Group>, |b, g| match b {
+                        Some(b) if !better(g.net, b.net) => Some(b),
+                        _ => Some(g),
+                    })
+                    .cloned()
+            };
+            BestLots {
+                symbol: s.key,
+                best: pick(|x, y| x > y).filter(|g| g.net > 0.0),
+                worst: pick(|x, y| x < y).filter(|g| g.net < 0.0),
+                sizes: sizes.len() as u32,
+            }
+        })
+        .collect()
 }
 
 pub fn reason_label(r: &str) -> String {
@@ -499,6 +563,8 @@ pub fn after_loss(ts: &Ts) -> AfterLoss {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{analyze, Filters, Trade};
+    use chrono::{DateTime, Utc};
 
     #[test]
     fn round2_matches_js() {
@@ -514,6 +580,125 @@ mod tests {
         assert_eq!(js_num(1.0), "1");
         assert_eq!(js_num(-0.0), "0");
         assert_eq!(js_num(12.5), "12.5");
+    }
+
+    fn trade(open: &str, symbol: &str, lots: f64, net: f64) -> Trade {
+        let open: DateTime<Utc> = open.parse().unwrap();
+        Trade {
+            ticket: format!("{open}{symbol}{lots}{net}"),
+            open,
+            close: open + chrono::Duration::minutes(5),
+            side: Side::Buy,
+            lots,
+            symbol: symbol.into(),
+            open_price: 1.0,
+            close_price: 1.0,
+            sl: None,
+            tp: None,
+            commission: 0.0,
+            swap: 0.0,
+            profit: net,
+            net,
+            reason: "tp".into(),
+        }
+    }
+
+    fn filters(tz: &str) -> Filters {
+        Filters {
+            range_days: None,
+            symbol: None,
+            side: None,
+            tz: tz.into(),
+        }
+    }
+
+    #[test]
+    fn weeks_and_months() {
+        let trades = [
+            // Sunday 23:30 UTC is already Monday 07:30 in Manila.
+            trade("2026-10-11T23:30:00Z", "XAUUSD", 0.1, 10.0),
+            trade("2026-10-12T09:00:00Z", "XAUUSD", 0.1, -4.0),
+            trade("2026-10-18T12:00:00Z", "XAUUSD", 0.1, 3.0),
+            trade("2026-09-30T12:00:00Z", "XAUUSD", 0.1, 5.0),
+        ];
+        let keys = |g: &[Group]| g.iter().map(|g| g.key.clone()).collect::<Vec<_>>();
+
+        let utc = analyze(&trades, &filters("UTC")).unwrap();
+        assert_eq!(
+            keys(&utc.by_week),
+            ["2026-09-28", "2026-10-05", "2026-10-12"]
+        );
+        assert_eq!(utc.by_week[2].trades, 2);
+        assert_eq!(utc.by_week[2].net, -1.0);
+        assert_eq!(keys(&utc.by_month), ["2026-09", "2026-10"]);
+        assert_eq!(utc.by_month[1].net, 9.0);
+        assert_eq!(utc.by_month[1].wins, 2);
+
+        let manila = analyze(&trades, &filters("Asia/Manila")).unwrap();
+        assert_eq!(keys(&manila.by_week), ["2026-09-28", "2026-10-12"]);
+        assert_eq!(manila.by_week[1].trades, 3);
+        assert_eq!(manila.by_week[1].net, 9.0);
+    }
+
+    #[test]
+    fn best_and_worst_lots() {
+        let mut trades = Vec::new();
+        let mut add = |symbol: &str, lots: f64, nets: &[f64]| {
+            for (i, &n) in nets.iter().enumerate() {
+                let open = format!("2026-10-{:02}T10:00:00Z", i + 1);
+                trades.push(trade(&open, symbol, lots, n));
+            }
+        };
+        add("XAUUSD", 0.01, &[1.0; 5]);
+        add("XAUUSD", 0.02, &[4.0, 4.0, -1.0, 4.0, 4.0]);
+        add("XAUUSD", 0.05, &[-10.0, 2.0, -10.0, -10.0, 2.0]);
+        // One huge win on too few trades does not count.
+        add("XAUUSD", 1.0, &[500.0]);
+        add("EURUSD", 0.1, &[-1.0; 5]);
+        add("EURUSD", 0.2, &[5.0; 4]);
+        add("BTCUSD", 0.1, &[2.0; 6]);
+
+        let a = analyze(&trades, &filters("UTC")).unwrap();
+        let rows: Vec<_> = a.best_lots.iter().map(|b| b.symbol.as_str()).collect();
+        assert_eq!(rows, ["XAUUSD", "EURUSD", "BTCUSD"]);
+
+        let xau = &a.best_lots[0];
+        assert_eq!(xau.sizes, 3);
+        let best = xau.best.as_ref().unwrap();
+        assert_eq!(
+            (best.key.as_str(), best.net, best.trades),
+            ("0.02", 15.0, 5)
+        );
+        assert_eq!(xau.worst.as_ref().unwrap().key, "0.05");
+
+        // Only a losing size qualifies: no best.
+        let eur = &a.best_lots[1];
+        assert_eq!(eur.sizes, 1);
+        assert!(eur.best.is_none());
+        assert_eq!(eur.worst.as_ref().unwrap().key, "0.1");
+
+        // Only a winning size: no worst.
+        let btc = &a.best_lots[2];
+        assert_eq!(btc.best.as_ref().unwrap().key, "0.1");
+        assert!(btc.worst.is_none());
+    }
+
+    #[test]
+    fn best_lots_ties_go_to_the_smaller_size() {
+        let mut trades = Vec::new();
+        for lots in [0.2, 0.1] {
+            for d in 1..=5 {
+                trades.push(trade(
+                    &format!("2026-10-0{d}T10:00:00Z"),
+                    "XAUUSD",
+                    lots,
+                    2.0,
+                ));
+            }
+        }
+        let a = analyze(&trades, &filters("UTC")).unwrap();
+        assert_eq!(a.best_lots[0].best.as_ref().unwrap().key, "0.1");
+        assert_eq!(a.best_lots[0].sizes, 2);
     }
 
     #[test]

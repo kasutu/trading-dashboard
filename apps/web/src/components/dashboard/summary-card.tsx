@@ -1,11 +1,11 @@
 import type * as React from "react"
 import { EquityChart } from "@/components/charts/equity-chart"
-import type { Analytics } from "@/lib/api/types"
+import type { Analytics, LocalCashFlow } from "@/lib/api/types"
 import { duration, formatDay, formatPeriod, money, pct, plural, pnlClass } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 /** Net P&L, the equity curve and the key ratios in one card. */
-export function SummaryCard({ a, tz }: { a: Analytics; tz: string }) {
+export function SummaryCard({ a, tz, flows }: { a: Analytics; tz: string; flows?: LocalCashFlow[] }) {
   const s = a.summary
   const days = [...a.daily].sort((x, y) => y.net - x.net)
   const bestDay = days[0]
@@ -30,7 +30,7 @@ export function SummaryCard({ a, tz }: { a: Analytics; tz: string }) {
             <Stat label="Worst trade" value={money(s.worstTrade, true)} />
           </dl>
         </div>
-        <EquityChart data={a.curve} tz={tz} />
+        <EquityChart data={a.curve} tz={tz} flows={flows} />
       </div>
 
       <dl className="grid grid-cols-2 border-t sm:grid-cols-3 lg:grid-cols-5 [&>div]:border-b [&>div]:border-r [&>div]:-mb-px [&>div]:-mr-px">

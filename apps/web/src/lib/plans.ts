@@ -12,9 +12,12 @@ export const PLANS: Plan[] = [
     features: [
       "1 trading account",
       "Net P&L, equity curve and key ratios",
-      "Trading calendar",
+      "Trading calendar, weekly and monthly P&L",
       "Results by symbol, side, position size and close reason",
+      "Best lot size for each symbol",
       "Full trade list",
+      "Journal: review each trade with a swipe, plus setups, mistakes and notes",
+      "Deposits and withdrawals",
       "Share card with a “Made with Jurno” footer",
     ],
   },
@@ -26,6 +29,7 @@ export const PLANS: Plan[] = [
     features: [
       "Everything in Free",
       "Notes: what helps and what hurts your results",
+      "What your journal says: P&L by setup, grade, mistake, plan and mood",
       "Plan: trade limits tested on your past trades",
       "Timing: results by hour, weekday and holding time",
       "Frequency: daily trade cap and busy days",

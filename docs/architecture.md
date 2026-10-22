@@ -110,6 +110,18 @@ create table column_mappings (
   created_at timestamptz not null default now()
 );
 create index on column_mappings (user_id);
+
+-- Deposits and withdrawals, entered by hand (the trade CSV has none).
+create table cash_flows (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references trading_accounts on delete cascade,
+  occurred_at timestamptz not null,
+  kind text not null check (kind in ('deposit', 'withdrawal')),
+  amount double precision not null check (amount > 0),
+  note text,
+  created_at timestamptz not null default now()
+);
+create index on cash_flows (account_id);
 ```
 
 ## HTTP API
@@ -126,6 +138,9 @@ All routes are under `/api`, take and return JSON (camelCase), and need a sessio
 | `DELETE /api/accounts/:id` | | `204` |
 | `GET /api/accounts/:id/imports` | | `Import[]`, newest first |
 | `POST /api/accounts/:id/imports` | `{ fileName, csv, mapping: ColumnMapping }` | `Import`. Upserts trades on `(account_id, ticket, closed_at, lots, close_price)`, so partial closes (same ticket) are kept. `duplicates` counts rows already stored. `422` with the parse error message when parsing fails. Max body 20 MB. |
+| `GET /api/accounts/:id/cash-flows` | query: `tz` (default `UTC`) | `{ rows: LocalCashFlow[], summary: CashSummary, daily: CashDay[] }`. Rows newest first. `summary` and `daily` come from `engine::cash_report`; days are in `tz`. Not affected by the dashboard filters. |
+| `POST /api/accounts/:id/cash-flows` | `{ occurredAt, kind: "deposit" \| "withdrawal", amount, note? }` | `CashFlow`. `400` when `kind` is not deposit or withdrawal, `amount` is not more than 0, or `note` is over 200 characters. An empty note is stored as `null`. |
+| `DELETE /api/accounts/:id/cash-flows/:flowId` | | `204`. `404` when the entry is not in this account. |
 | `GET /api/presets` (public) | | `{ exness: ColumnMapping }` |
 | `GET /api/mappings` | | `SavedMapping[]` |
 | `POST /api/mappings` | `{ name, mapping }` | `SavedMapping` |
@@ -139,13 +154,67 @@ Types:
 Account      = { id, name, broker: string | null, currency, createdAt, trades: number }
 Import       = { id, fileName, added, duplicates, skipped, createdAt }
 SavedMapping = { id, name, mapping: ColumnMapping, createdAt }
+CashFlow     = { id, occurredAt, kind: "deposit" | "withdrawal", amount, note: string | null, createdAt }  // amount > 0
+LocalCashFlow = CashFlow & { day }  // yyyy-mm-dd of occurredAt in tz
+CashSummary  = { deposits: { count, total }, withdrawals: { count, total }, net }  // net = deposits - withdrawals
+CashDay      = { day, deposits, withdrawals, net, cumulative }  // one per day with a flow, oldest first; cumulative = net deposited so far
 ```
+
+Deposits and withdrawals are on every plan. They are not trades: they never change the P&L numbers. The web app shows them in the Funding tab and as markers on the equity curve.
 
 Every route that takes `:id` checks that the account belongs to the session user (404 otherwise).
 
+## Journal
+
+**Planned. The prototype runs on the mock API only (`VITE_MOCK=1`, `apps/web/src/mock/journal.ts`); there are no tables or Rust routes yet.**
+
+The questions, the review flow, the tables (`setups`, `mistake_tags`, `trade_reviews`, `trade_mistakes`, `day_reviews`), the
+types and the rules (when to ask for the starting stop, result in R, validation, the summary) are in
+[journal-data.md](journal-data.md). Routes:
+
+| Method and path | Response |
+| --- | --- |
+| `GET /api/journal/tags` | The person's setups and mistake tags (presets created on first call) |
+| `POST /api/journal/setups`, `PATCH /api/journal/setups/:setupId` | `Setup` |
+| `POST /api/journal/mistakes`, `PATCH /api/journal/mistakes/:mistakeId` | `MistakeTag` |
+| `GET /api/accounts/:id/journal` | `Journal`: positions with `askStop` and `r`, trade and day reviews, day stats. Every plan. Not affected by the dashboard filters. |
+| `PATCH /api/accounts/:id/journal/trades/:ticket` | `TradeReview`, or `204` when every answer is blank |
+| `PATCH /api/accounts/:id/journal/days/:day` | `DayReview`, or `204` |
+| `GET /api/accounts/:id/journal/summary` | `JournalSummary`; `{ locked: true }` on Free |
+
+The before-trading check-in setting is kept in the browser for now. Planned: a column on `profiles`.
+
+## Trade chart
+
+**Planned. The prototype uses generated candles** (`apps/web/src/mock/prices.ts`, `VITE_MOCK=1`). No Rust route or table exists yet.
+
+Each trade can open a candlestick chart of its symbol with the entry and exit marked, lines at the entry, exit, stop loss and take profit, and the holding time shaded. The web app draws it with TradingView's open-source [Lightweight Charts](https://github.com/tradingview/lightweight-charts) (Apache 2.0, pinned in `apps/web/package.json`, loaded only when a chart opens). The library draws; it brings no market data, so the candles come from our API.
+
+| Method and path | Request | Response |
+| --- | --- | --- |
+| `GET /api/accounts/:id/candles` | query: `symbol`, `tf=1m\|5m\|15m\|1h\|4h\|1d`, `from`, `to` (ISO 8601, UTC) | `{ symbol, tf, candles: Candle[] }`, oldest first. `400` for a missing symbol, an unknown `tf` or `from` not before `to`. `422` when the window is more than 2000 candles. `404` when there are no prices for the symbol. |
+
+```ts
+Candle = { time, open, high, low, close }  // time: the bar's start, unix seconds UTC
+```
+
+- The web app picks the timeframe from the hold time (`apps/web/src/lib/timeframes.ts`: the shortest that fits the hold in 120 candles) and asks for a window of 30% of the hold time on each side, at least 20 candles. The user can switch the timeframe.
+- The route is per account so it can check ownership and, later, use the broker's own symbol names and quotes.
+- The mock gives each trade believable prices (a seeded walk per symbol, the close moved by the trade's profit) and builds candles as a Brownian bridge through every entry and exit, so the chart passes through the real fills.
+
+Where real candles could come from (not decided):
+
+- A market-data provider with historical intraday OHLC for FX, metals and crypto (for example Twelve Data, Polygon, Finnhub, Tiingo or OANDA's API). Check the license allows showing the data to users, and the cost per symbol and history depth.
+- Crypto exchange public APIs (for example Binance or Coinbase) for crypto symbols. Free, but prices differ a little from a CFD broker's.
+- The broker itself, for example MetaTrader 5 history exported by the user, or the broker's API. Matches the fills best, but needs work per broker.
+- TradingView does not sell or provide market data through Lightweight Charts or any public API; it is only the drawing library.
+
+Whichever source: cache candles in Postgres by `(symbol, tf, time)` so each window is fetched once, and expect small gaps against the broker's fills (different liquidity providers, spreads, and bid versus ask).
+
 ## Analytics split
 
-- **Engine (Rust):** parsing, normalizing, grouping, simulations, the optimizer. All numbers.
+- **Engine (Rust):** parsing, normalizing, grouping, simulations, the optimizer, the deposit and withdrawal totals (`cash_report`). All numbers.
+- Days, weeks and months use the trade's opening time in the filter timezone (`tz`). `byWeek` is keyed by the Monday (`yyyy-mm-dd`), `byMonth` by `yyyy-mm`, both sorted. `bestLots` picks, per symbol, the lot size with the highest net (only if above 0) and the one with the lowest (only if below 0), among sizes with at least 5 trades (`MIN_LOT_TRADES` in `stats.rs`).
 - **Web (TypeScript):** wording and layout. `src/lib/insights.ts` turns the `Analytics` payload into notes. Formatting (money, 12-hour time) stays in the browser.
 
 ## Plans
@@ -154,8 +223,8 @@ Billing (a payment provider) is not built yet. Every new user is on `free`. To p
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, results by symbol, side, position size and close reason, trade list. Share card with "Made with Jurno". |
-| Espresso | $9 / month | Everything in Free. Notes, Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
+| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list, deposits and withdrawals, the journal (trade and day reviews, setups and mistake tags). Share card with "Made with Jurno". |
+| Espresso | $9 / month | Everything in Free. Notes (the automatic insights and what the journal says: P&L by setup, grade, mistake, plan and mood), Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
 | Latte | $15 / month | Everything in Espresso. Up to 5 trading accounts. Share card without the footer. |
 
 Yearly billing: 10 months' price for 12 months.
@@ -164,8 +233,9 @@ There is also an `owner` plan for the creator: everything in Latte, with no acco
 
 The API enforces the limits (`crates/api/src/plan.rs`):
 
-- Analytics on Free: the server removes `byHour`, `byWeekday`, `heatmap`, `byDuration`, `nthTrade`, `dayBuckets`, `capSim`, `lossLimitSim`, `afterLoss` and `optimization`, and adds `locked: true`. The web app shows a locked panel for those views.
+- Analytics on Free: the server removes `byHour`, `byWeekday`, `heatmap`, `byDuration`, `nthTrade`, `dayBuckets`, `capSim`, `lossLimitSim`, `afterLoss` and `optimization`, and adds `locked: true`. The web app shows a locked panel for those views. Everything else stays, including `byWeek`, `byMonth` and `bestLots`.
 - `POST /api/accounts` returns 403 when the user has reached the plan's account limit.
 - `POST /api/mappings` returns 403 on Free.
+- `GET /api/accounts/:id/journal/summary` returns `{ "locked": true }` on Free (planned, see [Journal](#journal)). The journal itself is on every plan.
 
 The plan list for the web app is in `apps/web/src/lib/plans.ts`. Keep it, `plan.rs` and this table in step.

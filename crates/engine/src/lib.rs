@@ -13,6 +13,7 @@ use chrono::{DateTime, Datelike, Timelike, Utc};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 
+mod cash;
 mod optimize;
 mod parse;
 mod stats;
@@ -158,6 +159,19 @@ pub struct Group {
     pub avg: f64,
     pub gross_win: f64,
     pub gross_loss: f64,
+}
+
+/// The lot size that made the most and the one that lost the most on one symbol.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BestLots {
+    pub symbol: String,
+    /// Highest net among sizes with enough trades, key = lots ("0.02"). None unless net > 0.
+    pub best: Option<Group>,
+    /// Lowest net among sizes with enough trades. None unless net < 0.
+    pub worst: Option<Group>,
+    /// Lot sizes on this symbol with enough trades to compare.
+    pub sizes: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -307,6 +321,10 @@ pub struct Analytics {
     pub curve: Vec<EquityPoint>,
     /// One group per day, key yyyy-mm-dd, sorted.
     pub daily: Vec<Group>,
+    /// One group per week (weeks start Monday), key = the Monday as yyyy-mm-dd, sorted.
+    pub by_week: Vec<Group>,
+    /// One group per month, key yyyy-mm, sorted.
+    pub by_month: Vec<Group>,
     /// 24 groups, keys "0".."23".
     pub by_hour: Vec<Group>,
     /// Mon..Fri always, Sat/Sun only with trades. Keys "Mon".."Sun".
@@ -316,6 +334,8 @@ pub struct Analytics {
     pub by_duration: Vec<Group>,
     /// Keys "SYMBOL · lots", e.g. "XAUUSD · 0.2", sorted by symbol then lots.
     pub by_lots: Vec<Group>,
+    /// Best and worst lot size per symbol, most traded symbol first.
+    pub best_lots: Vec<BestLots>,
     pub by_reason: Vec<Group>,
     pub by_symbol: Vec<Group>,
     pub by_side: Vec<Group>,
@@ -349,12 +369,15 @@ pub fn analyze(trades: &[Trade], filters: &Filters) -> Option<Analytics> {
         symbols: symbols.into_iter().map(|g| g.key).collect(),
         summary: summary(&ts),
         curve: equity_curve(&ts),
+        by_week: by_week(&ts),
+        by_month: by_month(&ts),
         daily,
         by_hour: by_hour(&ts),
         by_weekday: by_weekday(&ts),
         heatmap: heatmap(&ts),
         by_duration: by_duration(&ts),
         by_lots: by_lots(&ts),
+        best_lots: best_lots(&ts),
         by_reason: by_reason(&ts),
         by_symbol: by_symbol(&ts),
         by_side: by_side(&ts),
@@ -425,4 +448,77 @@ pub struct LocalTrade<'a> {
     /// 0 = Mon ... 6 = Sun
     pub weekday: u32,
     pub duration_min: f64,
+}
+
+// ---------------------------------------------------------------------------
+// Deposits and withdrawals
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FlowKind {
+    Deposit,
+    Withdrawal,
+}
+
+/// Money moved into or out of the account, entered by the user. Not a trade.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashFlow {
+    pub time: DateTime<Utc>,
+    pub kind: FlowKind,
+    /// Always positive. `kind` gives the direction.
+    pub amount: f64,
+}
+
+/// Count and total of one kind of cash flow.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlowTotal {
+    pub count: u32,
+    pub total: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashSummary {
+    pub deposits: FlowTotal,
+    pub withdrawals: FlowTotal,
+    /// Deposits minus withdrawals.
+    pub net: f64,
+}
+
+/// The cash flows of one day.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashDay {
+    /// yyyy-mm-dd in the requested timezone.
+    pub day: String,
+    pub deposits: f64,
+    /// Positive: the total taken out that day.
+    pub withdrawals: f64,
+    /// deposits - withdrawals
+    pub net: f64,
+    /// Net deposited up to and including this day.
+    pub cumulative: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CashReport {
+    pub summary: CashSummary,
+    /// One entry per day with a cash flow, oldest first.
+    pub daily: Vec<CashDay>,
+}
+
+/// Totals and the per-day timeline of deposits and withdrawals. Days are in `tz`
+/// (an IANA name; an unknown name falls back to UTC).
+pub fn cash_report(flows: &[CashFlow], tz: &str) -> CashReport {
+    cash::report(flows, tz.parse().unwrap_or(Tz::UTC))
+}
+
+/// yyyy-mm-dd of a time in `tz` (an IANA name; an unknown name falls back to UTC).
+pub fn local_day(time: DateTime<Utc>, tz: &str) -> String {
+    let tz: Tz = tz.parse().unwrap_or(Tz::UTC);
+    time.with_timezone(&tz).format("%Y-%m-%d").to_string()
 }

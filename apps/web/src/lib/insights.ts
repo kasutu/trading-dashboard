@@ -178,5 +178,21 @@ export function buildInsights(a: FullAnalytics): Insight[] {
     })
   }
 
+  // A clear best: a winning size that beat at least one other size with enough trades.
+  for (const { symbol, best: top, sizes } of a.bestLots) {
+    if (!top || sizes < 2) continue
+    out.push({
+      tone: "good",
+      title: `Best size on ${symbol}`,
+      figure: `${top.key} lots`,
+      detail: `${money(top.net, true)} over ${top.trades} trades, ${pct(top.winRate)} win rate.`,
+      viz: bars(
+        a.byLots.filter((g) => splitSizeKey(g.key).symbol === symbol),
+        (g) => splitSizeKey(g.key).lots === top.key,
+        (k) => splitSizeKey(k).lots
+      ),
+    })
+  }
+
   return out
 }

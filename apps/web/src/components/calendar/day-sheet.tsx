@@ -1,13 +1,16 @@
+import { TradeChartButton } from "@/components/charts/trade-chart-dialog"
 import { SideBadge } from "@/components/dashboard/side-badge"
+import { YourDay } from "@/components/journal/day-review"
+import { TradeReviewPanel } from "@/components/journal/trade-review-panel"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import type { LocalTrade } from "@/lib/api/types"
-import { duration, formatLongDay, formatTimeRange, money, pct, pnlClass, price, tradeKey, tzLabel } from "@/lib/format"
+import { duration, formatLongDay, formatTimeRange, money, pct, pnlClass, price, today, tradeKey, tzLabel } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-type Props = { day: string | null; trades: LocalTrade[]; tz: string; onClose: () => void }
+type Props = { accountId: string; day: string | null; trades: LocalTrade[]; tz: string; onClose: () => void }
 
-/** Side sheet with the stats and every trade of one day. */
-export function DaySheet({ day, trades, tz, onClose }: Props) {
+/** Side sheet for one day: your day review, its stats and every trade with its review. */
+export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
   const net = trades.reduce((s, t) => s + t.net, 0)
   const wins = trades.filter((t) => t.net > 0).length
 
@@ -20,11 +23,16 @@ export function DaySheet({ day, trades, tz, onClose }: Props) {
               <SheetTitle className="font-display text-xl font-bold">{formatLongDay(day)}</SheetTitle>
               <SheetDescription>Trades opened on this day. Times are in {tzLabel(tz)}.</SheetDescription>
             </div>
-            <dl className="grid grid-cols-3 gap-2">
-              <Stat label="Total trades" value={String(trades.length)} />
-              <Stat label="Win rate" value={pct(trades.length ? wins / trades.length : 0)} />
-              <Stat label="Net P&L" value={money(net, true)} tone={pnlClass(net)} />
-            </dl>
+            <YourDay day={day} />
+            {trades.length ? (
+              <dl className="grid grid-cols-3 gap-2">
+                <Stat label="Total trades" value={String(trades.length)} />
+                <Stat label="Win rate" value={pct(wins / trades.length)} />
+                <Stat label="Net P&L" value={money(net, true)} tone={pnlClass(net)} />
+              </dl>
+            ) : (
+              <p className="py-4 text-center text-sm text-muted-foreground">{day === today(tz) ? "No trades yet today." : "No trades on this day."}</p>
+            )}
             <ul className="space-y-3">
               {trades.map((t) => (
                 <li key={tradeKey(t)} className="rounded-xl border bg-card p-4 shadow-card">
@@ -33,6 +41,7 @@ export function DaySheet({ day, trades, tz, onClose }: Props) {
                     <SideBadge side={t.side} />
                     <span className="text-xs text-muted-foreground">{t.lots} lots</span>
                     <span className={cn("ml-auto font-mono font-medium tabular-nums", pnlClass(t.net))}>{money(t.net, true)}</span>
+                    <TradeChartButton compact accountId={accountId} trade={t} tz={tz} className="-my-1 -mr-2" />
                   </div>
                   <p className="mt-1 font-mono text-sm text-muted-foreground">
                     {formatTimeRange(t.open, t.close, tz)} <span aria-hidden>·</span> {duration(t.durationMin)}
@@ -45,6 +54,7 @@ export function DaySheet({ day, trades, tz, onClose }: Props) {
                     <Field label="Stop loss" value={price(t.sl)} />
                     <Field label="Take profit" value={price(t.tp)} />
                   </dl>
+                  <TradeReviewPanel ticket={t.ticket} />
                 </li>
               ))}
             </ul>
