@@ -4,7 +4,14 @@ Requested features, newest last. Move an item to "Done" with the PR link when it
 
 ## Open
 
-Nothing open.
+### Journal and trade chart: from prototype to product
+
+The prototype ([#5](https://github.com/kasutu/trading-dashboard/pull/5)) runs on the mock API only.
+
+- **Needs UX and UI enhancements** before it ships to users: the review flow, the check-in, the editors and the Notes insights.
+- Build the real tables and API from `docs/journal-data.md` (Rust routes, migrations, tests).
+- Move the check-in setting from the browser to `profiles`.
+- Pick a price-data provider for the trade chart's candles (options in `docs/architecture.md`).
 
 ## Done
 
