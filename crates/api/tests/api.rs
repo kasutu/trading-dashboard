@@ -1120,70 +1120,123 @@ async fn journal_reviews_and_summary() {
     assert_eq!(s, StatusCode::NOT_FOUND);
 }
 
-/// A stand-in for the prices service: XAUUSD has two 5m candles (asked 1m: older data comes longer),
-/// anything else is not found. Counts its calls.
-async fn fake_prices() -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
-    use axum::extract::Query as Q;
-    use std::collections::HashMap;
+/// A stand-in for TradingView's chart websocket. 1-minute series come back empty (like old windows
+/// without an account), symbols with NOPE are unknown, and everything else gets two 5-minute bars at
+/// 00:20 and 00:25 on Sep 28. Counts its connections.
+async fn fake_tradingview() -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+    use futures_util::{SinkExt, StreamExt};
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use tokio_tungstenite::tungstenite::Message;
     let calls = std::sync::Arc::new(AtomicUsize::new(0));
-    let c = calls.clone();
-    let app = Router::new().route(
-        "/candles",
-        axum::routing::get(move |Q(q): Q<HashMap<String, String>>| {
-            c.fetch_add(1, Ordering::SeqCst);
-            async move {
-                if q.get("symbol").map(String::as_str) != Some("XAUUSD") {
-                    return (StatusCode::NOT_FOUND, axum::Json(json!({ "error": "No prices." })));
-                }
-                let bar = |t: i64| json!({ "time": t, "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5 });
-                (StatusCode::OK, axum::Json(json!({ "tf": "5m", "candles": [bar(1790554800), bar(1790555100)] })))
-            }
-        }),
-    );
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let url = format!("http://{}", listener.local_addr().unwrap());
-    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    let url = format!("ws://{}", listener.local_addr().unwrap());
+    let c = calls.clone();
+    tokio::spawn(async move {
+        while let Ok((tcp, _)) = listener.accept().await {
+            c.fetch_add(1, Ordering::SeqCst);
+            tokio::spawn(async move {
+                let mut ws = tokio_tungstenite::accept_async(tcp).await.unwrap();
+                let mut symbol = String::new();
+                while let Some(Ok(Message::Text(text))) = ws.next().await {
+                    for payload in api::tradingview::unframe(&text) {
+                        let v: Value = serde_json::from_str(payload).unwrap_or_default();
+                        let reply = match v["m"].as_str() {
+                            Some("resolve_symbol") => {
+                                symbol = v["p"][2].as_str().unwrap_or("").to_string();
+                                continue;
+                            }
+                            Some("create_series") if symbol.contains("NOPE") => {
+                                json!({ "m": "symbol_error", "p": ["cs", "ser_1", "invalid symbol"] })
+                            }
+                            Some("create_series") if v["p"][4] == "1" => {
+                                json!({ "m": "series_completed", "p": ["cs", "$prices", "streaming", "s1", { "data_completed": "limit" }] })
+                            }
+                            Some("create_series") => {
+                                let bar = |i: i64, t: i64| json!({ "i": i, "v": [t, 1.0, 2.0, 0.5, 1.5, 9.0] });
+                                let update = json!({ "m": "timescale_update", "p": ["cs", { "$prices": { "s": [bar(0, 1790554800), bar(1, 1790555100)] } }] });
+                                ws.send(Message::text(api::tradingview::frame(
+                                    &update.to_string(),
+                                )))
+                                .await
+                                .unwrap();
+                                json!({ "m": "series_completed", "p": ["cs", "$prices", "streaming", "s1", {}] })
+                            }
+                            _ => continue,
+                        };
+                        ws.send(Message::text(api::tradingview::frame(&reply.to_string())))
+                            .await
+                            .unwrap();
+                    }
+                }
+            });
+        }
+    });
     (url, calls)
 }
 
 #[tokio::test]
-async fn candles_come_from_the_prices_service_once() {
+async fn candles_are_fetched_once_and_kept() {
+    use std::sync::atomic::Ordering;
     let t = setup().await;
     let id = t.new_account().await;
-    let (url, calls) = fake_prices().await;
-    // Only this test reads PRICES_URL.
-    std::env::set_var("PRICES_URL", url);
+    let (url, calls) = fake_tradingview().await;
+    // Only this test talks to TradingView.
+    std::env::set_var("TRADINGVIEW_WS", url);
 
-    let path = |symbol: &str, tf: &str, to: &str| {
-        format!(
-            "/api/accounts/{id}/candles?symbol={symbol}&tf={tf}&from=2026-09-28T00:20:00Z&to={to}"
-        )
+    let path = |symbol: &str, tf: &str, from: &str, to: &str| {
+        format!("/api/accounts/{id}/candles?symbol={symbol}&tf={tf}&from={from}&to={to}")
     };
-    let past = "2026-09-28T01:00:00Z";
-    let (s, v) = t.get(&path("XAUUSD", "1m", past)).await;
+    let (from, to) = ("2026-09-28T00:20:00Z", "2026-09-28T00:30:00Z");
+    // 1m is empty, so it steps up to 5m: two calls.
+    let (s, v) = t.get(&path("XAUUSD", "1m", from, to)).await;
     assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["tf"], "5m");
     assert_eq!(
-        (v["tf"].as_str(), v["candles"].as_array().unwrap().len()),
-        (Some("5m"), 2)
+        v["candles"][0],
+        json!({ "time": 1790554800, "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5 })
     );
-    // The same window again: from the cache.
-    let (_, again) = t.get(&path("XAUUSD", "1m", past)).await;
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+    // The same window, and a window inside it, come from the database, for both lengths.
+    let (_, again) = t.get(&path("XAUUSD", "1m", from, to)).await;
     assert_eq!(again, v);
-    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+    let (_, inside) = t
+        .get(&path(
+            "XAUUSD",
+            "5m",
+            "2026-09-28T00:22:00Z",
+            "2026-09-28T00:28:00Z",
+        ))
+        .await;
+    assert_eq!(inside["candles"].as_array().unwrap().len(), 2);
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+    // A later window is new: one more call.
+    t.get(&path(
+        "XAUUSD",
+        "5m",
+        "2026-09-28T00:20:00Z",
+        "2026-09-28T00:40:00Z",
+    ))
+    .await;
+    assert_eq!(calls.load(Ordering::SeqCst), 3);
 
-    let (s, _) = t.get(&path("NOPE", "1m", past)).await;
-    assert_eq!(s, StatusCode::NOT_FOUND);
-    let (s, _) = t.get(&path("XAUUSD", "2m", past)).await;
+    // Unknown symbol: every candidate (OANDA, FX, FOREXCOM) is tried, then 404.
+    let (s, v) = t.get(&path("NOPE", "5m", from, to)).await;
+    assert_eq!(
+        (s, v["error"].as_str()),
+        (StatusCode::NOT_FOUND, Some("No prices for this symbol."))
+    );
+    let (s, _) = t.get(&path("XAUUSD", "2m", from, to)).await;
     assert_eq!(s, StatusCode::BAD_REQUEST);
-    let (s, _) = t.get(&path("XAUUSD", "1m", "2026-09-28T00:00:00Z")).await;
+    let (s, _) = t.get(&path("XAUUSD", "1m", to, from)).await;
     assert_eq!(s, StatusCode::BAD_REQUEST);
-    let (s, _) = t.get(&path("XAUUSD", "1m", "2026-10-28T00:00:00Z")).await;
+    let (s, _) = t
+        .get(&path("XAUUSD", "1m", from, "2026-10-28T00:00:00Z"))
+        .await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
     let (s, _) = t
         .send(
             Method::GET,
-            &path("XAUUSD", "1m", past),
+            &path("XAUUSD", "1m", from, to),
             Some(BOB_COOKIE),
             None,
         )

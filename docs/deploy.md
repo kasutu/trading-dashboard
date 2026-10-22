@@ -1,6 +1,6 @@
 # Deploy on Railway
 
-Jurno runs as four Railway services and one Railway Postgres database. Only the web service has a public domain. Web sends `/api/auth/*` to auth and other `/api/*` to api over private networking.
+Jurno runs as three Railway services and one Railway Postgres database. Only the web service has a public domain. Web sends `/api/auth/*` to auth and other `/api/*` to api over private networking.
 
 Live: project `jurno` in the Splitscale workspace, at https://jurno.up.railway.app. It deploys from `main`.
 
@@ -11,7 +11,6 @@ Each service has these settings in Railway (Settings): root directory, Dockerfil
 | `web` | `/apps/web` | `Dockerfile` | `/apps/web/**` | `/` |
 | `auth` | `/apps/auth` | `Dockerfile` | `/apps/auth/**` | `/health` |
 | `api` | (empty) | `crates/api/Dockerfile` | `/crates/**`, `/Cargo.toml`, `/Cargo.lock` | `/api/health` |
-| `prices` | `/apps/prices` | `Dockerfile` | `/apps/prices/**` | `/health` |
 
 ## Before you start
 
@@ -89,19 +88,6 @@ The api build needs the whole Cargo workspace, so its root directory is the repo
 ## Local development
 
 See the README: `just setup` once, then `just dev`. Local Postgres uses port 5433.
-
-## Prices service
-
-The trade chart gets its candles from the prices service (`apps/prices`). The api calls it over private networking. To add it to the live project:
-
-1. Click **Create**, choose **GitHub Repo** and pick the Jurno repo.
-2. Rename the service to `prices`.
-3. In **Settings > Source**, set **Root Directory** to `apps/prices`.
-4. In **Settings**, set the Dockerfile path, watch paths and health check from the table above. Do not generate a domain.
-5. In **Variables**, add `PORT` with the value `3002`.
-6. Optional: add `TV_SESSION` and `TV_SIGNATURE` with a TradingView account's `sessionid` and `sessionid_sign` cookies, for finer candles on older trades. Keep them secret.
-7. Open the api service. In **Variables**, add `PRICES_URL` with the value `http://${{prices.RAILWAY_PRIVATE_DOMAIN}}:${{prices.PORT}}`.
-8. Deploy. The api applies the journal and candle cache migration (`0004_journal.sql`) when it starts.
 
 ## Admin commands
 

@@ -9,8 +9,8 @@ This document is the contract between the services. Change it together with the 
 | Backend | Rust. `crates/engine` (pure analytics) and `crates/api` (HTTP, Postgres). |
 | Auth | Better Auth (TypeScript) in `apps/auth`, username and password only. The Rust API reads the same session table. |
 | Front end | `apps/web` (Vite, React). A thin client: it renders the analytics that the API returns. |
-| Hosting | Railway. One service each for web, api, auth and prices, plus Railway Postgres. |
-| Market data | Chart candles from TradingView through the unofficial [TradingView-API](https://github.com/Mathieu2301/TradingView-API) library, in `apps/prices`. The API caches them in Postgres. |
+| Hosting | Railway. One service each for web, api and auth, plus Railway Postgres. |
+| Market data | Chart candles from TradingView's chart websocket, without an account (`crates/api/src/tradingview.rs`, the messages of the unofficial [TradingView-API](https://github.com/Mathieu2301/TradingView-API)). Free, and no extra service. Every bar is kept in Postgres. |
 | Brokers | Exness preset, plus a column mapper for any CSV. |
 | Data | Trades are stored on the server. There is no local-only mode. |
 | Plans | Free, Espresso ($9) and Latte ($15). See [Plans](#plans). Billing is not built yet. |
@@ -22,12 +22,12 @@ browser ──► web (Caddy: static files + reverse proxy)
               ├── /api/auth/*  ──► auth (Node, Better Auth)  ─┐
               └── /api/*       ──► api  (Rust, axum)          ├──► Postgres
                                         │                     ┘
-                                        └── candles ──► prices (Node, TradingView-API) ──► TradingView
+                                        └── candles not stored yet ──► TradingView (websocket)
 ```
 
 - All traffic goes through the web service, so the browser sees one origin. No CORS. Cookies are first-party.
-- Services talk over Railway private networking. Only web has a public domain. Only api calls prices.
-- Local development: `docker compose up` starts Postgres, auth, prices and api. `npm run dev` in `apps/web` starts Vite, which proxies `/api/auth` and `/api` the same way.
+- Services talk over Railway private networking. Only web has a public domain.
+- Local development: `docker compose up` starts Postgres, auth and api. `npm run dev` in `apps/web` starts Vite, which proxies `/api/auth` and `/api` the same way.
 
 ### Environment variables
 
@@ -41,9 +41,6 @@ browser ──► web (Caddy: static files + reverse proxy)
 | api | `PORT` | `8080` |
 | web (Caddy) | `AUTH_UPSTREAM` | `auth.railway.internal:3001` |
 | web (Caddy) | `API_UPSTREAM` | `api.railway.internal:8080` |
-| api | `PRICES_URL` | `http://prices.railway.internal:3002`. Without it, candles answer `404` "Price data is not set up". |
-| prices | `PORT` | `3002` |
-| prices | `TV_SESSION`, `TV_SIGNATURE` | Optional. A TradingView account's `sessionid` and `sessionid_sign` cookies, for finer candles on older trades. |
 
 ## Authentication
 
@@ -128,15 +125,20 @@ create table cash_flows (
 );
 create index on cash_flows (account_id);
 
--- One row per candle window from the prices service. Windows that end in the future are not stored.
-create table candle_cache (
+-- Every bar from TradingView, and every range already asked for (with or without bars).
+create table candles (
+  symbol text not null,      -- the broker's symbol, as trades have it
+  tf text not null,          -- 1m, 5m, 15m, 1h, 4h, 1d
+  time timestamptz not null, -- the bar's start
+  open double precision not null, high double precision not null,
+  low double precision not null, close double precision not null,
+  primary key (symbol, tf, time)
+);
+create table candle_ranges (
   symbol text not null,
   tf text not null,
   from_at timestamptz not null,
   to_at timestamptz not null,
-  served_tf text not null,   -- can be longer than tf (see Trade chart)
-  candles jsonb not null,
-  fetched_at timestamptz not null default now(),
   primary key (symbol, tf, from_at, to_at)
 );
 ```
@@ -210,16 +212,18 @@ Each trade can open a candlestick chart of its symbol. Entry (A) and exit (B) si
 
 | Method and path | Request | Response |
 | --- | --- | --- |
-| `GET /api/accounts/:id/candles` | query: `symbol`, `tf=1m\|5m\|15m\|1h\|4h\|1d`, `from`, `to` (ISO 8601) | `{ symbol, tf, candles: Candle[] }`, oldest first. `tf` is the length served, which can be longer than asked. `400` for a missing symbol, an unknown `tf` or `from` not before `to`. `422` when the window is more than 2000 candles. `404` when there are no prices for the symbol and window, or `PRICES_URL` is not set. |
+| `GET /api/accounts/:id/candles` | query: `symbol`, `tf=1m\|5m\|15m\|1h\|4h\|1d`, `from`, `to` (ISO 8601) | `{ symbol, tf, candles: Candle[] }`, oldest first. `tf` is the length served, which can be longer than asked. `400` for a missing symbol, an unknown `tf` or `from` not before `to`. `422` when the window is more than 2000 candles. `404` when TradingView does not know the symbol or has no bars in the window. |
 
 ```ts
 Candle = { time, open, high, low, close }  // time: the bar's start, unix seconds UTC
 ```
 
 - The web app picks the timeframe from the hold time (`apps/web/src/lib/timeframes.ts`: the shortest that fits the hold in 120 candles) and asks for a window of 30% of the hold time on each side, at least 20 candles. The user can switch the timeframe.
-- The API answers from `candle_cache` when it has the exact window, else asks the prices service (`GET {PRICES_URL}/candles` with the same query) and stores the answer when the window has ended.
-- The prices service (`apps/prices`) maps the broker symbol to TradingView symbols (`XAUUSDm` → `OANDA:XAUUSD`, then `FX:`, `FOREXCOM:`; coins → `BITSTAMP:`, `COINBASE:`, `BINANCE:`) and remembers the one that worked. Without an account, TradingView gives about 7,000 one-minute bars (a few days back), so for older trades it steps up to the next candle length that has data (1m → 5m → 15m → 1h → 4h → 1d). The chart says when it shows longer candles than asked, and when the fills are more than 3% outside the candles (likely a different instrument).
-- TradingView-API is an independent, unofficial project, not a TradingView product. It can break when TradingView changes its site, and TradingView's terms and market-data licenses apply to how the data is shown. Check them before charging for the chart.
+- The API keeps every bar in `candles` and every range it asked for in `candle_ranges`, also when the range had no bars. A window that the stored ranges cover is answered from Postgres; only a window with a gap goes to TradingView, so each range is asked once. Ranges in the future are not recorded.
+- `src/tradingview.rs` opens TradingView's chart websocket without an account: `set_auth_token`, `chart_create_session`, `resolve_symbol`, `create_series` with `bar_count` up to `to`, then reads `timescale_update` until `series_completed`. It maps the broker symbol to TradingView symbols (`XAUUSDm` → `OANDA:XAUUSD`, then `FX:`, `FOREXCOM:`; coins → `BITSTAMP:`, `COINBASE:`, `BINANCE:`) and remembers the one that worked.
+- Without an account, TradingView gives about 7,000 one-minute bars (a few days back), so for older trades the API steps up to the next length that has bars (1m → 5m → 15m → 1h → 4h → 1d). The chart says when it shows longer candles than asked, and when the fills are more than 3% outside the candles (likely a different instrument).
+- Yahoo Finance and Dukascopy were tried as free sources for forex and gold; both refused server requests (429, 503).
+- The websocket protocol is not a public TradingView API; TradingView-API is an independent, unofficial project. It can break when TradingView changes its site, and TradingView's terms and market-data licenses apply to how the data is shown. Check them before charging for the chart.
 
 ## Analytics split
 

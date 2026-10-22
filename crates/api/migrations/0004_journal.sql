@@ -57,16 +57,24 @@ create table day_reviews (
   primary key (account_id, day)
 );
 
--- Price candles from the prices service, one row per request window. Windows that end in the
--- future are not stored, so a cached window never misses bars.
-create table candle_cache (
+-- Price candles from TradingView (src/tradingview.rs), kept so each bar is fetched once.
+-- `symbol` is the broker's symbol as trades have it; `tf` the candle length ("1m" ... "1d").
+create table candles (
+  symbol text not null,
+  tf text not null,
+  time timestamptz not null,
+  open double precision not null,
+  high double precision not null,
+  low double precision not null,
+  close double precision not null,
+  primary key (symbol, tf, time)
+);
+
+-- Time ranges already asked from TradingView, with or without bars, so a range is never asked twice.
+create table candle_ranges (
   symbol text not null,
   tf text not null,
   from_at timestamptz not null,
   to_at timestamptz not null,
-  -- The candle length served. Older windows can come back longer than asked (see the prices service).
-  served_tf text not null,
-  candles jsonb not null,
-  fetched_at timestamptz not null default now(),
   primary key (symbol, tf, from_at, to_at)
 );
