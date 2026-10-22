@@ -1,5 +1,6 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { TradeJournalCell } from "@/components/journal/trade-journal-cell"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useTrades } from "@/hooks/use-api"
@@ -33,6 +34,7 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
             <TableHead className="text-right">Hold time</TableHead>
             <TableHead>Closed by</TableHead>
             <TableHead className="pr-5 text-right">Net P&L</TableHead>
+            <TableHead className="w-px pr-3"><span className="sr-only">Note</span></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -41,12 +43,12 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
             {/* A header row each time the day changes, like Wallet and Mail. */}
             {t.day !== data.rows[i - 1]?.day && (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={9} className="bg-muted/40 py-1.5 pl-5 text-xs font-semibold text-muted-foreground">
+                <TableCell colSpan={10} className="bg-muted/40 py-1.5 pl-5 text-xs font-semibold text-muted-foreground">
                   {relativeDay(t.day, tz)}
                 </TableCell>
               </TableRow>
             )}
-            <TableRow>
+            <TableRow className="group">
               <TableCell className="pl-5 font-mono whitespace-nowrap text-muted-foreground">{formatTimeRange(t.open, t.close, tz)}</TableCell>
               <TableCell className="font-medium">{t.symbol}</TableCell>
               <TableCell>
@@ -58,6 +60,7 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
               <TableCell className={cn(num, "whitespace-nowrap")}>{duration(t.durationMin)}</TableCell>
               <TableCell><ReasonPill reason={t.reason} /></TableCell>
               <TableCell className={cn("pr-5", num, pnlClass(t.net))}>{money(t.net, true)}</TableCell>
+              <TableCell className="py-1 pr-3"><TradeJournalCell trade={t} /></TableCell>
             </TableRow>
             </React.Fragment>
           ))}

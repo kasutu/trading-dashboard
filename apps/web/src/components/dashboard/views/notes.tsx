@@ -1,4 +1,7 @@
 import { InsightCard } from "@/components/dashboard/insight-card"
+import { LockedPanel } from "@/components/dashboard/locked-panel"
+import { JournalList } from "@/components/journal/journal-list"
+import { MoodPnl } from "@/components/journal/mood-pnl"
 import type { Insight } from "@/lib/insights"
 
 const GROUPS = [
@@ -7,8 +10,24 @@ const GROUPS = [
   { tone: "info", title: "Worth a look", dot: "bg-muted-foreground" },
 ] as const
 
-/** All notes, one card each, grouped by whether they help or hurt. */
-export function Notes({ insights }: { insights: Insight[] }) {
+/** What the automatic notes hold, for the locked panel on the Free plan. */
+const LOCKED = ["Your best and worst hours, weekdays and days", "What helps and what hurts your results, with a chart for each"]
+
+/** Your journal (every plan), P&L by mood and the automatic notes (paid plans). */
+export function Notes({ insights, locked }: { insights: Insight[]; locked: boolean }) {
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+        <JournalList />
+        <MoodPnl />
+      </div>
+      {locked ? <LockedPanel title="What helps and what hurts" items={LOCKED} /> : <Insights insights={insights} />}
+    </div>
+  )
+}
+
+/** All automatic notes, one card each, grouped by whether they help or hurt. */
+function Insights({ insights }: { insights: Insight[] }) {
   if (!insights.length)
     return (
       <div className="rounded-xl border border-dashed bg-card py-16 text-center">

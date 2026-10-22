@@ -16,6 +16,7 @@ export const PLANS: Plan[] = [
       "Results by symbol, side, position size and close reason",
       "Best lot size for each symbol",
       "Full trade list",
+      "Journal: your mood and a note for each day and trade",
       "Deposits and withdrawals",
       "Share card with a “Made with Jurno” footer",
     ],
@@ -28,6 +29,7 @@ export const PLANS: Plan[] = [
     features: [
       "Everything in Free",
       "Notes: what helps and what hurts your results",
+      "P&L by mood: your results on good days and bad days",
       "Plan: trade limits tested on your past trades",
       "Timing: results by hour, weekday and holding time",
       "Frequency: daily trade cap and busy days",
