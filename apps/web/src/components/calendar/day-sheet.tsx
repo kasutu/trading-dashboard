@@ -41,6 +41,7 @@ export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
                     <SideBadge side={t.side} />
                     <span className="text-xs text-muted-foreground">{t.lots} lots</span>
                     <span className={cn("ml-auto font-mono font-medium tabular-nums", pnlClass(t.net))}>{money(t.net, true)}</span>
+                    <TradeChartButton compact accountId={accountId} trade={t} tz={tz} className="-my-1 -mr-2" />
                   </div>
                   <p className="mt-1 font-mono text-sm text-muted-foreground">
                     {formatTimeRange(t.open, t.close, tz)} <span aria-hidden>·</span> {duration(t.durationMin)}
@@ -54,7 +55,6 @@ export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
                     <Field label="Take profit" value={price(t.tp)} />
                   </dl>
                   <TradeNote ticket={t.ticket} />
-                  <TradeChartButton accountId={accountId} trade={t} tz={tz} className="mt-3" />
                 </li>
               ))}
             </ul>
