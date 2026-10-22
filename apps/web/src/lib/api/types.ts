@@ -159,5 +159,25 @@ export type CashDay = { day: string; deposits: number; withdrawals: number; net:
 /** GET /accounts/:id/cash-flows. Rows newest first, `daily` oldest first. */
 export type CashFlows = { rows: LocalCashFlow[]; summary: CashSummary; daily: CashDay[] }
 
+/** 1 Awful, 2 Bad, 3 Okay, 4 Good, 5 Great. */
+export type Mood = 1 | 2 | 3 | 4 | 5
+/** What PUT takes for a day or a trade. A null mood and an empty note delete the entry. */
+export type JournalInput = { mood: Mood | null; note: string | null }
+/** Mood and note for one trading day (yyyy-mm-dd in the dashboard timezone). */
+export type DayEntry = JournalInput & { day: string; updatedAt: string }
+/** Mood and note for one position. Keyed by ticket, so every partial close shares it. */
+export type TradeEntry = JournalInput & { ticket: string; updatedAt: string }
+/** The position a trade entry belongs to, summed over its partial closes. `day` is its opening day in `tz`. */
+export type JournalPosition = { day: string; symbol: string; side: Side; lots: number; net: number }
+/** Net P&L and trade count of one day. Not affected by the dashboard filters. */
+export type JournalDayStat = { day: string; trades: number; net: number }
+export type JournalTrade = TradeEntry & { position: JournalPosition | null }
+/** GET /accounts/:id/journal?tz=. Newest first. `stats` covers every day in `days` and every position day in `trades`. */
+export type Journal = { days: DayEntry[]; trades: JournalTrade[]; stats: JournalDayStat[] }
+/** One mood in P&L by mood. Only trading days with that mood count. `winRate` is the share of green days. */
+export type MoodRow = { mood: Mood; days: number; net: number; avgPerDay: number; winRate: number }
+/** GET /accounts/:id/journal/summary?tz=. Every mood is listed; a mood needs `minDays` days to be shown. Paid plans only. */
+export type JournalSummary = { byMood: MoodRow[]; minDays: number; locked?: undefined } | { locked: true }
+
 export type Range = "7" | "30" | "90" | "all"
 export type Filters = { range: Range; symbol: string; side: Side | "all"; tz: string }
