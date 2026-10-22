@@ -6,17 +6,14 @@ import {
   LineStyle,
   TickMarkType,
   createChart,
-  createSeriesMarkers,
   type AutoscaleInfo,
   type IChartApi,
   type IPrimitivePaneRenderer,
   type IPrimitivePaneView,
   type ISeriesApi,
-  type ISeriesMarkersPluginApi,
   type ISeriesPrimitive,
   type IPriceLine,
   type SeriesAttachedParameter,
-  type SeriesMarker,
   type Time,
   type UTCTimestamp,
 } from "lightweight-charts"
@@ -25,7 +22,7 @@ import { formatDateTime, money, price } from "@/lib/format"
 import { tfSeconds } from "@/lib/timeframes"
 import { cn } from "@/lib/utils"
 
-type Palette = { text: string; muted: string; grid: string; profit: string; loss: string; shade: string; font: string }
+type Palette = { text: string; muted: string; grid: string; profit: string; loss: string; shade: string; buy: string; card: string; font: string }
 
 /** Any CSS color as the canvas writes it back (#rrggbb or rgba()), which Lightweight Charts can parse. */
 function canvasColor(css: string, alpha = 1) {
@@ -49,6 +46,9 @@ function readPalette(): Palette {
     profit: canvasColor(v("--profit")),
     loss: canvasColor(v("--loss")),
     shade: canvasColor(v("--foreground"), 0.05),
+    // MT5 draws buys in blue. The app's blue (also used for deposits).
+    buy: canvasColor(v("--deposit")),
+    card: canvasColor(v("--card")),
     font: getComputedStyle(document.body).fontFamily,
   }
 }
@@ -64,31 +64,95 @@ function usePalette() {
   return palette
 }
 
-/** Shades the time the trade was open, behind the candles. */
-class HoldWindow implements ISeriesPrimitive<Time> {
+/** Where the trade sits on the chart: open (A) and close (B) as time and price. */
+type Path = { open: number; close: number; openPrice: number; closePrice: number; buy: boolean; sec: number; labels: [string, string] }
+type Style = { shade: string; buy: string; sell: string; text: string; result: string; card: string; font: string }
+
+/** MT5-style trade history: the time the trade was open shaded behind the candles, a triangle on each deal at its
+ *  exact time and price (blue up for a buy deal, red down for a sell deal), and a dashed line from A to B in the
+ *  color of the position. */
+class TradeOverlay implements ISeriesPrimitive<Time> {
   private chart: IChartApi | null = null
   private series: ISeriesApi<"Candlestick"> | null = null
   private requestUpdate?: () => void
-  private span: { open: number; close: number; sec: number } | null = null
-  private color = "transparent"
-  private x: [number, number] | null = null
+  private path: Path | null = null
+  private style: Style = { shade: "transparent", buy: "blue", sell: "red", text: "black", result: "black", card: "white", font: "sans-serif" }
+  /** Screen points of A and B, from the last update. */
+  private pts: { a: { x: number; y: number }; b: { x: number; y: number } } | null = null
   private readonly view: IPrimitivePaneView
   private readonly renderer: IPrimitivePaneRenderer
 
   constructor() {
     this.renderer = {
-      draw: () => {},
       drawBackground: (target) => {
-        const x = this.x
-        if (!x) return
+        const p = this.pts
+        if (!p) return
         target.useBitmapCoordinateSpace(({ context, bitmapSize, horizontalPixelRatio: r }) => {
-          context.fillStyle = this.color
-          const left = Math.round(x[0] * r)
-          context.fillRect(left, 0, Math.max(1, Math.round(x[1] * r) - left), bitmapSize.height)
+          context.fillStyle = this.style.shade
+          const left = Math.round(p.a.x * r)
+          context.fillRect(left, 0, Math.max(1, Math.round(p.b.x * r) - left), bitmapSize.height)
+        })
+      },
+      draw: (target) => {
+        const p = this.pts
+        const path = this.path
+        if (!p || !path) return
+        target.useBitmapCoordinateSpace(({ context: c, horizontalPixelRatio: hr, verticalPixelRatio: vr }) => {
+          const ax = p.a.x * hr, ay = p.a.y * vr, bx = p.b.x * hr, by = p.b.y * vr
+          c.save()
+          c.lineWidth = Math.max(1, Math.round(hr))
+          c.strokeStyle = path.buy ? this.style.buy : this.style.sell
+          c.setLineDash([4 * hr, 3 * hr])
+          c.beginPath()
+          c.moveTo(ax, ay)
+          c.lineTo(bx, by)
+          c.stroke()
+          c.setLineDash([])
+          // The entry deal has the position's side; the exit deal is the opposite side.
+          this.deal(c, ax, ay, path.buy, hr)
+          this.deal(c, bx, by, !path.buy, hr)
+          // A's label to the left of A, B's to the right of B, each on its triangle's side; flipped at the edges.
+          c.font = `${11 * hr}px ${this.style.font}`
+          c.textBaseline = path.buy ? "top" : "bottom"
+          const gap = 8 * hr
+          const text = (t: string, x: number, y: number, left: boolean, color: string) => {
+            const w = c.measureText(t).width
+            const flip = left ? x - gap - w < 0 : x + gap + w > c.canvas.width
+            const tx = left !== flip ? x - gap - w : x + gap
+            const pad = 3 * hr
+            const lh = 14 * vr
+            const top = c.textBaseline === "top" ? y : y - lh
+            // A card-colored pill behind the text, so candles do not run through it.
+            c.fillStyle = this.style.card
+            c.globalAlpha = 0.9
+            c.beginPath()
+            c.roundRect(tx - pad, top - pad / 2, w + pad * 2, lh + pad, 4 * hr)
+            c.fill()
+            c.globalAlpha = 1
+            c.textAlign = "left"
+            c.fillStyle = color
+            c.fillText(t, tx, y)
+          }
+          text(path.labels[0], ax, ay + (path.buy ? 2 : -2) * vr, true, this.style.text)
+          c.textBaseline = path.buy ? "bottom" : "top"
+          text(path.labels[1], bx, by + (path.buy ? -2 : 2) * vr, false, this.style.result)
+          c.restore()
         })
       },
     }
-    this.view = { zOrder: () => "bottom", renderer: () => this.renderer }
+    this.view = { zOrder: () => "top", renderer: () => this.renderer }
+  }
+
+  /** A deal triangle with its tip on the price: pointing up from below for a buy, down from above for a sell. */
+  private deal(c: CanvasRenderingContext2D, x: number, y: number, buy: boolean, r: number) {
+    const w = 5 * r, h = 7 * r, dir = buy ? 1 : -1
+    c.fillStyle = buy ? this.style.buy : this.style.sell
+    c.beginPath()
+    c.moveTo(x, y)
+    c.lineTo(x - w, y + dir * h)
+    c.lineTo(x + w, y + dir * h)
+    c.closePath()
+    c.fill()
   }
 
   attached({ chart, series, requestUpdate }: SeriesAttachedParameter<Time>) {
@@ -99,29 +163,30 @@ class HoldWindow implements ISeriesPrimitive<Time> {
   detached() {
     this.chart = this.series = null
   }
-  set(span: { open: number; close: number; sec: number } | null, color: string) {
-    this.span = span
-    this.color = color
+  set(path: Path | null, style: Style) {
+    this.path = path
+    this.style = style
     this.requestUpdate?.()
   }
   updateAllViews() {
-    this.x = null
+    this.pts = null
     const ts = this.chart?.timeScale()
-    if (!ts || !this.span || !this.series) return
-    const { open, close, sec } = this.span
+    const series = this.series
+    if (!ts || !this.path || !series) return
+    const { open, close, openPrice, closePrice, sec } = this.path
     const a = ts.logicalToCoordinate(0 as never)
     const b = ts.logicalToCoordinate(1 as never)
     if (a === null || b === null) return
     const spacing = b - a
     // A candle is drawn centered on its start time and covers [start, start + sec).
-    const at = (s: number) => {
-      const bar = Math.floor(s / sec) * sec
+    const at = (t: number) => {
+      const bar = Math.floor(t / sec) * sec
       const x = ts.timeToCoordinate(bar as UTCTimestamp)
-      return x === null ? null : x + ((s - bar) / sec - 0.5) * spacing
+      return x === null ? null : x + ((t - bar) / sec - 0.5) * spacing
     }
-    const x0 = at(open)
-    const x1 = at(close)
-    if (x0 !== null && x1 !== null) this.x = [x0, x1]
+    const x0 = at(open), x1 = at(close)
+    const y0 = series.priceToCoordinate(openPrice), y1 = series.priceToCoordinate(closePrice)
+    if (x0 !== null && x1 !== null && y0 !== null && y1 !== null) this.pts = { a: { x: x0, y: y0 }, b: { x: x1, y: y1 } }
   }
   paneViews() {
     return [this.view]
@@ -143,8 +208,7 @@ export function TradeChart({ trade, candles, tf, tz, className }: Props) {
   const parts = React.useRef<{
     chart: IChartApi
     series: ISeriesApi<"Candlestick">
-    markers: ISeriesMarkersPluginApi<Time>
-    hold: HoldWindow
+    overlay: TradeOverlay
     lines: IPriceLine[]
   } | null>(null)
   const palette = usePalette()
@@ -159,10 +223,9 @@ export function TradeChart({ trade, candles, tf, tz, className }: Props) {
       timeScale: { timeVisible: true, secondsVisible: false, rightOffset: 2 },
     })
     const series = chart.addSeries(CandlestickSeries, { priceLineVisible: false, lastValueVisible: false })
-    const markers = createSeriesMarkers(series, [], { zOrder: "aboveSeries" })
-    const hold = new HoldWindow()
-    series.attachPrimitive(hold)
-    parts.current = { chart, series, markers, hold, lines: [] }
+    const overlay = new TradeOverlay()
+    series.attachPrimitive(overlay)
+    parts.current = { chart, series, overlay, lines: [] }
     return () => {
       parts.current = null
       chart.remove()
@@ -220,7 +283,6 @@ export function TradeChart({ trade, candles, tf, tz, className }: Props) {
     const p = parts.current
     if (!p) return
     const sec = tfSeconds(tf)
-    const bar = (iso: string) => (Math.floor(Date.parse(iso) / 1000 / sec) * sec) as UTCTimestamp
     const digits = digitsOf(trade)
     // Keep the stop loss and take profit lines on screen, even when the candles never reach them.
     const levels = [trade.openPrice, trade.closePrice, trade.sl, trade.tp].filter((n): n is number => n !== null)
@@ -237,35 +299,32 @@ export function TradeChart({ trade, candles, tf, tz, className }: Props) {
 
     const buy = trade.side === "buy"
     const result = trade.net >= 0 ? palette.profit : palette.loss
-    const markers: SeriesMarker<Time>[] = [
-      {
-        time: bar(trade.open),
-        position: buy ? "belowBar" : "aboveBar",
-        shape: buy ? "arrowUp" : "arrowDown",
-        color: palette.text,
-        text: `${buy ? "Buy" : "Sell"} ${trade.lots} @ ${price(trade.openPrice)}`,
-      },
-      {
-        time: bar(trade.close),
-        position: buy ? "aboveBar" : "belowBar",
-        shape: buy ? "arrowDown" : "arrowUp",
-        color: result,
-        text: money(trade.net, true),
-      },
-    ]
-    p.markers.setMarkers(markers.sort((a, b) => (a.time as number) - (b.time as number)))
 
     for (const line of p.lines) p.series.removePriceLine(line)
-    const line = (value: number | null, color: string, title: string, lineStyle: LineStyle) =>
-      value === null ? [] : [p.series.createPriceLine({ price: value, color, title, lineStyle, lineWidth: 1, axisLabelVisible: true })]
+    const line = (value: number | null, color: string, title: string, lineVisible = true) =>
+      value === null
+        ? []
+        : [p.series.createPriceLine({ price: value, color, title, lineStyle: LineStyle.Dashed, lineWidth: 1, lineVisible, axisLabelVisible: true })]
     p.lines = [
-      ...line(trade.sl, palette.loss, "SL", LineStyle.Dashed),
-      ...line(trade.tp, palette.profit, "TP", LineStyle.Dashed),
-      ...line(trade.openPrice, palette.muted, "Entry", LineStyle.Dashed),
-      ...line(trade.closePrice, result, "Exit", LineStyle.Dotted),
+      ...line(trade.sl, palette.loss, "SL"),
+      ...line(trade.tp, palette.profit, "TP"),
+      // Entry and exit: axis labels only. The A to B line shows them on the chart.
+      ...line(trade.openPrice, palette.muted, "A", false),
+      ...line(trade.closePrice, result, "B", false),
     ]
 
-    p.hold.set({ open: Date.parse(trade.open) / 1000, close: Date.parse(trade.close) / 1000, sec }, palette.shade)
+    p.overlay.set(
+      {
+        open: Date.parse(trade.open) / 1000,
+        close: Date.parse(trade.close) / 1000,
+        openPrice: trade.openPrice,
+        closePrice: trade.closePrice,
+        buy,
+        sec,
+        labels: [`A  ${buy ? "Buy" : "Sell"} ${trade.lots} @ ${price(trade.openPrice)}`, `B  ${price(trade.closePrice)}  ${money(trade.net, true)}`],
+      },
+      { shade: palette.shade, buy: palette.buy, sell: palette.loss, text: palette.text, result, card: palette.card, font: palette.font }
+    )
     p.chart.timeScale().fitContent()
   }, [trade, candles, tf, palette])
 
