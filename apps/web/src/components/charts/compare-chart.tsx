@@ -9,11 +9,11 @@ type Point = { key: string; actual: number; rules: number }
 /** Cumulative daily net P&L: what happened vs. with the limits. A line marks where the test days start. */
 export function CompareChart({ data, splitDay }: { data: Point[]; splitDay: string }) {
   return (
-    <ChartContainer config={chartConfig} className="aspect-auto h-[280px] w-full">
+    <ChartContainer config={chartConfig} className="aspect-auto h-[220px] w-full sm:h-[280px]">
       <LineChart data={data} margin={{ left: 4, right: 12, top: 20 }}>
-        <CartesianGrid vertical={false} strokeDasharray="2 4" />
+        <CartesianGrid vertical={false} strokeDasharray="2 4" strokeOpacity={0.6} />
         <XAxis dataKey="key" tickFormatter={(d) => formatDay(d)} tick={axisTick} tickLine={false} axisLine={false} minTickGap={24} />
-        <YAxis tickFormatter={compactMoney} tick={axisTick} tickLine={false} axisLine={false} width={44} />
+        <YAxis tickFormatter={compactMoney} tick={axisTick} tickLine={false} axisLine={false} width={40} tickCount={4} />
         <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeOpacity={0.4} />
         <ReferenceLine
           x={splitDay}
@@ -37,8 +37,8 @@ export function CompareChart({ data, splitDay }: { data: Point[]; splitDay: stri
             )
           }}
         />
-        <Line dataKey="actual" stroke="var(--muted-foreground)" strokeWidth={1.5} dot={false} />
-        <Line dataKey="rules" stroke="var(--brand)" strokeWidth={2.5} dot={false} />
+        <Line dataKey="actual" stroke="var(--muted-foreground)" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+        <Line dataKey="rules" stroke="var(--brand)" strokeWidth={2.5} dot={false} isAnimationActive={false} />
       </LineChart>
     </ChartContainer>
   )

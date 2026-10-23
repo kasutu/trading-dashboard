@@ -45,8 +45,8 @@ export function EquityChart({ data, tz, flows = [] }: { data: EquityPoint[]; tz:
   const side = (p: EquityPoint): "right" | "left" => (p.n < lastN / 2 ? "right" : "left")
 
   return (
-    <div className="flex min-h-[260px] min-w-0 flex-col gap-2">
-      <ChartContainer config={chartConfig} className="aspect-auto h-full min-h-[260px] w-full flex-1">
+    <div className="flex min-h-[200px] min-w-0 flex-col gap-2 sm:min-h-[260px]">
+      <ChartContainer config={chartConfig} className="aspect-auto h-full min-h-[200px] w-full flex-1 sm:min-h-[260px]">
         <AreaChart data={data} margin={{ left: 10, right: marks ? TAG_W : 4, top: 18, bottom: 18 }}>
           <defs>
             <linearGradient id="equity-fill" x1="0" y1="0" x2="0" y2="1">
@@ -54,7 +54,7 @@ export function EquityChart({ data, tz, flows = [] }: { data: EquityPoint[]; tz:
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid vertical={false} strokeDasharray="2 4" />
+          <CartesianGrid vertical={false} strokeDasharray="2 4" strokeOpacity={0.6} />
           <XAxis dataKey="n" hide />
           <YAxis hide domain={["auto", "auto"]} />
           <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeOpacity={0.4} />
@@ -83,7 +83,7 @@ export function EquityChart({ data, tz, flows = [] }: { data: EquityPoint[]; tz:
               return <ChartTip title={formatDateTime(new Date(d.time).toISOString(), tz)} rows={rows} />
             }}
           />
-          <Area type="monotone" dataKey="equity" stroke={color} strokeWidth={2} fill="url(#equity-fill)" dot={false} activeDot={{ r: 4 }} />
+          <Area type="monotone" dataKey="equity" stroke={color} strokeWidth={2} fill="url(#equity-fill)" dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
 
           {/* Deposits and withdrawals: a faint line through the trade after them, and a ring on the curve */}
           {cash.map((m) => (

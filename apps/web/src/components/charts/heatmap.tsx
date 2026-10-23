@@ -12,8 +12,9 @@ export function Heatmap({ cells, weekdays }: { cells: Group[][]; weekdays: strin
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto">
-        <div className="grid min-w-[640px] gap-[3px]" style={{ gridTemplateColumns: "36px repeat(24, minmax(0,1fr))" }}>
+      {/* Wider than a phone: it scrolls inside its own box, never the page. */}
+      <div className="-mx-5 overflow-x-auto overscroll-x-contain px-5">
+        <div className="grid min-w-[600px] gap-[3px]" style={{ gridTemplateColumns: "36px repeat(24, minmax(0,1fr))" }}>
           <div />
           {Array.from({ length: 24 }, (_, h) => (
             <div key={h} className="text-center font-mono text-[10px] text-muted-foreground">
@@ -31,6 +32,7 @@ export function Heatmap({ cells, weekdays }: { cells: Group[][]; weekdays: strin
                     key={h}
                     onMouseEnter={() => setHover({ d, h })}
                     onMouseLeave={() => setHover(null)}
+                    onClick={() => setHover({ d, h })}
                     className={cn("h-6 rounded-[4px] bg-muted", hover?.d === d && hover?.h === h && "ring-2 ring-foreground/50")}
                     style={c.trades ? { background: `color-mix(in oklab, ${hue} ${Math.round(strength * 100)}%, var(--muted))` } : undefined}
                   />
@@ -53,7 +55,7 @@ export function Heatmap({ cells, weekdays }: { cells: Group[][]; weekdays: strin
             )}
           </span>
         ) : (
-          <span>Point to a cell to see its numbers.</span>
+          <span>Tap or point to a cell to see its numbers.</span>
         )}
         <span className="flex items-center gap-1.5">
           Loss
