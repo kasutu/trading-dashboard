@@ -20,28 +20,26 @@ export type ShareData = Footer & {
 
 const TAG_COL = 132 // right column for the high and low value tags
 
+/** The stats as a square image: net P&L large, the equity curve across, then the other numbers in a row. */
 export function drawShareCard(canvas: HTMLCanvasElement, d: ShareData) {
   const ctx = startCard(canvas)
   drawBrand(ctx)
-  text(ctx, d.period, CARD_W - PAD, PAD + 22, `400 22px ${BODY}`, C.muted, "right")
+  text(ctx, d.period, CARD_W - PAD, PAD + 24, `400 24px ${BODY}`, C.muted, "right")
 
   // Hero: net P&L, with a short brand bar above the label
   ctx.fillStyle = C.brand
   ctx.beginPath()
-  ctx.roundRect(PAD, 158, 40, 5, 2.5)
+  ctx.roundRect(PAD, 176, 44, 6, 3)
   ctx.fill()
-  text(ctx, "Net P&L", PAD, 196, `400 24px ${BODY}`, C.muted)
-  const netText = money(d.net, true)
-  ctx.font = `800 100px ${DISPLAY}`
-  const w = ctx.measureText(netText).width
-  text(ctx, netText, PAD, 290, `800 100px ${DISPLAY}`, tone(d.net))
-  text(ctx, `${d.trades} trades on ${d.days} days`, PAD, 340, `400 24px ${BODY}`, C.muted)
+  text(ctx, "Net P&L", PAD, 220, `400 28px ${BODY}`, C.muted)
+  text(ctx, money(d.net, true), PAD, 338, `800 120px ${DISPLAY}`, tone(d.net))
+  text(ctx, `${d.trades} trades on ${d.days} days`, PAD, 392, `400 28px ${BODY}`, C.muted)
 
-  // Equity curve on the right
-  curve(ctx, d.curve, { x: Math.max(PAD + w + 60, 620), y: 150, w: 0, h: 210 }, tone(d.net))
+  // Equity curve across the card
+  curve(ctx, d.curve, { x: PAD, y: 450, w: 0, h: 250 }, tone(d.net))
 
   // Stats row
-  const top = 404
+  const top = 750
   ctx.fillStyle = C.line
   ctx.fillRect(PAD, top, CARD_W - PAD * 2, 1)
   const stats: [string, string, string][] = [
@@ -54,9 +52,9 @@ export function drawShareCard(canvas: HTMLCanvasElement, d: ShareData) {
   const colW = (CARD_W - PAD * 2) / stats.length
   stats.forEach(([label, value, color], i) => {
     const x = PAD + i * colW
-    if (i) { ctx.fillStyle = C.line; ctx.fillRect(x - 24, top + 28, 1, 76) }
-    text(ctx, label, x, top + 52, `400 20px ${BODY}`, C.muted)
-    text(ctx, value, x, top + 94, `500 28px ${MONO}`, color)
+    if (i) { ctx.fillStyle = C.line; ctx.fillRect(x - 16, top + 28, 1, 76) }
+    text(ctx, label, x, top + 52, `400 19px ${BODY}`, C.muted)
+    text(ctx, value, x, top + 94, `500 26px ${MONO}`, color)
   })
 
   drawFooter(ctx, d)

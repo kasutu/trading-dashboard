@@ -1,7 +1,7 @@
 import type { Candle, Side } from "@/lib/api/types"
 import { money, price } from "@/lib/format"
 import { formatR } from "@/lib/journal"
-import { BODY, C, CARD_H, CARD_W, DISPLAY, FOOTER_H, MONO, PAD, drawBrand, drawFooter, startCard, text, tone, type Footer } from "./card-canvas"
+import { BODY, C, CARD_W, DISPLAY, MONO, PAD, drawBrand, drawFooter, startCard, text, tone, type Footer } from "./card-canvas"
 
 export type TradeCardData = Footer & {
   symbol: string
@@ -39,49 +39,48 @@ export function headline(d: Pick<TradeCardData, "showAmounts" | "net" | "r" | "s
   return d.r !== null ? formatR(d.r) : movePct(d)
 }
 
-const CHART_X = 600 // left edge of the price chart
-
-/** One trade as a 1200 × 630 image: symbol, side, result, prices, and a small price chart. */
+/** One trade as a square image: symbol and side, the result large, a price chart across, then the prices. */
 export function drawTradeCard(canvas: HTMLCanvasElement, d: TradeCardData) {
   const ctx = startCard(canvas)
   drawBrand(ctx)
-  text(ctx, d.opened, CARD_W - PAD, PAD + 22, `400 22px ${BODY}`, C.muted, "right")
+  text(ctx, d.opened, CARD_W - PAD, PAD + 24, `400 24px ${BODY}`, C.muted, "right")
 
   // Symbol, then a side tag and the size
   const sideColor = d.side === "buy" ? C.profit : C.loss
-  text(ctx, d.symbol, PAD, 182, `700 48px ${DISPLAY}`, C.text)
-  ctx.font = `700 48px ${DISPLAY}`
-  let x = PAD + ctx.measureText(d.symbol).width + 18
+  text(ctx, d.symbol, PAD, 206, `700 52px ${DISPLAY}`, C.text)
+  ctx.font = `700 52px ${DISPLAY}`
+  let x = PAD + ctx.measureText(d.symbol).width + 20
   const sideText = d.side === "buy" ? "BUY" : "SELL"
-  ctx.font = `700 17px ${BODY}`
-  const tagW = ctx.measureText(sideText).width + 24
+  ctx.font = `700 19px ${BODY}`
+  const tagW = ctx.measureText(sideText).width + 26
   ctx.beginPath()
-  ctx.roundRect(x, 152, tagW, 32, 8)
+  ctx.roundRect(x, 173, tagW, 36, 9)
   ctx.fillStyle = sideColor + "26"
   ctx.fill()
-  text(ctx, sideText, x + tagW / 2, 174, `700 17px ${BODY}`, sideColor, "center")
-  x += tagW + 14
-  if (d.showAmounts) text(ctx, `${d.lots} lots`, x, 175, `400 22px ${BODY}`, C.muted)
+  text(ctx, sideText, x + tagW / 2, 198, `700 19px ${BODY}`, sideColor, "center")
+  x += tagW + 16
+  if (d.showAmounts) text(ctx, `${d.lots} lots`, x, 199, `400 25px ${BODY}`, C.muted)
 
   // Result
-  const color = tone(d.net)
-  text(ctx, headline(d), PAD, 290, `800 92px ${DISPLAY}`, color)
+  text(ctx, headline(d), PAD, 330, `800 112px ${DISPLAY}`, tone(d.net))
   const sub = d.showAmounts ? [d.r !== null ? formatR(d.r) : null, movePct(d)] : [d.r !== null ? movePct(d) : null]
-  text(ctx, sub.filter(Boolean).join("  ·  "), PAD, 336, `500 24px ${MONO}`, C.muted)
+  text(ctx, sub.filter(Boolean).join("  ·  "), PAD, 382, `500 27px ${MONO}`, C.muted)
+
+  // Price chart across the card
+  drawChart(ctx, d, { x: PAD, y: 432, w: CARD_W - PAD * 2, h: 300 })
 
   // Prices and hold time
-  const top = 380
+  const top = 778
   ctx.fillStyle = C.line
-  ctx.fillRect(PAD, top, CHART_X - PAD - 48, 1)
+  ctx.fillRect(PAD, top, CARD_W - PAD * 2, 1)
   const cols: [string, string][] = [["Entry", price(d.entry)], ["Exit", price(d.exit)], ["Held", d.held]]
-  const colW = (CHART_X - PAD - 48) / cols.length
+  const colW = (CARD_W - PAD * 2) / cols.length
   cols.forEach(([label, value], i) => {
     const cx = PAD + i * colW
-    text(ctx, label, cx, top + 44, `400 19px ${BODY}`, C.muted)
-    text(ctx, value, cx, top + 82, `500 26px ${MONO}`, C.text)
+    text(ctx, label, cx, top + 46, `400 21px ${BODY}`, C.muted)
+    text(ctx, value, cx, top + 88, `500 30px ${MONO}`, C.text)
   })
 
-  drawChart(ctx, d, { x: CHART_X, y: 140, w: CARD_W - PAD - CHART_X, h: CARD_H - FOOTER_H - 36 - 140 })
   drawFooter(ctx, d)
 }
 
