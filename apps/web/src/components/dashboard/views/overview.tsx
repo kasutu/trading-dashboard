@@ -13,7 +13,7 @@ export function Overview({ a, accountId, filters }: { a: Analytics; accountId: s
 
   return (
     <div className="grid gap-4">
-      <Panel title="Daily P&L" description={`${plural(green, "green day")}, ${plural(a.daily.length - green, "red day")}`}>
+      <Panel title="Daily P&L" share={false} description={`${plural(green, "green day")}, ${plural(a.daily.length - green, "red day")}`}>
         <TradeCalendar accountId={accountId} filters={filters} period={a.period} />
       </Panel>
       <PeriodPnl a={a} />
