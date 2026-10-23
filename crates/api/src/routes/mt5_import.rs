@@ -167,9 +167,10 @@ pub async fn import(pool: &PgPool, id: Uuid, body: Mt5Import) -> ApiResult<Value
         }
         insert_trades(&mut tx, id, &new_trades, &report.comments).await?;
         sqlx::query(
-            "insert into cash_flows (account_id, occurred_at, kind, amount, note, source_id)
+            "insert into cash_flows
+                (account_id, occurred_at, kind, amount, note, source_id, internal)
              select $1, * from unnest($2::timestamptz[], $3::text[], $4::float8[], $5::text[],
-                $6::text[])
+                $6::text[], $7::bool[])
              on conflict (account_id, source_id) where source_id is not null do nothing",
         )
         .bind(id)
@@ -183,6 +184,7 @@ pub async fn import(pool: &PgPool, id: Uuid, body: Mt5Import) -> ApiResult<Value
         .bind(new_flows.iter().map(|f| f.amount).collect::<Vec<_>>())
         .bind(new_flows.iter().map(|f| note(&f.note)).collect::<Vec<_>>())
         .bind(new_flows.iter().map(|f| f.deal.clone()).collect::<Vec<_>>())
+        .bind(new_flows.iter().map(|f| f.internal).collect::<Vec<_>>())
         .execute(&mut *tx)
         .await?;
         let import = sqlx::query_as(
@@ -212,6 +214,7 @@ pub async fn import(pool: &PgPool, id: Uuid, body: Mt5Import) -> ApiResult<Value
             time: f.time,
             kind: f.kind,
             amount: f.amount,
+            internal: f.internal,
         })
         .collect();
     let times = report

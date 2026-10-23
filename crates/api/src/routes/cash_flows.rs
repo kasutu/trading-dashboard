@@ -29,10 +29,12 @@ pub struct CashFlow {
     note: Option<String>,
     /// The broker's deal ticket for an imported flow; null when entered by hand.
     source_id: Option<String>,
+    /// A move between the trader's own wallet or accounts at the broker.
+    internal: bool,
     created_at: DateTime<Utc>,
 }
 
-const COLUMNS: &str = "id, occurred_at, kind, amount, note, source_id, created_at";
+const COLUMNS: &str = "id, occurred_at, kind, amount, note, source_id, internal, created_at";
 
 #[derive(Deserialize)]
 pub struct TzQuery {
@@ -66,6 +68,7 @@ pub async fn list(
             time: r.occurred_at,
             kind: kind_of(&r.kind),
             amount: r.amount,
+            internal: r.internal,
         })
         .collect();
     let report = engine::cash_report(&flows, &tz);

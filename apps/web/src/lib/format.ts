@@ -1,3 +1,4 @@
+import type { CashSummary } from "@/lib/api/types"
 export const money = (n: number, sign = false) => {
   const s = Math.abs(n).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 })
   if (n < 0) return `−${s}`
@@ -112,6 +113,13 @@ export function tzLabel(tz: string) {
 export const today = (tz: string) => new Date().toLocaleDateString("en-CA", { timeZone: tz })
 
 /** Cash flow kinds as the app names them. */
+/** Internal transfers in and out: "in $350.00 · out $420.00". */
+export function transfers(s: Pick<CashSummary, "transfersIn" | "transfersOut">) {
+  return [s.transfersIn.count && `in ${money(s.transfersIn.total)}`, s.transfersOut.count && `out ${money(s.transfersOut.total)}`]
+    .filter(Boolean)
+    .join(" · ")
+}
+
 export const FLOW_LABELS = { deposit: "Deposit", withdrawal: "Withdrawal", adjustment: "Adjustment" } as const
 
 export const REASONS: Record<string, string> = { sl: "Stop loss", tp: "Take profit", user: "Manual", so: "Stop-out" }

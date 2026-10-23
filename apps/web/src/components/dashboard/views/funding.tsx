@@ -6,7 +6,7 @@ import { CashFlowChart } from "@/components/charts/cash-flow-chart"
 import { Panel } from "@/components/dashboard/panel"
 import { Button } from "@/components/ui/button"
 import type { CashFlows } from "@/lib/api/types"
-import { formatPeriod, money, plural } from "@/lib/format"
+import { formatPeriod, money, plural, transfers } from "@/lib/format"
 
 /** Deposits and withdrawals: net deposited with a timeline, then the entries. Broker adjustments show apart.
  *  All time; the trade filters do not apply. */
@@ -24,7 +24,7 @@ export function Funding({ accountId, flows, tz }: { accountId: string; flows: Ca
       <div className="rounded-xl border border-dashed bg-card px-5 py-16 text-center">
         <p className="font-medium">No deposits or withdrawals yet</p>
         <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-          Import an MT5 report to bring them in, or add them by hand. They show here and on the equity curve, so a jump in your balance is not mistaken for trading profit.
+          Import an MT5 report to bring them in, or add them by hand. They show here, so a jump in your balance is not mistaken for trading profit.
         </p>
         <div className="mt-4">{add}</div>
       </div>
@@ -41,6 +41,10 @@ export function Funding({ accountId, flows, tz }: { accountId: string; flows: Ca
           stats: [
             [<Swatch key="d" className="bg-deposit" label="Deposits" />, `${money(s.deposits.total)} · ${plural(s.deposits.count, "deposit")}`],
             [<Swatch key="w" className="bg-withdrawal" label="Withdrawals" />, `${money(s.withdrawals.total)} · ${plural(s.withdrawals.count, "withdrawal")}`],
+            // Moves between your own wallet and accounts at the broker, already inside the totals above.
+            ...(s.transfersIn.count || s.transfersOut.count
+              ? [["Of which internal", transfers(s)] as [React.ReactNode, React.ReactNode]]
+              : []),
             // Broker adjustments are not money you sent, so they stay out of net deposited.
             ...(s.adjustments.count
               ? [[<Swatch key="a" className="bg-adjustment" label="Adjustments" />, `${money(s.adjustments.total)} · ${plural(s.adjustments.count, "adjustment")}`] as [React.ReactNode, React.ReactNode]]

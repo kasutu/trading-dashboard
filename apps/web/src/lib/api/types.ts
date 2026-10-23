@@ -158,13 +158,14 @@ export type TradePage = { rows: LocalTrade[]; total: number }
 
 /** "adjustment": money the broker put in that the trader did not send (a negative balance reset). Not a deposit. */
 export type FlowKind = "deposit" | "withdrawal" | "adjustment"
-/** A deposit, withdrawal or adjustment. `amount` is always positive. `sourceId`: the MT5 deal ticket when imported, null when entered by hand. */
-export type CashFlow = { id: string; occurredAt: string; kind: FlowKind; amount: number; note: string | null; sourceId: string | null; createdAt: string }
+/** A deposit, withdrawal or adjustment. `amount` is always positive. `sourceId`: the MT5 deal ticket when imported, null when entered by hand.
+ *  `internal`: a move between the trader's own wallet or accounts at the broker (an `INT` deal), not money from or to outside. */
+export type CashFlow = { id: string; occurredAt: string; kind: FlowKind; amount: number; note: string | null; sourceId: string | null; internal: boolean; createdAt: string }
 /** With `day` (yyyy-mm-dd of `occurredAt` in the requested timezone). */
 export type LocalCashFlow = CashFlow & { day: string }
 export type FlowTotal = { count: number; total: number }
-/** `net` = deposits - withdrawals; adjustments are kept apart. */
-export type CashSummary = { deposits: FlowTotal; withdrawals: FlowTotal; adjustments: FlowTotal; net: number }
+/** `net` = deposits - withdrawals; adjustments are kept apart. `transfersIn`/`transfersOut`: the internal part of deposits/withdrawals. */
+export type CashSummary = { deposits: FlowTotal; withdrawals: FlowTotal; adjustments: FlowTotal; transfersIn: FlowTotal; transfersOut: FlowTotal; net: number }
 /** One day with cash flows. `withdrawals` is positive; `cumulative` is the net deposited so far (adjustments left out). */
 export type CashDay = { day: string; deposits: number; withdrawals: number; adjustments: number; net: number; cumulative: number }
 /** GET /accounts/:id/cash-flows. Rows newest first, `daily` oldest first. */
