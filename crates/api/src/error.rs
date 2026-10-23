@@ -13,6 +13,8 @@ pub enum ApiError {
     NotFound(&'static str),
     /// The plan does not include this. The message says which plan does.
     Forbidden(String),
+    /// The request clashes with what is stored (409).
+    Conflict(String),
     Unprocessable(String),
     Internal(String),
 }
@@ -32,6 +34,7 @@ impl IntoResponse for ApiError {
             Self::Unauthorized => (StatusCode::UNAUTHORIZED, "Sign in to continue.".into()),
             Self::NotFound(m) => (StatusCode::NOT_FOUND, m.into()),
             Self::Forbidden(m) => (StatusCode::FORBIDDEN, m),
+            Self::Conflict(m) => (StatusCode::CONFLICT, m),
             Self::Unprocessable(m) => (StatusCode::UNPROCESSABLE_ENTITY, m),
             Self::Internal(detail) => {
                 tracing::error!("{detail}");

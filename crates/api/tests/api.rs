@@ -694,6 +694,7 @@ async fn cash_flows_crud_and_summary() {
         json!({
             "deposits": { "count": 2, "total": 600.5 },
             "withdrawals": { "count": 1, "total": 150.0 },
+            "adjustments": { "count": 0, "total": 0.0 },
             "net": 450.5,
         })
     );
@@ -755,7 +756,7 @@ async fn cash_flow_validation() {
     for (body, error) in [
         (
             json!({ "occurredAt": at, "kind": "bonus", "amount": 10 }),
-            "Use deposit or withdrawal for \"kind\".",
+            "Use deposit, withdrawal or adjustment for \"kind\".",
         ),
         (
             json!({ "occurredAt": at, "kind": "deposit", "amount": 0 }),
@@ -1242,4 +1243,274 @@ async fn candles_are_fetched_once_and_kept() {
         )
         .await;
     assert_eq!(s, StatusCode::NOT_FOUND);
+}
+
+// --- MT5 report import ------------------------------------------------------------
+
+const MT5: &str = include_str!("../../engine/tests/fixtures/mt5-report.html");
+
+fn mt5_body(dry_run: bool) -> Value {
+    json!({ "fileName": "ReportHistory.html", "format": "mt5", "report": MT5, "serverTz": "UTC", "dryRun": dry_run })
+}
+
+#[tokio::test]
+async fn mt5_import_into_an_empty_account() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let path = format!("/api/accounts/{id}/imports");
+
+    // The dry run counts without writing.
+    let (s, v) = t.post(&path, mt5_body(true)).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["dryRun"], true);
+    assert_eq!(v["import"], Value::Null);
+    assert_eq!(
+        v["account"],
+        json!({ "login": "50001234", "server": "Example-MT5Live2", "kind": "real",
+                "currency": "USD", "company": "Example Markets Ltd" })
+    );
+    assert_eq!(v["positions"], 10);
+    assert_eq!(v["totalNet"], 1206.16);
+    assert_eq!(v["from"], "2026-03-01T08:00:00Z");
+    assert_eq!(v["to"], "2026-03-09T11:00:00Z");
+    assert_eq!(v["trades"], json!({ "added": 10, "duplicates": 0 }));
+    assert_eq!(v["cashFlows"]["added"], 4);
+    assert_eq!(
+        v["cashFlows"]["summary"],
+        json!({
+            "deposits": { "count": 2, "total": 1500.0 },
+            "withdrawals": { "count": 1, "total": 200.0 },
+            "adjustments": { "count": 1, "total": 3.4 },
+            "net": 1300.0,
+        })
+    );
+    assert_eq!(v["skippedDeals"], json!({ "credit": 1 }));
+    let (_, accounts) = t.get("/api/accounts").await;
+    assert_eq!(accounts[0]["trades"], 0);
+    assert_eq!(
+        accounts[0]["mtLogin"],
+        Value::Null,
+        "a dry run writes nothing"
+    );
+
+    let (s, v) = t.post(&path, mt5_body(false)).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["dryRun"], false);
+    assert_eq!(v["import"]["fileName"], "ReportHistory.html");
+    assert_eq!(v["import"]["added"], 10);
+    assert_eq!(v["import"]["skipped"], 1, "the credit deal");
+    assert_eq!(v["trades"], json!({ "added": 10, "duplicates": 0 }));
+    assert_eq!(v["cashFlows"]["added"], 4);
+    assert_eq!(v["cashFlows"]["possibleManualDuplicates"], json!([]));
+
+    // The account took the login and the broker.
+    let (_, accounts) = t.get("/api/accounts").await;
+    assert_eq!(accounts[0]["mtLogin"], "50001234");
+    assert_eq!(accounts[0]["broker"], "Example Markets Ltd");
+    assert_eq!(accounts[0]["trades"], 10);
+
+    let (_, a) = t.get(&format!("/api/accounts/{id}/analytics")).await;
+    assert_eq!(a["summary"]["trades"], 10);
+    assert!((a["summary"]["net"].as_f64().unwrap() - 1206.16).abs() < 0.001);
+    let reasons: Vec<(String, u64)> = a["byReason"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|g| {
+            (
+                g["key"].as_str().unwrap().to_string(),
+                g["trades"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    for (key, n) in [
+        ("Stop loss", 3),
+        ("Take profit", 2),
+        ("Stop-out", 1),
+        ("Manual", 4),
+    ] {
+        assert!(
+            reasons.contains(&(key.to_string(), n)),
+            "{key} in {reasons:?}"
+        );
+    }
+    let comment: Option<String> =
+        sqlx::query_scalar("select comment from trades where ticket = '1003'")
+            .fetch_one(&t.pool)
+            .await
+            .unwrap();
+    assert_eq!(comment.as_deref(), Some("range breakout"));
+
+    // Cash flows, with the adjustment kept apart from deposits.
+    let (_, f) = t.get(&format!("/api/accounts/{id}/cash-flows")).await;
+    assert_eq!(f["rows"].as_array().unwrap().len(), 4);
+    assert_eq!(
+        f["summary"]["adjustments"],
+        json!({ "count": 1, "total": 3.4 })
+    );
+    assert_eq!(f["summary"]["net"], 1300.0);
+    let adj = f["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["kind"] == "adjustment")
+        .unwrap();
+    assert_eq!(adj["note"], "Negative balance reset (broker) · D-NULL");
+    assert_eq!(adj["sourceId"], "5016");
+
+    // Importing it again adds nothing.
+    let (s, v) = t.post(&path, mt5_body(false)).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["trades"], json!({ "added": 0, "duplicates": 10 }));
+    assert_eq!(
+        (&v["cashFlows"]["added"], &v["cashFlows"]["duplicates"]),
+        (&json!(0), &json!(4))
+    );
+    assert_eq!(
+        (&v["import"]["added"], &v["import"]["duplicates"]),
+        (&json!(0), &json!(10))
+    );
+    let (_, f) = t.get(&format!("/api/accounts/{id}/cash-flows")).await;
+    assert_eq!(f["rows"].as_array().unwrap().len(), 4);
+}
+
+#[tokio::test]
+async fn mt5_import_refuses_another_login() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    sqlx::query("update trading_accounts set mt_login = '777'")
+        .execute(&t.pool)
+        .await
+        .unwrap();
+    let path = format!("/api/accounts/{id}/imports");
+    for dry_run in [true, false] {
+        let (s, v) = t.post(&path, mt5_body(dry_run)).await;
+        assert_eq!(s, StatusCode::CONFLICT, "{v}");
+        assert!(v["error"].as_str().unwrap().starts_with(
+            "This report is for MetaTrader account 50001234. This Jurno account holds 777."
+        ));
+    }
+    let (_, accounts) = t.get("/api/accounts").await;
+    assert_eq!(accounts[0]["trades"], 0);
+}
+
+#[tokio::test]
+async fn mt5_import_after_a_csv_skips_stored_tickets() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let path = format!("/api/accounts/{id}/imports");
+    // Position 1004 closed in two parts, imported from a CSV as two rows.
+    let csv = "ticket,opening_time_utc,closing_time_utc,type,lots,symbol,opening_price,closing_price,stop_loss,take_profit,commission,swap,profit,close_reason\n\
+1004,2026-03-03T09:00:00,2026-03-03T09:20:00,buy,0.01,XAUUSD,2910,2915,2905,2920,0,0,5,user\n\
+1004,2026-03-03T09:00:00,2026-03-03T10:00:00,buy,0.02,XAUUSD,2910,2920,2905,2920,0,0,20,tp\n";
+    let (s, v) = t
+        .post(
+            &path,
+            json!({ "fileName": "p.csv", "csv": csv, "mapping": engine::exness_mapping() }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+
+    let (s, v) = t.post(&path, mt5_body(false)).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["trades"], json!({ "added": 9, "duplicates": 1 }));
+    let (_, accounts) = t.get("/api/accounts").await;
+    assert_eq!(accounts[0]["trades"], 11, "the two CSV rows stay");
+    assert_eq!(accounts[0]["mtLogin"], "50001234");
+    assert_eq!(accounts[0]["currency"], "USD");
+}
+
+#[tokio::test]
+async fn mt5_import_points_out_manual_duplicates() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let flows = format!("/api/accounts/{id}/cash-flows");
+    // The same 500 deposit, entered by hand the same day; and an unrelated one.
+    let (_, manual) = t
+        .post(
+            &flows,
+            json!({ "occurredAt": "2026-03-01T15:00:00Z", "kind": "deposit", "amount": 500 }),
+        )
+        .await;
+    t.post(
+        &flows,
+        json!({ "occurredAt": "2026-03-01T15:00:00Z", "kind": "deposit", "amount": 499 }),
+    )
+    .await;
+    let (s, v) = t
+        .post(&format!("/api/accounts/{id}/imports"), mt5_body(false))
+        .await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    let dups = v["cashFlows"]["possibleManualDuplicates"]
+        .as_array()
+        .unwrap();
+    assert_eq!(dups.len(), 1);
+    assert_eq!(dups[0]["id"], manual["id"]);
+    assert_eq!(dups[0]["amount"], 500.0);
+    // Nothing is deleted.
+    let (_, f) = t.get(&flows).await;
+    assert_eq!(f["rows"].as_array().unwrap().len(), 6);
+    // A hand-entered adjustment is allowed too.
+    let (s, v) = t
+        .post(
+            &flows,
+            json!({ "occurredAt": "2026-03-02T15:00:00Z", "kind": "adjustment", "amount": 1.5 }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["sourceId"], Value::Null);
+}
+
+#[tokio::test]
+async fn mt5_import_errors() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let path = format!("/api/accounts/{id}/imports");
+    let (s, v) = t
+        .post(
+            &path,
+            json!({ "fileName": "a.html", "format": "mt5", "report": "a,b\n1,2" }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(v["error"]
+        .as_str()
+        .unwrap()
+        .starts_with("This file is not a MetaTrader 5"));
+    let (s, v) = t
+        .post(
+            &path,
+            json!({ "fileName": "a.html", "format": "mt5", "report": MT5, "serverTz": "Mars/Base" }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    assert!(v["error"].as_str().unwrap().contains("Mars/Base"));
+    let (s, v) = t
+        .post(
+            &path,
+            json!({ "fileName": "a.html", "format": "mt4", "report": MT5 }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    assert_eq!(
+        v["error"],
+        "Use \"mt5\" for \"format\", or leave it out for a CSV file."
+    );
+    let (s, v) = t
+        .post(&path, json!({ "fileName": "a.html", "format": "mt5" }))
+        .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    assert!(v["error"]
+        .as_str()
+        .unwrap()
+        .starts_with("The request body is not valid"));
+    // serverTz defaults to UTC.
+    let (s, v) = t
+        .post(
+            &path,
+            json!({ "fileName": "a.html", "format": "mt5", "report": MT5, "dryRun": true }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["from"], "2026-03-01T08:00:00Z");
 }

@@ -9,6 +9,7 @@ mod imports;
 mod journal;
 mod mappings;
 mod me;
+mod mt5_import;
 
 use axum::extract::DefaultBodyLimit;
 use axum::routing::{delete, get, patch, post};
@@ -17,7 +18,7 @@ use sqlx::PgPool;
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::trace::TraceLayer;
 
-/// Largest request body: CSV uploads up to 20 MB.
+/// Largest request body: CSV uploads and MT5 reports up to 20 MB.
 const MAX_BODY: usize = 20 * 1024 * 1024;
 
 pub fn app(pool: PgPool) -> Router {
