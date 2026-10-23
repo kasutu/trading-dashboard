@@ -75,7 +75,7 @@ export function ColumnMapper({ file, accountId, preset, onImported, onReset }: P
         <div className="flex flex-wrap items-center gap-3">
           <Label htmlFor="saved-mapping">Saved mappings</Label>
           <Select onValueChange={(id) => setMapping(fitMapping(saved.data!.find((m) => m.id === id)!.mapping, headers))}>
-            <SelectTrigger id="saved-mapping" className="w-56 bg-card"><SelectValue placeholder="Use a saved mapping" /></SelectTrigger>
+            <SelectTrigger id="saved-mapping" className="w-full bg-card sm:w-56"><SelectValue placeholder="Use a saved mapping" /></SelectTrigger>
             <SelectContent>
               {saved.data.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
             </SelectContent>
@@ -83,14 +83,14 @@ export function ColumnMapper({ file, accountId, preset, onImported, onReset }: P
         </div>
       )}
 
-      <section className="rounded-xl border bg-card p-5 shadow-card">
+      <section className="min-w-0 rounded-xl border bg-card p-5 shadow-card">
         <h2 className="text-sm font-semibold">Match the columns</h2>
         <p className="mt-1 text-sm text-muted-foreground">For each field, pick the column in your file that holds it.</p>
         <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
           {FIELDS.map(({ field, label, hint }) => {
             const required = REQUIRED_FIELDS.includes(field)
             return (
-              <div key={field} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-center gap-3">
+              <div key={field} className="grid grid-cols-1 gap-1.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] sm:items-center sm:gap-3">
                 <Label htmlFor={`col-${field}`} className="flex flex-wrap items-baseline gap-x-1.5 font-normal">
                   {label}
                   {required && <span className="text-xs text-muted-foreground">(required)</span>}
@@ -108,7 +108,7 @@ export function ColumnMapper({ file, accountId, preset, onImported, onReset }: P
               </div>
             )
           })}
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-center gap-3">
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] sm:items-center sm:gap-3">
             <Label htmlFor="file-tz" className="flex flex-wrap items-baseline font-normal">
               Timezone of the times
               <span className="w-full text-xs text-muted-foreground">Exness uses UTC.</span>
@@ -164,7 +164,7 @@ function SaveMapping({ mapping }: { mapping: ColumnMapping }) {
   }
 
   return (
-    <section className="rounded-xl border bg-card p-5 shadow-card">
+    <section className="min-w-0 rounded-xl border bg-card p-5 shadow-card">
       <Label htmlFor="mapping-name">Save this mapping (optional)</Label>
       <p className="mt-1 text-sm text-muted-foreground">Next time, pick it from the list at the top.</p>
       <div className="mt-3 flex flex-wrap gap-2">
