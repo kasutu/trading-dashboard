@@ -169,6 +169,7 @@ All routes are under `/api`, take and return JSON (camelCase), and need a sessio
 | `GET /api/accounts/:id/cash-flows` | query: `tz` (default `UTC`) | `{ rows: LocalCashFlow[], summary: CashSummary, daily: CashDay[] }`. Rows newest first. `summary` and `daily` come from `engine::cash_report`; days are in `tz`. Not affected by the dashboard filters. |
 | `POST /api/accounts/:id/cash-flows` | `{ occurredAt, kind: "deposit" \| "withdrawal" \| "adjustment", amount, note? }` | `CashFlow`. `400` when `kind` is not deposit, withdrawal or adjustment, `amount` is not more than 0, or `note` is over 200 characters. An empty note is stored as `null`. |
 | `DELETE /api/accounts/:id/cash-flows/:flowId` | | `204`. `404` when the entry is not in this account. |
+| `POST /api/accounts/:id/cash-flows/bulk` | `{ ids: uuid[], action: "delete" \| "markInternal" \| "markExternal" }` | `{ affected }`. Entries of other accounts are left alone; marking skips adjustments. `400` for no ids, more than 1000, or another action. |
 | `GET /api/presets` (public) | | `{ exness: ColumnMapping }` |
 | `GET /api/mappings` | | `SavedMapping[]` |
 | `POST /api/mappings` | `{ name, mapping }` | `SavedMapping` |

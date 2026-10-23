@@ -263,6 +263,11 @@ async fn accounts_of_other_users_are_not_found() {
             Some(json!({ "occurredAt": "2026-08-01T09:00:00Z", "kind": "deposit", "amount": 1 })),
         ),
         (Method::DELETE, format!("{path}/cash-flows/{flow}"), None),
+        (
+            Method::POST,
+            format!("{path}/cash-flows/bulk"),
+            Some(json!({ "ids": [flow], "action": "delete" })),
+        ),
         (Method::GET, "/api/accounts/not-a-uuid/trades".into(), None),
     ] {
         let (s, v) = t.send(method.clone(), &path, bob, body).await;
@@ -747,6 +752,105 @@ async fn cash_flows_crud_and_summary() {
         .await
         .unwrap();
     assert_eq!(n, 0);
+}
+
+#[tokio::test]
+async fn cash_flow_bulk_actions() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let path = format!("/api/accounts/{id}/cash-flows");
+    let mut ids = vec![];
+    for kind in ["deposit", "withdrawal", "adjustment", "deposit"] {
+        let (_, f) = t
+            .post(
+                &path,
+                json!({ "occurredAt": "2026-08-01T09:00:00Z", "kind": kind, "amount": 10 }),
+            )
+            .await;
+        ids.push(f["id"].as_str().unwrap().to_string());
+    }
+    // Another user's entry.
+    let bob = Some(BOB_COOKIE);
+    let (_, other) = t
+        .send(
+            Method::POST,
+            "/api/accounts",
+            bob,
+            Some(json!({ "name": "Bob" })),
+        )
+        .await;
+    let other = other["id"].as_str().unwrap().to_string();
+    let (_, foreign) = t
+        .send(
+            Method::POST,
+            &format!("/api/accounts/{other}/cash-flows"),
+            bob,
+            Some(json!({ "occurredAt": "2026-08-01T09:00:00Z", "kind": "deposit", "amount": 5 })),
+        )
+        .await;
+    let foreign = foreign["id"].as_str().unwrap().to_string();
+    let bulk = format!("{path}/bulk");
+
+    // Marking skips the adjustment and the other account's entry.
+    let (s, v) = t
+        .post(
+            &bulk,
+            json!({ "ids": [&ids[0], &ids[1], &ids[2], &foreign], "action": "markInternal" }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(v, json!({ "affected": 2 }));
+    let (_, f) = t.get(&path).await;
+    assert_eq!(
+        f["summary"]["transfersIn"],
+        json!({ "count": 1, "total": 10.0 })
+    );
+    assert_eq!(
+        f["summary"]["transfersOut"],
+        json!({ "count": 1, "total": 10.0 })
+    );
+    let (_, v) = t
+        .post(&bulk, json!({ "ids": [&ids[0]], "action": "markExternal" }))
+        .await;
+    assert_eq!(v, json!({ "affected": 1 }));
+
+    let (_, v) = t
+        .post(
+            &bulk,
+            json!({ "ids": [&ids[0], &ids[2], &foreign], "action": "delete" }),
+        )
+        .await;
+    assert_eq!(v, json!({ "affected": 2 }));
+    let (_, f) = t.get(&path).await;
+    assert_eq!(f["rows"].as_array().unwrap().len(), 2);
+    let (_, f) = t
+        .send(
+            Method::GET,
+            &format!("/api/accounts/{other}/cash-flows"),
+            bob,
+            None,
+        )
+        .await;
+    assert_eq!(
+        f["rows"].as_array().unwrap().len(),
+        1,
+        "other user's entry untouched"
+    );
+
+    for (body, error) in [
+        (
+            json!({ "ids": [], "action": "delete" }),
+            "Choose at least one entry.",
+        ),
+        (
+            json!({ "ids": [&ids[1]], "action": "archive" }),
+            "Use delete, markInternal or markExternal for \"action\".",
+        ),
+    ] {
+        let (s, v) = t.post(&bulk, body.clone()).await;
+        assert_eq!(s, StatusCode::BAD_REQUEST, "{body}");
+        assert_eq!(v["error"], error);
+    }
 }
 
 #[tokio::test]
