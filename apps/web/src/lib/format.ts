@@ -111,6 +111,9 @@ export function tzLabel(tz: string) {
 /** Today as yyyy-mm-dd in the timezone. */
 export const today = (tz: string) => new Date().toLocaleDateString("en-CA", { timeZone: tz })
 
+/** Cash flow kinds as the app names them. */
+export const FLOW_LABELS = { deposit: "Deposit", withdrawal: "Withdrawal", adjustment: "Adjustment" } as const
+
 export const REASONS: Record<string, string> = { sl: "Stop loss", tp: "Take profit", user: "Manual", so: "Stop-out" }
 export const reasonLabel = (r: string) => REASONS[r] ?? (r || "Unknown")
 

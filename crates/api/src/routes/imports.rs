@@ -1,11 +1,15 @@
-//! CSV imports: list past imports, import a file.
+//! Imports: list past imports, import a CSV file or an MT5 report (`format: "mt5"`,
+//! see `mt5_import.rs`).
 
 use std::collections::{HashMap, HashSet};
 
 use axum::extract::{Path, State};
+use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Utc};
 use engine::{ColumnMapping, Field, ParseError};
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 
@@ -18,7 +22,7 @@ use crate::trade_row::{trade_key, upsert_trades, TradeKey};
 #[derive(Serialize, FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct Import {
-    id: Uuid,
+    pub id: Uuid,
     file_name: String,
     added: i32,
     duplicates: i32,
@@ -50,15 +54,35 @@ pub struct NewImport {
     mapping: ColumnMapping,
 }
 
-/// Parses the CSV and upserts its trades on their key (ticket, close time, lots, close price).
-/// Partial closes share a ticket and are kept as separate trades.
+/// `format` absent (or "csv"): a CSV file with a column mapping. "mt5": an MT5 report.
 pub async fn create(
     State(pool): State<PgPool>,
     UserId(user): UserId,
     Path(id): Path<String>,
-    Json(body): Json<NewImport>,
-) -> ApiResult<Json<Import>> {
+    Json(body): Json<Value>,
+) -> ApiResult<Response> {
     let id = owned_account(&pool, &user, &id).await?;
+    match body.get("format").and_then(Value::as_str) {
+        None | Some("csv") => {
+            Ok(Json(csv_import(&pool, id, from_body(body)?).await?).into_response())
+        }
+        Some("mt5") => {
+            Ok(Json(super::mt5_import::import(&pool, id, from_body(body)?).await?).into_response())
+        }
+        Some(_) => Err(ApiError::bad_request(
+            "Use \"mt5\" for \"format\", or leave it out for a CSV file.",
+        )),
+    }
+}
+
+fn from_body<T: DeserializeOwned>(body: Value) -> ApiResult<T> {
+    serde_json::from_value(body)
+        .map_err(|e| ApiError::bad_request(format!("The request body is not valid: {e}")))
+}
+
+/// Parses the CSV and upserts its trades on their key (ticket, close time, lots, close price).
+/// Partial closes share a ticket and are kept as separate trades.
+async fn csv_import(pool: &PgPool, id: Uuid, body: NewImport) -> ApiResult<Import> {
     let NewImport {
         file_name,
         csv,
@@ -112,7 +136,7 @@ pub async fn create(
     .fetch_one(&mut *tx)
     .await?;
     tx.commit().await?;
-    Ok(Json(import))
+    Ok(import)
 }
 
 /// A sentence the user can act on for each parse failure.

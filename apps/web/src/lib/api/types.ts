@@ -150,22 +150,49 @@ export type Analytics = FullAnalytics | (CoreAnalytics & { locked: true })
 export type AnalyticsResponse = Analytics | { empty: true }
 
 export type Me = { id: string; username: string; plan: "free" | "espresso" | "latte" | "owner" }
-export type Account = { id: string; name: string; broker: string | null; currency: string; createdAt: string; trades: number }
+/** `mtLogin`: the MetaTrader login, set by the first MT5 report import. */
+export type Account = { id: string; name: string; broker: string | null; currency: string; mtLogin: string | null; createdAt: string; trades: number }
 export type Import = { id: string; fileName: string; added: number; duplicates: number; skipped: number; createdAt: string }
 export type SavedMapping = { id: string; name: string; mapping: ColumnMapping; createdAt: string }
 export type TradePage = { rows: LocalTrade[]; total: number }
 
-export type FlowKind = "deposit" | "withdrawal"
-/** A deposit or withdrawal, entered by hand. `amount` is always positive. */
-export type CashFlow = { id: string; occurredAt: string; kind: FlowKind; amount: number; note: string | null; createdAt: string }
+/** "adjustment": money the broker put in that the trader did not send (a negative balance reset). Not a deposit. */
+export type FlowKind = "deposit" | "withdrawal" | "adjustment"
+/** A deposit, withdrawal or adjustment. `amount` is always positive. `sourceId`: the MT5 deal ticket when imported, null when entered by hand. */
+export type CashFlow = { id: string; occurredAt: string; kind: FlowKind; amount: number; note: string | null; sourceId: string | null; createdAt: string }
 /** With `day` (yyyy-mm-dd of `occurredAt` in the requested timezone). */
 export type LocalCashFlow = CashFlow & { day: string }
 export type FlowTotal = { count: number; total: number }
-export type CashSummary = { deposits: FlowTotal; withdrawals: FlowTotal; net: number }
-/** One day with cash flows. `withdrawals` is positive; `cumulative` is the net deposited so far. */
-export type CashDay = { day: string; deposits: number; withdrawals: number; net: number; cumulative: number }
+/** `net` = deposits - withdrawals; adjustments are kept apart. */
+export type CashSummary = { deposits: FlowTotal; withdrawals: FlowTotal; adjustments: FlowTotal; net: number }
+/** One day with cash flows. `withdrawals` is positive; `cumulative` is the net deposited so far (adjustments left out). */
+export type CashDay = { day: string; deposits: number; withdrawals: number; adjustments: number; net: number; cumulative: number }
 /** GET /accounts/:id/cash-flows. Rows newest first, `daily` oldest first. */
 export type CashFlows = { rows: LocalCashFlow[]; summary: CashSummary; daily: CashDay[] }
+
+/** POST /accounts/:id/imports with `format: "mt5"`. `import` is null on a dry run. */
+export type Mt5ImportResult = {
+  dryRun: boolean
+  import: Import | null
+  account: { login: string; server: string | null; kind: string | null; currency: string | null; company: string | null }
+  /** First and last time in the report (ISO, UTC); null when it is empty. */
+  from: string | null
+  to: string | null
+  positions: number
+  totalNet: number | null
+  trades: { added: number; duplicates: number }
+  cashFlows: {
+    added: number
+    duplicates: number
+    /** Every balance operation in the report. */
+    summary: CashSummary
+    /** Hand-entered flows with the same kind and amount within a day of an imported one. */
+    possibleManualDuplicates: Pick<CashFlow, "id" | "occurredAt" | "kind" | "amount" | "note">[]
+  }
+  /** Deals not imported, by type: { credit: 1 } */
+  skippedDeals: Record<string, number>
+  skippedRows: number
+}
 
 // Journal. Source of truth: docs/journal-data.md.
 

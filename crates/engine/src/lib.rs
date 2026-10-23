@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 mod cash;
 pub mod journal;
+pub mod mt5;
 mod optimize;
 mod overtrade;
 mod parse;
@@ -132,6 +133,20 @@ pub enum ParseError {
 /// Side: "buy"/"long" -> Buy, "sell"/"short" -> Sell (case-insensitive). Missing -> Buy.
 pub fn parse_csv(text: &str, mapping: &ColumnMapping) -> Result<ParseOutput, ParseError> {
     parse::parse_csv(text, mapping)
+}
+
+pub use mt5::{Mt5Account, Mt5CashFlow, Mt5Error, Mt5Report};
+
+/// Parse a MetaTrader 5 trade history report (HTML, already decoded to text; see
+/// [`mt5::decode`]). Times in the report are broker server time, read in `server_tz`
+/// (an IANA name; Exness servers run on UTC). See [`mt5`] for the mapping.
+pub fn parse_mt5_report(text: &str, server_tz: &str) -> Result<Mt5Report, Mt5Error> {
+    mt5::parse(text, server_tz)
+}
+
+/// True when the text looks like an MT5 trade history report rather than a CSV file.
+pub fn is_mt5_report(text: &str) -> bool {
+    mt5::is_report(text)
 }
 
 // ---------------------------------------------------------------------------
@@ -505,9 +520,12 @@ pub struct LocalTrade<'a> {
 pub enum FlowKind {
     Deposit,
     Withdrawal,
+    /// Money the broker put in that the trader did not send, such as a negative balance
+    /// reset after a stop out (Exness `D-NULL`). Not counted as a deposit.
+    Adjustment,
 }
 
-/// Money moved into or out of the account, entered by the user. Not a trade.
+/// Money moved into or out of the account, entered by the user or imported. Not a trade.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CashFlow {
@@ -530,6 +548,8 @@ pub struct FlowTotal {
 pub struct CashSummary {
     pub deposits: FlowTotal,
     pub withdrawals: FlowTotal,
+    /// Broker adjustments. Kept apart: not part of `net`.
+    pub adjustments: FlowTotal,
     /// Deposits minus withdrawals.
     pub net: f64,
 }
@@ -543,6 +563,8 @@ pub struct CashDay {
     pub deposits: f64,
     /// Positive: the total taken out that day.
     pub withdrawals: f64,
+    /// Broker adjustments that day (not part of `net`).
+    pub adjustments: f64,
     /// deposits - withdrawals
     pub net: f64,
     /// Net deposited up to and including this day.
@@ -557,7 +579,7 @@ pub struct CashReport {
     pub daily: Vec<CashDay>,
 }
 
-/// Totals and the per-day timeline of deposits and withdrawals. Days are in `tz`
+/// Totals and the per-day timeline of deposits, withdrawals and adjustments. Days are in `tz`
 /// (an IANA name; an unknown name falls back to UTC).
 pub fn cash_report(flows: &[CashFlow], tz: &str) -> CashReport {
     cash::report(flows, tz.parse().unwrap_or(Tz::UTC))

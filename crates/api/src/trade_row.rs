@@ -127,3 +127,46 @@ pub async fn upsert_trades(
     .await?;
     Ok(())
 }
+
+/// Inserts trades with their comments (ticket → comment), leaving rows that already exist
+/// untouched. Used by the MT5 report import.
+pub async fn insert_trades(
+    tx: &mut Transaction<'_, Postgres>,
+    account_id: Uuid,
+    trades: &[Trade],
+    comments: &std::collections::BTreeMap<String, String>,
+) -> Result<(), sqlx::Error> {
+    macro_rules! col {
+        ($f:expr) => {
+            trades.iter().map($f).collect::<Vec<_>>()
+        };
+    }
+    sqlx::query(
+        "insert into trades (account_id, ticket, opened_at, closed_at, side, lots, symbol,
+            open_price, close_price, stop_loss, take_profit, commission, swap, profit, close_reason,
+            comment)
+         select $1, * from unnest($2::text[], $3::timestamptz[], $4::timestamptz[], $5::text[],
+            $6::float8[], $7::text[], $8::float8[], $9::float8[], $10::float8[], $11::float8[],
+            $12::float8[], $13::float8[], $14::float8[], $15::text[], $16::text[])
+         on conflict do nothing",
+    )
+    .bind(account_id)
+    .bind(col!(|t| t.ticket.clone()))
+    .bind(col!(|t| t.open))
+    .bind(col!(|t| t.close))
+    .bind(col!(|t| side_text(t.side)))
+    .bind(col!(|t| t.lots))
+    .bind(col!(|t| t.symbol.clone()))
+    .bind(col!(|t| t.open_price))
+    .bind(col!(|t| t.close_price))
+    .bind(col!(|t| t.sl))
+    .bind(col!(|t| t.tp))
+    .bind(col!(|t| t.commission))
+    .bind(col!(|t| t.swap))
+    .bind(col!(|t| t.profit))
+    .bind(col!(|t| t.reason.clone()))
+    .bind(col!(|t| comments.get(&t.ticket).cloned()))
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}

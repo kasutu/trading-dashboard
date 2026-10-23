@@ -6,6 +6,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cashFlowsPath, invalidate } from "@/hooks/use-api"
 import { api } from "@/lib/api/client"
 import type { CashFlow, FlowKind } from "@/lib/api/types"
+import { FLOW_LABELS } from "@/lib/format"
 
 /** The browser's local time now, in the format of a datetime-local input. */
 function nowLocal() {
@@ -17,7 +18,7 @@ function nowLocal() {
 const kindItem =
   "h-10 flex-1 rounded-full px-3 text-[13px] sm:h-8 text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm dark:data-[state=on]:bg-popover"
 
-/** Adds a deposit or withdrawal. The time is read in the browser's timezone. */
+/** Adds a deposit, withdrawal or adjustment. The time is read in the browser's timezone. */
 export function CashFlowForm({ accountId, onAdded }: { accountId: string; onAdded?: (f: CashFlow) => void }) {
   const [kind, setKind] = React.useState<FlowKind>("deposit")
   const [when, setWhen] = React.useState(nowLocal)
@@ -60,11 +61,15 @@ export function CashFlowForm({ accountId, onAdded }: { accountId: string; onAdde
         className="w-full rounded-full bg-muted p-0.5"
         value={kind}
         onValueChange={(v) => v && setKind(v as FlowKind)}
-        aria-label="Deposit or withdrawal"
+        aria-label="Kind"
       >
-        <ToggleGroupItem value="deposit" className={kindItem}>Deposit</ToggleGroupItem>
-        <ToggleGroupItem value="withdrawal" className={kindItem}>Withdrawal</ToggleGroupItem>
+        {(["deposit", "withdrawal", "adjustment"] as const).map((k) => (
+          <ToggleGroupItem key={k} value={k} className={kindItem}>{FLOW_LABELS[k]}</ToggleGroupItem>
+        ))}
       </ToggleGroup>
+      {kind === "adjustment" && (
+        <p className="-mt-2 text-xs text-muted-foreground">Money the broker put in that you did not send, such as a negative balance reset. Kept apart from deposits.</p>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="flow-amount">Amount</Label>
@@ -81,7 +86,7 @@ export function CashFlowForm({ accountId, onAdded }: { accountId: string; onAdde
       </div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <div className="flex justify-end">
-        <Button type="submit" disabled={busy}>{busy ? "Adding…" : kind === "deposit" ? "Add deposit" : "Add withdrawal"}</Button>
+        <Button type="submit" disabled={busy}>{busy ? "Adding…" : `Add ${FLOW_LABELS[kind].toLowerCase()}`}</Button>
       </div>
     </form>
   )

@@ -21,11 +21,13 @@ pub struct Account {
     name: String,
     broker: Option<String>,
     currency: String,
+    /// The MetaTrader login, set by the first MT5 report import.
+    mt_login: Option<String>,
     created_at: DateTime<Utc>,
     trades: i64,
 }
 
-const SELECT: &str = "select a.id, a.name, a.broker, a.currency, a.created_at,
+const SELECT: &str = "select a.id, a.name, a.broker, a.currency, a.mt_login, a.created_at,
     (select count(*) from trades t where t.account_id = a.id) as trades
     from trading_accounts a";
 
