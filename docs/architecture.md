@@ -237,9 +237,9 @@ Billing (a payment provider) is not built yet. Every new user is on `free`. To p
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list, deposits and withdrawals, the journal (trade and day reviews, setups and mistake tags). Share card with "Made with Jurno". |
+| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list, deposits and withdrawals, the journal (trade and day reviews, setups and mistake tags). Share images of the stats, the calendar month and single trades, with the site address, a QR code to it and a "Track your trades free" line. |
 | Espresso | $9 / month | Everything in Free. Notes (the automatic insights and what the journal says: P&L by setup, grade, mistake, plan and mood), Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
-| Latte | $15 / month | Everything in Espresso. Up to 5 trading accounts. Share card without the footer. |
+| Latte | $15 / month | Everything in Espresso. Up to 5 trading accounts. Share images without the "Track your trades free" line (the address and QR code stay). |
 
 Yearly billing: 10 months' price for 12 months.
 

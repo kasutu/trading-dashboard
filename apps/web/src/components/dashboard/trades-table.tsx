@@ -1,6 +1,7 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { TradeChartButton } from "@/components/charts/trade-chart-dialog"
+import { TradeShareButton } from "./trade-share"
 import { TradeReviewCell } from "@/components/journal/trade-review-cell"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -36,7 +37,7 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
             <TableHead>Closed by</TableHead>
             <TableHead className="pr-5 text-right">Net P&L</TableHead>
             <TableHead className="w-px pr-3"><span className="sr-only">Review</span></TableHead>
-            <TableHead className="w-10 pr-3"><span className="sr-only">Chart</span></TableHead>
+            <TableHead className="w-10 pr-3"><span className="sr-only">Chart and share</span></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -63,7 +64,12 @@ export function TradesTable({ accountId, filters }: { accountId: string; filters
               <TableCell><ReasonPill reason={t.reason} /></TableCell>
               <TableCell className={cn("pr-5", num, pnlClass(t.net))}>{money(t.net, true)}</TableCell>
               <TableCell className="py-1 pr-3"><TradeReviewCell ticket={t.ticket} /></TableCell>
-              <TableCell className="py-0 pr-3"><TradeChartButton compact accountId={accountId} trade={t} tz={tz} /></TableCell>
+              <TableCell className="py-0 pr-3">
+                <div className="flex items-center">
+                  <TradeChartButton compact accountId={accountId} trade={t} tz={tz} />
+                  <TradeShareButton accountId={accountId} trade={t} tz={tz} />
+                </div>
+              </TableCell>
             </TableRow>
             </React.Fragment>
           ))}

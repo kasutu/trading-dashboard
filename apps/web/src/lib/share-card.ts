@@ -41,7 +41,7 @@ export function drawShareCard(canvas: HTMLCanvasElement, d: ShareData) {
   curve(ctx, d.curve, { x: Math.max(PAD + w + 60, 620), y: 150, w: 0, h: 210 }, tone(d.net))
 
   // Stats row
-  const top = 418
+  const top = 404
   ctx.fillStyle = C.line
   ctx.fillRect(PAD, top, CARD_W - PAD * 2, 1)
   const stats: [string, string, string][] = [

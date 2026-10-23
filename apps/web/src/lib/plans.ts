@@ -18,7 +18,7 @@ export const PLANS: Plan[] = [
       "Full trade list",
       "Journal: review each trade with a swipe, plus setups, mistakes and notes",
       "Deposits and withdrawals",
-      "Share card with a “Made with Jurno” footer",
+      "Share images of your stats, calendar and trades",
     ],
   },
   {
@@ -42,7 +42,7 @@ export const PLANS: Plan[] = [
     name: "Latte",
     monthly: 15,
     summary: "For traders with more than one trading account.",
-    features: ["Everything in Espresso", "Up to 5 trading accounts", "Share card without the footer"],
+    features: ["Everything in Espresso", "Up to 5 trading accounts", "Share images without the “Track your trades free” line"],
   },
 ]
 
