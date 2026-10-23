@@ -1,7 +1,7 @@
 import { Area, AreaChart, CartesianGrid, ReferenceDot, ReferenceLine, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart"
 import { formatDateTime, money, pnlClass } from "@/lib/format"
-import type { EquityPoint, LocalCashFlow } from "@/lib/api/types"
+import type { EquityPoint } from "@/lib/api/types"
 import { chartConfig, type TipRow } from "./chart-config"
 import { ChartTip } from "./chart-tip"
 
@@ -9,35 +9,8 @@ const TAG_W = 76 // right margin for the value tags
 
 const toneOf = (v: number) => (v >= 0 ? "var(--profit)" : "var(--loss)")
 
-/** Deposits and withdrawals between two trades, placed on the first trade that closed after them. */
-type FlowMark = { n: number; equity: number; deposits: number; withdrawals: number }
-
-/** Cash flows inside the span of the curve, grouped on the next trade. Flows before the first
- *  or after the last trade have no point to sit on and are left out. */
-function flowMarks(data: EquityPoint[], flows: LocalCashFlow[]): FlowMark[] {
-  const marks = new Map<number, FlowMark>()
-  for (const f of flows) {
-    // Broker adjustments (cents after a stop out) are left off the curve.
-    if (f.kind === "adjustment") continue
-    const t = Date.parse(f.occurredAt)
-    if (t < data[0].time) continue
-    const p = data.find((d) => d.time >= t)
-    if (!p) continue
-    const m = marks.get(p.n) ?? { n: p.n, equity: p.equity, deposits: 0, withdrawals: 0 }
-    if (f.kind === "deposit") m.deposits += f.amount
-    else m.withdrawals += f.amount
-    marks.set(p.n, m)
-  }
-  return [...marks.values()]
-}
-
-const flowColor = (m: FlowMark) => (m.deposits >= m.withdrawals ? "var(--deposit)" : "var(--withdrawal)")
-
-/** Cumulative net P&L, one point per closed trade. Marks the highest and lowest points, and the
- *  trades that came right after a deposit or withdrawal (the curve itself leaves those out). */
-export function EquityChart({ data, tz, flows = [] }: { data: EquityPoint[]; tz: string; flows?: LocalCashFlow[] }) {
-  const cash = flowMarks(data, flows)
-  const cashAt = new Map(cash.map((m) => [m.n, m]))
+/** Cumulative net P&L, one point per closed trade. Marks the highest and lowest points. */
+export function EquityChart({ data, tz }: { data: EquityPoint[]; tz: string }) {
   const color = toneOf(data.at(-1)?.equity ?? 0)
   const high = data.reduce((a, b) => (b.equity > a.equity ? b : a))
   const low = data.reduce((a, b) => (b.equity < a.equity ? b : a))
@@ -73,43 +46,21 @@ export function EquityChart({ data, tz, flows = [] }: { data: EquityPoint[]; tz:
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null
               const d = payload[0].payload as EquityPoint
-              const c = cashAt.get(d.n)
               const rows: TipRow[] = [
                 ["Equity", money(d.equity, true), pnlClass(d.equity)],
                 ["Trade", `${d.n} of ${data.length}`],
                 ["This trade", money(d.net, true), pnlClass(d.net)],
                 ["Drawdown", money(d.drawdown), d.drawdown < 0 ? "text-loss" : undefined],
               ]
-              if (c?.deposits) rows.push(["Deposited before it", `+${money(c.deposits)}`, "text-deposit"])
-              if (c?.withdrawals) rows.push(["Withdrawn before it", `−${money(c.withdrawals)}`, "text-withdrawal"])
               return <ChartTip title={formatDateTime(new Date(d.time).toISOString(), tz)} rows={rows} />
             }}
           />
           <Area type="monotone" dataKey="equity" stroke={color} strokeWidth={2} fill="url(#equity-fill)" dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
 
-          {/* Deposits and withdrawals: a faint line through the trade after them, and a ring on the curve */}
-          {cash.map((m) => (
-            <ReferenceLine key={`l${m.n}`} x={m.n} stroke={flowColor(m)} strokeOpacity={0.35} strokeDasharray="2 3" />
-          ))}
-          {cash.map((m) => (
-            <ReferenceDot key={`d${m.n}`} ifOverflow="visible" x={m.n} y={m.equity} r={4} fill="var(--card)" stroke={flowColor(m)} strokeWidth={2} />
-          ))}
-
           {marks && <ReferenceDot ifOverflow="visible" x={high.n} y={high.equity} r={4} fill={toneOf(high.equity)} stroke="var(--card)" strokeWidth={2} label={{ value: "High", position: side(high), offset: 8, ...wordStyle }} />}
           {marks && <ReferenceDot ifOverflow="visible" x={low.n} y={low.equity} r={4} fill={toneOf(low.equity)} stroke="var(--card)" strokeWidth={2} label={{ value: "Low", position: side(low), offset: 8, ...wordStyle }} />}
         </AreaChart>
       </ChartContainer>
-      {cash.length > 0 && (
-        <p className="flex flex-wrap justify-end gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          {(["deposit", "withdrawal"] as const).map((k) => (
-            <span key={k} className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full border-2" style={{ borderColor: `var(--${k})` }} />
-              {k === "deposit" ? "Deposit" : "Withdrawal"}
-            </span>
-          ))}
-          <span>Cash moved, not part of the P&L</span>
-        </p>
-      )}
     </div>
   )
 }

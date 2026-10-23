@@ -98,7 +98,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
           </div>
         ) : (
           <>
-            <SummaryCard a={a} tz={filters.tz} flows={flows?.rows} />
+            <SummaryCard a={a} tz={filters.tz} />
             <Tabs value={tabValue} onValueChange={setTab} className="gap-4 sm:gap-5">
               <TabsList ref={tabs} className={tabList}>
                 {trigger("overview", "Overview")}

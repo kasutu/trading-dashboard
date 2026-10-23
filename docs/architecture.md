@@ -202,7 +202,7 @@ Mt5ImportResult = {
 }
 ```
 
-Deposits, withdrawals and adjustments are on every plan. They are not trades: they never change the P&L numbers. The web app shows them in the Funding tab, and deposits and withdrawals as markers on the equity curve (adjustments are left off the curve: they are cents after a stop out). An adjustment is money the broker put in that the trader did not send, such as Exness's negative balance reset (`D-NULL`); it is not counted in net deposited.
+Deposits, withdrawals and adjustments are on every plan. They are not trades: they never change the P&L numbers. The web app shows them in the Funding tab; the equity curve leaves them off. An adjustment is money the broker put in that the trader did not send, such as Exness's negative balance reset (`D-NULL`); it is not counted in net deposited.
 
 Every route that takes `:id` checks that the account belongs to the session user (404 otherwise).
 
