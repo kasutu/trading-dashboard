@@ -160,3 +160,52 @@ pub async fn remove(
     }
     Ok(StatusCode::NO_CONTENT)
 }
+
+/// Most entries one bulk request may touch.
+const MAX_BULK: usize = 1000;
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BulkRequest {
+    ids: Vec<Uuid>,
+    action: String,
+}
+
+/// Several entries at once: `delete`, `markInternal` or `markExternal`. Entries of other
+/// accounts are not touched; adjustments are never internal, so marking skips them.
+/// Returns `{ affected }`.
+pub async fn bulk(
+    State(pool): State<PgPool>,
+    UserId(user): UserId,
+    Path(id): Path<String>,
+    Json(body): Json<BulkRequest>,
+) -> ApiResult<Json<Value>> {
+    let id = owned_account(&pool, &user, &id).await?;
+    if body.ids.is_empty() {
+        return Err(ApiError::bad_request("Choose at least one entry."));
+    }
+    if body.ids.len() > MAX_BULK {
+        return Err(ApiError::bad_request(format!(
+            "Choose at most {MAX_BULK} entries at a time."
+        )));
+    }
+    let query = match body.action.as_str() {
+        "delete" => sqlx::query("delete from cash_flows where account_id = $1 and id = any($2)"),
+        "markInternal" | "markExternal" => sqlx::query(
+            "update cash_flows set internal = $3
+             where account_id = $1 and id = any($2) and kind <> 'adjustment'",
+        ),
+        _ => {
+            return Err(ApiError::bad_request(
+                "Use delete, markInternal or markExternal for \"action\".",
+            ))
+        }
+    };
+    let done = query
+        .bind(id)
+        .bind(&body.ids)
+        .bind(body.action == "markInternal")
+        .execute(&pool)
+        .await?;
+    Ok(Json(json!({ "affected": done.rows_affected() })))
+}
