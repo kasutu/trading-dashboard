@@ -1,11 +1,11 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { MetricBlock } from "@/components/dashboard/panel"
 import { Button } from "@/components/ui/button"
 import { useTrades } from "@/hooks/use-api"
 import type { Filters, LocalTrade } from "@/lib/api/types"
 import { addMonths, monthGrid, monthOf, monthTitle } from "@/lib/calendar"
-import { WEEKDAYS, money, plural, pnlClass, today } from "@/lib/format"
-import { cn } from "@/lib/utils"
+import { WEEKDAYS, money, plural, today } from "@/lib/format"
 import { CalendarDay } from "./calendar-day"
 import { CalendarShare } from "./calendar-share"
 import { DaySheet } from "./day-sheet"
@@ -35,24 +35,27 @@ export function TradeCalendar({ accountId, filters, period }: Props) {
   const monthNet = inMonth.reduce((s, t) => s + t.net, 0)
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <h4 className="font-display text-lg font-bold">{monthTitle(month)}</h4>
-        <div className="ml-1 flex gap-1">
-          <Button variant="outline" size="icon" className="size-8" disabled={month <= first} onClick={() => setPicked(addMonths(month, -1))} aria-label="Previous month">
+    <div className="space-y-4">
+      {/* The month's net P&L is the headline; the arrows move between months. */}
+      <div className="flex items-start gap-2">
+        <h4 className="sr-only">{monthTitle(month)}</h4>
+        <MetricBlock
+          className="min-w-0 flex-1"
+          metric={{
+            value: inMonth.length ? money(monthNet, true) : "—",
+            tone: inMonth.length ? monthNet : undefined,
+            label: `${monthTitle(month)} · ${inMonth.length ? plural(inMonth.length, "trade") : "no trades"}`,
+          }}
+        />
+        <div className="-mr-2 flex flex-none sm:mr-0 sm:gap-1">
+          <Button variant="ghost" size="icon-sm" disabled={month <= first} onClick={() => setPicked(addMonths(month, -1))} aria-label="Previous month">
             <ChevronLeft />
           </Button>
-          <Button variant="outline" size="icon" className="size-8" disabled={month >= last} onClick={() => setPicked(addMonths(month, 1))} aria-label="Next month">
+          <Button variant="ghost" size="icon-sm" disabled={month >= last} onClick={() => setPicked(addMonths(month, 1))} aria-label="Next month">
             <ChevronRight />
           </Button>
           {data && <CalendarShare month={month} grid={grid} byDay={byDay} filters={filters} />}
         </div>
-        {inMonth.length > 0 && (
-          <p className="ml-auto text-right text-sm text-muted-foreground">
-            <span className={cn("font-mono font-medium tabular-nums", pnlClass(monthNet))}>{money(monthNet, true)}</span>
-            <span className="hidden sm:inline"> · {plural(inMonth.length, "trade")}</span>
-          </p>
-        )}
       </div>
 
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}

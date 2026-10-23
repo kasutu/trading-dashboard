@@ -34,7 +34,7 @@ export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   }
 
   return (
-    <div className="mx-auto max-w-sm pt-10 pb-16 sm:pt-16">
+    <div className="mx-auto max-w-sm pt-6 pb-12 sm:pt-16 sm:pb-16">
       <h1 className="font-display text-3xl font-bold tracking-tight">{signUp ? "Create your account" : "Sign in"}</h1>
       <p className="mt-2 text-muted-foreground">
         {signUp ? "Free. You only need a username and a password." : "Welcome back. Enter your username and password."}

@@ -2,6 +2,7 @@ import { CircleCheck, CircleAlert } from "lucide-react"
 import { CompareChart } from "@/components/charts/compare-chart"
 import { Panel } from "@/components/dashboard/panel"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useNarrow } from "@/hooks/use-media"
 import type { Comparison, FocusItem, Optimization } from "@/lib/api/types"
 import { WEEKDAYS, formatPeriod, hourLabel, money, pct, plural, pnlClass } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -17,11 +18,24 @@ export function Plan({ opt }: { opt: Optimization | null }) {
 
   const range = formatPeriod
   const testGain = opt.test.withRules.net - opt.test.actual.net
+  const allGain = opt.all.withRules.net - opt.all.actual.net
+  const tested = opt.focus.filter((f) => f.test.trades > 0)
+  const held = tested.filter((f) => f.test.net > 0).length
+  const limits = [opt.rules.skipHours.length, opt.rules.skipWeekdays.length, opt.rules.cap !== null, opt.rules.lossLimit !== null].filter(Boolean).length
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <Panel
         title="Focus on"
+        metric={
+          opt.focus.length
+            ? {
+                value: tested.length ? `${held} of ${tested.length}` : plural(opt.focus.length, "idea"),
+                tone: tested.length ? (held * 2 >= tested.length ? "profit" : "loss") : undefined,
+                label: tested.length ? "Held on the test days" : "Not traded on the test days yet",
+              }
+            : undefined
+        }
         description={`What made money on ${range(opt.trainDays)}. The test line shows if it held on ${range(opt.testDays)}.`}
         className="lg:col-span-3"
       >
@@ -30,30 +44,43 @@ export function Plan({ opt }: { opt: Optimization | null }) {
 
       <Panel
         title="Limit these"
-        description={`Jurno tested ${opt.tested} sets of limits and kept the one with the highest net P&L. Each set keeps 40% or more of your trades.`}
+        metric={{ value: limits ? plural(limits, "limit") : "No limits", label: `Best of ${opt.tested} sets tested` }}
+        description="Jurno kept the set with the highest net P&L. Each set keeps 40% or more of your trades."
       >
         <RuleList rules={opt.rules} />
       </Panel>
 
       <Panel
         title="Test on new days"
-        description={`The limits were not fitted to ${range(opt.testDays)}. Use these days to judge them.`}
+        metric={{
+          value: money(testGain, true),
+          tone: testGain,
+          label: "Change on the test days",
+          stats: [["Actual", money(opt.test.actual.net, true)], ["With limits", money(opt.test.withRules.net, true)]],
+        }}
+        description={
+          <>
+            The limits were not fitted to {range(opt.testDays)}.{" "}
+            {testGain > 0
+              ? "They also helped on these days: a good sign that they are not only a fit to old data."
+              : "They did not help on these days. They probably fit noise in the old data. Collect more trades and check again."}
+            {opt.all.withRules.net < 0 && " Your net P&L stays negative with these limits. They reduce losses but do not make the strategy profitable."}
+          </>
+        }
         className="lg:col-span-2"
-      >
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Big label="Actual" value={money(opt.test.actual.net, true)} tone={pnlClass(opt.test.actual.net)} />
-          <Big label="With limits" value={money(opt.test.withRules.net, true)} tone={pnlClass(opt.test.withRules.net)} />
-          <Big label="Change" value={money(testGain, true)} tone={pnlClass(testGain)} emphasis />
-        </div>
-        <p className="mt-4 text-sm text-muted-foreground">
-          {testGain > 0
-            ? "The limits also helped on the test days. This is a good sign that they are not only a fit to old data."
-            : "The limits did not help on the test days. They probably fit noise in the old data. Collect more trades and check again."}
-          {opt.all.withRules.net < 0 && " Your net P&L stays negative with these limits. They reduce losses but do not make the strategy profitable."}
-        </p>
-      </Panel>
+      />
 
-      <Panel title="Net P&L with and without the limits" description="Cumulative, by day" className="lg:col-span-3">
+      <Panel
+        title="Net P&L with and without the limits"
+        metric={{
+          value: money(opt.all.withRules.net, true),
+          tone: opt.all.withRules.net,
+          label: "With limits, all days",
+          stats: [["Actual", money(opt.all.actual.net, true)]],
+        }}
+        description="Cumulative, by day."
+        className="lg:col-span-3"
+      >
         <CompareChart data={opt.curve} splitDay={opt.splitDay} />
         <div className="mt-3 flex gap-5 text-xs text-muted-foreground">
           <Legend className="bg-brand" label="With limits" />
@@ -61,11 +88,13 @@ export function Plan({ opt }: { opt: Optimization | null }) {
         </div>
       </Panel>
 
-      <Panel title="Results by period" className="lg:col-span-3">
+      <Panel
+        title="Results by period"
+        metric={{ value: money(allGain, true), tone: allGain, label: "Change on all days" }}
+        description="The test assumes each trade is independent. Past results do not guarantee future results."
+        className="lg:col-span-3"
+      >
         <ResultsTable rows={[["Fit days", opt.train], ["Test days", opt.test], ["All days", opt.all]]} />
-        <p className="mt-3 text-xs text-muted-foreground">
-          The test assumes each trade is independent. Past results do not guarantee future results.
-        </p>
       </Panel>
     </div>
   )
@@ -78,21 +107,21 @@ function FocusList({ items }: { items: FocusItem[] }) {
   if (!items.length)
     return <p className="text-sm text-muted-foreground">No hour, weekday, symbol or holding time made money on the fit days.</p>
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((f) => {
         const held = f.test.net > 0
         return (
-          <div key={f.kind} className="rounded-lg border border-profit/30 bg-profit/5 p-4">
-            <p className="text-sm text-muted-foreground">{FOCUS_LABEL[f.kind]}</p>
-            <p className="mt-1 font-display text-xl font-bold text-profit">{focusValue(f)}</p>
-            <dl className="mt-3 space-y-1 text-xs">
+          <div key={f.kind} className="min-w-0 border-t pt-4">
+            <p className="text-xs text-muted-foreground">{FOCUS_LABEL[f.kind]}</p>
+            <p className="mt-0.5 font-medium break-words">{focusValue(f)}</p>
+            <dl className="mt-2 space-y-1 text-xs">
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Fit days</dt>
-                <dd className="font-mono tabular-nums">{money(f.fit.net, true)} · {plural(f.fit.trades, "trade")}</dd>
+                <dd className="tabular-nums">{money(f.fit.net, true)} · {plural(f.fit.trades, "trade")}</dd>
               </div>
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Test days</dt>
-                <dd className={cn("flex items-center gap-1 font-mono tabular-nums", f.test.trades ? pnlClass(f.test.net) : "text-muted-foreground")}>
+                <dd className={cn("flex items-center gap-1 tabular-nums", f.test.trades ? pnlClass(f.test.net) : "text-muted-foreground")}>
                   {f.test.trades ? money(f.test.net, true) : "No trades"}
                   {f.test.trades > 0 && (held ? <CircleCheck className="size-3.5" aria-label="Held" /> : <CircleAlert className="size-3.5" aria-label="Did not hold" />)}
                 </dd>
@@ -117,25 +146,10 @@ function RuleList({ rules }: { rules: Optimization["rules"] }) {
       {items.map(([label, value]) => (
         <li key={label} className="py-3 first:pt-0 last:pb-0">
           <p className="text-xs text-muted-foreground">{label}</p>
-          {value ? (
-            <p className="mt-1 text-sm font-medium">{value}</p>
-          ) : (
-            <p className="mt-1 text-sm text-muted-foreground">No change</p>
-          )}
+          {value ? <p className="mt-0.5 text-sm">{value}</p> : <p className="mt-0.5 text-sm text-muted-foreground">No change</p>}
         </li>
       ))}
     </ul>
-  )
-}
-
-function Big({ label, value, tone, emphasis }: { label: string; value: string; tone: string; emphasis?: boolean }) {
-  return (
-    <div className={cn("rounded-lg border p-4", emphasis ? "border-brand/50 bg-brand/10" : "bg-background/50")}>
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className={cn("mt-1 font-display text-2xl font-bold", tone)}>
-        {value}
-      </p>
-    </div>
   )
 }
 
@@ -149,17 +163,39 @@ function Legend({ className, label }: { className: string; label: string }) {
 
 const num = "text-right font-mono tabular-nums"
 
+/** A table from md, a list on phones. */
 function ResultsTable({ rows }: { rows: [string, Comparison][] }) {
+  const narrow = useNarrow()
+  if (narrow)
+    return (
+      <ul className="divide-y">
+        {rows.map(([label, { actual, withRules }]) => {
+          const gain = withRules.net - actual.net
+          return (
+            <li key={label} className="py-3 first:pt-0 last:pb-0">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-sm">{label}</span>
+                <span className={cn("font-mono text-sm tabular-nums", pnlClass(gain))}>{money(gain, true)}</span>
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                {money(actual.net, true)} → {money(withRules.net, true)} · {actual.trades} → {withRules.trades} trades · {pct(actual.winRate)} → {pct(withRules.winRate)} won
+              </p>
+            </li>
+          )
+        })}
+      </ul>
+    )
+  const head = "text-xs font-normal text-muted-foreground"
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead className="px-0">Period</TableHead>
-          <TableHead className="text-right">Trades</TableHead>
-          <TableHead className="text-right">Win rate</TableHead>
-          <TableHead className="text-right">Actual</TableHead>
-          <TableHead className="text-right">With limits</TableHead>
-          <TableHead className="pr-0 text-right">Change</TableHead>
+        <TableRow className="hover:bg-transparent">
+          <TableHead className={cn(head, "px-0")}>Period</TableHead>
+          <TableHead className={cn(head, "text-right")}>Trades</TableHead>
+          <TableHead className={cn(head, "text-right")}>Win rate</TableHead>
+          <TableHead className={cn(head, "text-right")}>Actual</TableHead>
+          <TableHead className={cn(head, "text-right")}>With limits</TableHead>
+          <TableHead className={cn(head, "pr-0 text-right")}>Change</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -167,11 +203,11 @@ function ResultsTable({ rows }: { rows: [string, Comparison][] }) {
           const gain = withRules.net - actual.net
           return (
             <TableRow key={label}>
-              <TableCell className="px-0 font-medium">{label}</TableCell>
-              <TableCell className={num}>{actual.trades} → {withRules.trades}</TableCell>
-              <TableCell className={num}>{pct(actual.winRate)} → {pct(withRules.winRate)}</TableCell>
-              <TableCell className={cn(num, pnlClass(actual.net))}>{money(actual.net, true)}</TableCell>
-              <TableCell className={cn(num, pnlClass(withRules.net))}>{money(withRules.net, true)}</TableCell>
+              <TableCell className="px-0">{label}</TableCell>
+              <TableCell className={cn(num, "text-muted-foreground")}>{actual.trades} → {withRules.trades}</TableCell>
+              <TableCell className={cn(num, "text-muted-foreground")}>{pct(actual.winRate)} → {pct(withRules.winRate)}</TableCell>
+              <TableCell className={num}>{money(actual.net, true)}</TableCell>
+              <TableCell className={num}>{money(withRules.net, true)}</TableCell>
               <TableCell className={cn(num, "pr-0", pnlClass(gain))}>{money(gain, true)}</TableCell>
             </TableRow>
           )

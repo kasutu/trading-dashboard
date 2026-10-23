@@ -30,7 +30,7 @@ function ToReview() {
   const day = left[0].day
   const onDay = left.filter((p) => p.day === day).length
   return (
-    <section aria-label="To review" className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border bg-card p-4 shadow-card">
+    <section aria-label="To review" className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border bg-card p-5 shadow-card">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/15" aria-hidden>
         <Layers className="size-5 text-foreground" />
       </span>

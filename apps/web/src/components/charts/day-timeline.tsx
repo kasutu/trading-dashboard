@@ -78,7 +78,7 @@ export function DayTimeline({ trades, day, tz, onSelect, className }: Props) {
                 <HourLines ticks={ticks} w={w} />
                 <span
                   className={cn(
-                    "timeline-bar absolute top-1/2 h-3 -translate-y-1/2 rounded-full transition-[opacity,box-shadow] duration-150",
+                    "timeline-bar absolute top-1/2 h-3 -translate-y-1/2 rounded-full transition-opacity duration-150",
                     barTone(t.net),
                     hover && !on ? "opacity-35" : "opacity-90",
                     on && "opacity-100 ring-2 ring-foreground/20 ring-offset-1 ring-offset-card"

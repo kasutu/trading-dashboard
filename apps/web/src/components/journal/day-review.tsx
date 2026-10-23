@@ -130,7 +130,7 @@ function YourDayBody({ day }: { day: string }) {
   return (
     <div className="space-y-4">
       <div className="flex min-h-7 items-center gap-2">
-        <h3 className="font-display text-base font-bold">Your day</h3>
+        <h3 className="text-sm font-semibold">Your day</h3>
         <SaveStatus state={answers.state} className="ml-auto" />
       </div>
       {all.length > 0 &&
@@ -142,7 +142,7 @@ function YourDayBody({ day }: { day: string }) {
           <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm">
             <Check className="size-4 text-profit" aria-hidden />
             <span>{all.length === 1 ? "Your trade is reviewed." : `All ${plural(all.length, "trade")} reviewed.`}</span>
-            <Button variant="ghost" size="sm" className="-my-1 ml-auto h-7 px-2" onClick={() => j.review(day)}>Day questions</Button>
+            <Button variant="ghost" size="sm" className="-my-2 ml-auto px-3 sm:-my-1 sm:h-7 sm:px-2" onClick={() => j.review(day)}>Day questions</Button>
           </div>
         ))}
       <div className="space-y-3">

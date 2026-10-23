@@ -49,7 +49,7 @@ export function NewAccountDialog({ onCreated, children, open: controlled, onOpen
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-md">
         <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-1 pr-6">
+          <div className="space-y-1 pr-10 sm:pr-6">
             <DialogTitle className="font-display text-lg font-bold">New trading account</DialogTitle>
             <DialogDescription>A trading account holds the trades of one broker account.</DialogDescription>
           </div>

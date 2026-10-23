@@ -14,7 +14,7 @@ type Props = {
 /** Shown on the Free plan in place of a paid view. Says what the view holds and links to the plans. */
 export function LockedPanel({ title, items, className }: Props) {
   return (
-    <section className={cn("flex flex-col items-start gap-4 rounded-xl border border-dashed bg-card p-6", className)}>
+    <section className={cn("flex flex-col items-start gap-4 min-w-0 rounded-xl border border-dashed bg-card p-5 sm:p-6", className)}>
       <span className="flex size-9 items-center justify-center rounded-lg bg-muted">
         <Lock className="size-4 text-muted-foreground" />
       </span>

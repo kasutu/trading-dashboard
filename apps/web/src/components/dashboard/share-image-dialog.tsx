@@ -1,8 +1,10 @@
 import * as React from "react"
 import { Check, Copy, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { useSettled } from "@/hooks/use-media"
 import { canvasToPng, pageTheme, watchTheme } from "@/lib/card-canvas"
+import { cn } from "@/lib/utils"
 
 type Props = {
   /** The button that opens the dialog. Leave out and pass `open` to open it from outside. */
@@ -31,9 +33,6 @@ export function ShareImageDialog({ trigger, open, onOpenChange, controls, title,
   // The image follows the app theme; redraw when it changes while the dialog is open.
   const theme = React.useSyncExternalStore(watchTheme, pageTheme)
 
-  React.useEffect(() => {
-    if (canvas) draw(canvas)
-  }, [canvas, draw, theme])
 
   const flash = (s: typeof status) => {
     setStatus(s)
@@ -76,20 +75,22 @@ export function ShareImageDialog({ trigger, open, onOpenChange, controls, title,
       }}
     >
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="sm:max-w-3xl">
-        <div className="space-y-1 pr-6">
-          <DialogTitle className="font-display text-lg font-bold">{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </div>
-        <canvas ref={setCanvas} className="mx-auto block h-auto max-h-[60vh] w-auto max-w-full rounded-xl border shadow-card" aria-label={`${title} preview`} />
-        {controls}
-        <div className="rounded-xl bg-muted/60 px-4 py-3">
-          <p className="text-xs text-muted-foreground">Caption</p>
-          <p className="mt-1 text-sm">{caption}</p>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+      <DialogContent size="full" className="sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="text-base font-semibold">{title}</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">{description}</DialogDescription>
+        </DialogHeader>
+        <DialogBody>
+          <Preview title={title} draw={draw} theme={theme} onCanvas={setCanvas} />
+          {controls}
+          <div className="rounded-xl bg-muted/60 px-4 py-3">
+            <p className="text-xs text-muted-foreground">Caption</p>
+            <p className="mt-1 text-sm">{caption}</p>
+          </div>
+        </DialogBody>
+        <DialogFooter className="grid grid-cols-2 sm:flex sm:justify-end">
           {status === "error" && (
-            <p role="alert" className="mr-auto text-sm text-destructive">This browser cannot copy images. Download the file.</p>
+            <p role="alert" className="col-span-2 text-sm text-destructive sm:mr-auto">This browser cannot copy images. Download the file.</p>
           )}
           <Button variant="outline" onClick={copyCaption}>
             {status === "caption" ? <><Check /> Copied</> : <><Copy /> Copy caption</>}
@@ -97,10 +98,31 @@ export function ShareImageDialog({ trigger, open, onOpenChange, controls, title,
           <Button variant="outline" onClick={copyImage}>
             {status === "image" ? <><Check /> Copied</> : <><Copy /> Copy image</>}
           </Button>
-          <Button variant={canShare ? "outline" : "default"} onClick={download}><Download /> Download PNG</Button>
+          <Button variant={canShare ? "outline" : "default"} className={cn(!canShare && "col-span-2")} onClick={download}><Download /> Download PNG</Button>
           {canShare && <Button onClick={share}><Share2 /> Share</Button>}
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** The image preview. Mounts when the dialog opens and draws only once the open animation is over, so drawing the
+ *  1200 × 630 canvas does not stall it. Until then the box keeps the image's shape. */
+function Preview({ title, draw, theme, onCanvas }: { title: string; draw: Props["draw"]; theme: string; onCanvas: (c: HTMLCanvasElement | null) => void }) {
+  const settled = useSettled()
+  const [canvas, setCanvas] = React.useState<HTMLCanvasElement | null>(null)
+  const ref = React.useCallback((c: HTMLCanvasElement | null) => {
+    setCanvas(c)
+    onCanvas(c)
+  }, [onCanvas])
+  React.useEffect(() => {
+    if (canvas && settled) draw(canvas)
+  }, [canvas, settled, draw, theme])
+  return (
+    <canvas
+      ref={ref}
+      className="mx-auto block aspect-[40/21] h-auto w-full rounded-xl border bg-muted/40 shadow-card"
+      aria-label={`${title} preview`}
+    />
   )
 }

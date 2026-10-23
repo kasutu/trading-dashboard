@@ -19,17 +19,40 @@ type Props = {
 
 const START = 8 // px before a press counts as a drag
 const INTERACTIVE = "button, a, input, textarea, select, label, [role=radio], [role=checkbox]"
+const SETTLE = "transform 220ms ease-out, opacity 220ms ease-out"
 
 /** A card you can drag left or right with a mouse, pen or finger. It follows the pointer and tilts a little,
- *  snaps back under the threshold, and respects reduced motion (no tilt, no fly-off). Vertical drags scroll. */
+ *  snaps back under the threshold, and respects reduced motion (no tilt, no fly-off). Vertical drags scroll.
+ *
+ *  While dragging, nothing re-renders: pointer moves are batched into one style write per frame
+ *  (requestAnimationFrame), and only transform and opacity change, so phones keep up. */
 export function Swipeable({ onSwipe, onTap, leaving, hints, className, children }: Props) {
   const reduced = useReducedMotion()
-  const [dx, setDx] = React.useState(0)
-  const [dragging, setDragging] = React.useState(false)
   const start = React.useRef<{ x: number; y: number; id: number; drag: boolean; moved: boolean } | null>(null)
   const el = React.useRef<HTMLDivElement>(null)
+  const hintL = React.useRef<HTMLSpanElement>(null)
+  const hintR = React.useRef<HTMLSpanElement>(null)
+  const frame = React.useRef(0)
+  const dx = React.useRef(0)
   // Measured when a drag starts: 30% of the card, at most 110 px.
-  const [threshold, setThreshold] = React.useState(100)
+  const threshold = React.useRef(100)
+  const [dragging, setDragging] = React.useState(false)
+
+  /** Writes the card position and hint strength for the current dx, once per frame. */
+  const paint = React.useCallback(() => {
+    frame.current = 0
+    const card = el.current
+    if (!card) return
+    const x = dx.current
+    card.style.transform = x ? `translate3d(${x}px, 0, 0)${reduced ? "" : ` rotate(${Math.max(-8, Math.min(8, x * 0.04))}deg)`}` : ""
+    const strength = Math.min(1, Math.abs(x) / threshold.current)
+    if (hintR.current) hintR.current.style.opacity = String(x > 0 ? strength : 0)
+    if (hintL.current) hintL.current.style.opacity = String(x < 0 ? strength : 0)
+  }, [reduced])
+  const schedule = () => {
+    if (!frame.current) frame.current = requestAnimationFrame(paint)
+  }
+  React.useEffect(() => () => cancelAnimationFrame(frame.current), [])
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (leaving || (e.pointerType === "mouse" && e.button !== 0)) return
@@ -52,30 +75,31 @@ export function Swipeable({ onSwipe, onTap, leaving, hints, className, children 
       if (Math.abs(x) < START) return
       s.drag = true
       s.moved = true
-      setDragging(true)
-      setThreshold(Math.min(110, (el.current?.offsetWidth ?? 300) * 0.3))
+      threshold.current = Math.min(110, (el.current?.offsetWidth ?? 300) * 0.3)
       el.current?.setPointerCapture(e.pointerId)
+      setDragging(true)
     }
-    setDx(x)
+    dx.current = x
+    schedule()
   }
   const end = (e: React.PointerEvent, cancel = false) => {
     const s = start.current
     start.current = null
     if (!s || s.id !== e.pointerId) return
-    setDragging(false)
     if (!s.drag) {
       if (!cancel && !s.moved && onTap) onTap()
       return
     }
     const x = e.clientX - s.x
-    setDx(0)
-    if (!cancel && Math.abs(x) >= threshold) onSwipe(x > 0 ? "right" : "left")
+    setDragging(false)
+    dx.current = 0
+    schedule()
+    if (!cancel && Math.abs(x) >= threshold.current) onSwipe(x > 0 ? "right" : "left")
   }
 
-  const t = leaving
-    ? reduced ? "none" : `translateX(${leaving === "right" ? 130 : -130}%) rotate(${leaving === "right" ? 12 : -12}deg)`
-    : dx ? `translateX(${dx}px)${reduced ? "" : ` rotate(${Math.max(-8, Math.min(8, dx * 0.04))}deg)`}` : undefined
-  const strength = Math.min(1, Math.abs(dx) / threshold)
+  // Flying off is driven by React (it follows `leaving`); dragging writes styles directly.
+  const off = leaving && !reduced ? `translate3d(${leaving === "right" ? 130 : -130}%, 0, 0) rotate(${leaving === "right" ? 12 : -12}deg)` : undefined
+  const hint = "pointer-events-none absolute top-4 z-10 rounded-full border-2 bg-card px-3 py-1 text-sm font-semibold uppercase tracking-wide opacity-0"
 
   return (
     <div
@@ -85,26 +109,16 @@ export function Swipeable({ onSwipe, onTap, leaving, hints, className, children 
       onPointerUp={(e) => end(e)}
       onPointerCancel={(e) => end(e, true)}
       style={{
-        transform: t,
-        opacity: leaving && !reduced ? 0 : undefined,
-        transition: dragging || reduced ? "none" : "transform 220ms ease-out, opacity 220ms ease-out",
+        ...(off ? { transform: off, opacity: 0 } : {}),
+        transition: dragging || reduced ? "none" : SETTLE,
         touchAction: "pan-y",
+        willChange: dragging || leaving ? "transform" : undefined,
       }}
       className={cn("relative select-none", dragging && "cursor-grabbing", className)}
     >
       {children}
-      {dx !== 0 && (
-        <span
-          aria-hidden
-          style={{ opacity: strength }}
-          className={cn(
-            "pointer-events-none absolute top-4 z-10 rounded-full border-2 bg-card px-3 py-1 text-sm font-semibold uppercase tracking-wide",
-            dx > 0 ? "left-4 -rotate-6 border-profit text-profit" : "right-4 rotate-6 border-loss text-loss"
-          )}
-        >
-          {dx > 0 ? hints.right : hints.left}
-        </span>
-      )}
+      <span ref={hintR} aria-hidden className={cn(hint, "left-4 -rotate-6 border-profit text-profit")}>{hints.right}</span>
+      <span ref={hintL} aria-hidden className={cn(hint, "right-4 rotate-6 border-loss text-loss")}>{hints.left}</span>
     </div>
   )
 }

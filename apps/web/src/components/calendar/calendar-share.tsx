@@ -44,7 +44,7 @@ export function CalendarShare({ month, grid, byDay, filters }: Props) {
   return (
     <ShareImageDialog
       trigger={
-        <Button variant="outline" size="icon" className="size-8" aria-label="Share this month">
+        <Button variant="ghost" size="icon-sm" className="text-muted-foreground" aria-label="Share this month">
           <Share2 />
         </Button>
       }

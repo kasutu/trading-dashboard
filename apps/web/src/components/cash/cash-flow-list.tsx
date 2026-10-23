@@ -36,7 +36,7 @@ export function CashFlowList({ accountId, rows, tz }: { accountId: string; rows:
           const deposit = f.kind === "deposit"
           const Icon = deposit ? ArrowDownLeft : ArrowUpRight
           return (
-            <li key={f.id} className="flex items-center gap-3 py-2.5">
+            <li key={f.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
               <span
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-full",
@@ -51,13 +51,13 @@ export function CashFlowList({ accountId, rows, tz }: { accountId: string; rows:
                   {[formatDateTime(f.occurredAt, tz), f.note].filter(Boolean).join(" · ")}
                 </p>
               </div>
-              <span className="font-mono text-sm font-medium whitespace-nowrap">
+              <span className="font-mono text-sm whitespace-nowrap tabular-nums">
                 {deposit ? "+" : "−"}{money(f.amount)}
               </span>
               <Button
                 variant="ghost"
-                size="icon"
-                className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
+                size="icon-sm"
+                className="-mr-2 shrink-0 text-muted-foreground hover:text-destructive sm:mr-0"
                 disabled={busy === f.id}
                 onClick={() => remove(f.id)}
                 aria-label={`Delete ${deposit ? "deposit" : "withdrawal"} of ${money(f.amount)}`}

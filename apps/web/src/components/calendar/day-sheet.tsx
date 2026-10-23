@@ -4,7 +4,8 @@ import { TradeShareButton } from "@/components/dashboard/trade-share"
 import { SideBadge } from "@/components/dashboard/side-badge"
 import { YourDay } from "@/components/journal/day-review"
 import { TradeReviewPanel } from "@/components/journal/trade-review-panel"
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { MetricBlock } from "@/components/dashboard/panel"
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import type { LocalTrade } from "@/lib/api/types"
 import { duration, formatLongDay, formatTimeRange, money, pct, pnlClass, price, today, tradeKey, tzLabel } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -20,20 +21,24 @@ export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
     <Sheet open={day !== null} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="sm:max-w-lg">
         {day && (
-          <div className="space-y-5 p-5">
-            <div className="space-y-1 pr-8">
-              <SheetTitle className="font-display text-xl font-bold">{formatLongDay(day)}</SheetTitle>
-              <SheetDescription>Trades opened on this day. Times are in {tzLabel(tz)}.</SheetDescription>
-            </div>
+          <>
+          <SheetHeader>
+            <SheetTitle className="text-base font-semibold">{formatLongDay(day)}</SheetTitle>
+            <SheetDescription className="text-xs sm:text-sm">Trades opened on this day. Times are in {tzLabel(tz)}.</SheetDescription>
+          </SheetHeader>
+          <SheetBody className="gap-5">
             {trades.length ? (
               <>
-                <dl className="grid grid-cols-3 gap-2">
-                  <Stat label="Total trades" value={String(trades.length)} />
-                  <Stat label="Win rate" value={pct(wins / trades.length)} />
-                  <Stat label="Net P&L" value={money(net, true)} tone={pnlClass(net)} />
-                </dl>
+                <MetricBlock
+                  metric={{
+                    value: money(net, true),
+                    tone: net,
+                    label: "Net P&L on the day",
+                    stats: [["Trades", trades.length], ["Win rate", pct(wins / trades.length)]],
+                  }}
+                />
                 <section aria-label="Timeline" className="rounded-xl border bg-card p-4 shadow-card">
-                  <h3 className="mb-2 font-display text-base font-bold">Timeline</h3>
+                  <h3 className="mb-2 text-sm font-semibold">Timeline</h3>
                   <TradeTimeline accountId={accountId} trades={trades} day={day} tz={tz} />
                 </section>
               </>
@@ -49,7 +54,7 @@ export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
                     <SideBadge side={t.side} />
                     <span className="text-xs text-muted-foreground">{t.lots} lots</span>
                     <span className={cn("ml-auto font-mono font-medium tabular-nums", pnlClass(t.net))}>{money(t.net, true)}</span>
-                    <span className="-my-1 -mr-2 flex items-center">
+                    <span className="-my-2 -mr-3 flex items-center sm:-my-1 sm:-mr-2">
                       <TradeChartButton compact accountId={accountId} trade={t} tz={tz} />
                       <TradeShareButton accountId={accountId} trade={t} tz={tz} />
                     </span>
@@ -69,19 +74,11 @@ export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
                 </li>
               ))}
             </ul>
-          </div>
+          </SheetBody>
+          </>
         )}
       </SheetContent>
     </Sheet>
-  )
-}
-
-function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
-  return (
-    <div className="rounded-lg border bg-card p-3">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={cn("mt-1 font-mono text-lg font-medium tabular-nums", tone)}>{value}</dd>
-    </div>
   )
 }
 

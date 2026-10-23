@@ -52,9 +52,16 @@ export function JournalInsights() {
     : view === "plan" ? (key === "yes" ? "On plan" : "Off plan")
     : `${moodOf(Number(key) as Mood)?.emoji} ${moodOf(Number(key) as Mood)?.label}`
   const ready = rows.filter((r) => r.trades >= min).map((r) => ({ ...r, key: name(r.key), id: r.key }))
+  // Headline: the costliest mistake, or the best setup, grade, plan answer or mood.
+  const costly = view === "mistake"
+  const top = ready.reduce<(typeof ready)[number] | undefined>((b, r) => (!b || (costly ? r.net < b.net : r.net > b.net) ? r : b), undefined)
 
   return (
-    <Panel title="What your journal says" description={v.about}>
+    <Panel
+      title="What your journal says"
+      metric={top && { value: money(top.net, true), tone: top.net, label: `${costly ? "Costliest" : "Best"} · ${top.key}, ${plural(top.trades, unit)}` }}
+      description={v.about}
+    >
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <div className="space-y-4">
         <ToggleGroup
