@@ -34,7 +34,7 @@ export function TradeReviewCell({ ticket }: { ticket: string }) {
           aria-label={r ? `Edit review of ${p.symbol}: ${label}` : `Review ${p.symbol}`}
           title={label || "Review this trade"}
           className={cn(
-            "inline-flex h-8 max-w-44 min-w-8 cursor-pointer items-center justify-center gap-1.5 rounded-md px-1.5 text-left text-xs transition-[background-color,opacity] hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none data-[state=open]:bg-muted",
+            "inline-flex h-11 max-w-44 min-w-11 cursor-pointer items-center justify-center gap-1.5 rounded-md px-1.5 text-left text-xs transition-[background-color,opacity] hover:bg-muted focus-visible:ring-[3px] sm:h-8 sm:min-w-8 focus-visible:ring-ring/50 focus-visible:outline-none data-[state=open]:bg-muted",
             !r && "opacity-40 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 sm:opacity-0"
           )}
         >

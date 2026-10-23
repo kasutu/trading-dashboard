@@ -1,9 +1,9 @@
 import * as React from "react"
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { MetricBlock } from "@/components/dashboard/panel"
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useTrades } from "@/hooks/use-api"
 import type { Filters, LocalTrade } from "@/lib/api/types"
-import { formatLongDay, money, plural, pnlClass, tradeKey, tzLabel } from "@/lib/format"
-import { cn } from "@/lib/utils"
+import { formatLongDay, money, plural, tradeKey, tzLabel } from "@/lib/format"
 import { DayTimeline } from "./day-timeline"
 import { TradeChartDialog } from "./trade-chart-dialog"
 
@@ -27,7 +27,7 @@ type Props = { accountId: string; filters: Filters; day: string | null; onClose:
 export function DayTimelineDialog({ accountId, filters, day, onClose, children }: Props) {
   return (
     <Dialog open={day !== null} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="gap-4 p-4 sm:max-w-3xl sm:p-6">{day && <Body accountId={accountId} filters={filters} day={day}>{children}</Body>}</DialogContent>
+      <DialogContent size="full" className="sm:max-w-3xl">{day && <Body accountId={accountId} filters={filters} day={day}>{children}</Body>}</DialogContent>
     </Dialog>
   )
 }
@@ -38,24 +38,22 @@ function Body({ accountId, filters, day, children }: { accountId: string; filter
   const net = trades.reduce((s, t) => s + t.net, 0)
   return (
     <>
-      <div className="flex items-start gap-3 pr-8">
-        <div className="min-w-0 space-y-1">
-          <DialogTitle className="font-display text-lg font-bold">{formatLongDay(day)}</DialogTitle>
-          <DialogDescription>
-            {data ? `${plural(trades.length, "trade")}. ` : ""}Times in {tzLabel(filters.tz)}. Click a trade to see its price chart.
-          </DialogDescription>
-        </div>
-        {data && <span className={cn("ml-auto font-mono text-lg font-medium whitespace-nowrap tabular-nums", pnlClass(net))}>{money(net, true)}</span>}
-      </div>
+      <DialogHeader>
+        <DialogTitle className="text-base font-semibold">{formatLongDay(day)}</DialogTitle>
+        <DialogDescription className="text-xs sm:text-sm">Times in {tzLabel(filters.tz)}. Tap a trade to see its price chart.</DialogDescription>
+      </DialogHeader>
+      <DialogBody>
+      {data && <MetricBlock metric={{ value: money(net, true), tone: net, label: `Net P&L · ${plural(trades.length, "trade")}` }} />}
       {children}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       {!data ? (
         !error && <p className="py-12 text-center text-sm text-muted-foreground">Loading trades…</p>
       ) : (
-        <div className="max-h-[60svh] overflow-y-auto pt-2">
+        <div className="pt-2">
           <TradeTimeline accountId={accountId} trades={trades} day={day} tz={filters.tz} />
         </div>
       )}
+      </DialogBody>
     </>
   )
 }

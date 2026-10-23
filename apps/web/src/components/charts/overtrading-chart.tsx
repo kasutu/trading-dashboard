@@ -1,5 +1,6 @@
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart"
+import { usePhone } from "@/hooks/use-media"
 import type { OvertradeDay } from "@/lib/api/types"
 import { duration, formatDay, money, pnlClass } from "@/lib/format"
 import { axisTick } from "./chart-config"
@@ -15,9 +16,10 @@ type Props = { days: OvertradeDay[]; onPick?: (day: string) => void; height?: nu
 /** Per day: trades taken (solid) against trades the best holding time allows (dashed). Days over the line get a red dot.
  *  Clicking a day calls `onPick`. */
 export function OvertradingChart({ days, onPick, height = 280 }: Props) {
+  const phone = usePhone()
   return (
     <div className="space-y-3">
-      <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
+      <ChartContainer config={config} className="aspect-auto w-full" style={{ height: phone ? Math.min(height, 220) : height }}>
         <LineChart
           data={days}
           margin={{ left: 4, right: 12, top: 12 }}
@@ -27,9 +29,9 @@ export function OvertradingChart({ days, onPick, height = 280 }: Props) {
           }}
           className={onPick ? "cursor-pointer" : undefined}
         >
-          <CartesianGrid vertical={false} strokeDasharray="2 4" />
-          <XAxis dataKey="day" tickFormatter={(d) => formatDay(d)} tick={axisTick} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={24} />
-          <YAxis allowDecimals={false} tick={axisTick} tickLine={false} axisLine={false} width={32} />
+          <CartesianGrid vertical={false} strokeDasharray="2 4" strokeOpacity={0.6} />
+          <XAxis dataKey="day" tickFormatter={(d) => formatDay(d)} tick={axisTick} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={phone ? 32 : 24} />
+          <YAxis allowDecimals={false} tick={axisTick} tickLine={false} axisLine={false} width={28} tickCount={4} />
           <ChartTooltip
             cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.3 }}
             content={({ active, payload }) => {
@@ -79,7 +81,7 @@ export function OvertradingChart({ days, onPick, height = 280 }: Props) {
         <li className="flex items-center gap-1.5"><span aria-hidden className="h-0.5 w-4 rounded bg-foreground" />Trades taken</li>
         <li className="flex items-center gap-1.5"><span aria-hidden className="w-4 border-t-[1.5px] border-dashed border-muted-foreground" />Allowed by your best holding time</li>
         <li className="flex items-center gap-1.5"><span aria-hidden className="size-2 rounded-full bg-loss" />Over</li>
-        {onPick && <li className="sm:ml-auto">Click a day to see its timeline.</li>}
+        {onPick && <li className="sm:ml-auto">Tap a day to see its timeline.</li>}
       </ul>
     </div>
   )

@@ -15,7 +15,7 @@ function nowLocal() {
 }
 
 const kindItem =
-  "h-8 flex-1 rounded-full px-3 text-[13px] text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm dark:data-[state=on]:bg-popover"
+  "h-10 flex-1 rounded-full px-3 text-[13px] sm:h-8 text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm dark:data-[state=on]:bg-popover"
 
 /** Adds a deposit or withdrawal. The time is read in the browser's timezone. */
 export function CashFlowForm({ accountId, onAdded }: { accountId: string; onAdded?: (f: CashFlow) => void }) {

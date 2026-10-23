@@ -42,7 +42,7 @@ export function DailyCheckIn() {
     <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(false)}>
       {/* Focus the dialog, not the first face, so nothing looks picked before the user chooses. */}
       <DialogContent
-        className="max-w-md outline-none"
+        className="outline-none sm:max-w-md"
         onOpenAutoFocus={(e) => {
           e.preventDefault()
           ;(e.currentTarget as HTMLElement | null)?.focus()
@@ -77,7 +77,7 @@ function CheckIn({ day, onSkip, onDone }: { day: string; onSkip: () => void; onD
 
   return (
     <>
-      <div className="flex gap-1 pr-8" aria-hidden>
+      <div className="flex gap-1 pr-12 sm:pr-8" aria-hidden>
         {STEPS.map((s, k) => (
           <div key={s.title} className={cn("h-1 flex-1 rounded-full transition-colors duration-300", k <= step ? "bg-foreground" : "bg-muted")} />
         ))}

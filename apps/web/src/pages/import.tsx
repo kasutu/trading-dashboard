@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/layout/empty-state"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useImports, usePresets } from "@/hooks/use-api"
+import { useNarrow } from "@/hooks/use-media"
 import type { Account, Import } from "@/lib/api/types"
 import { LOCAL_TZ, formatDateTime, plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -60,10 +61,10 @@ export function ImportPage({ account, onSelect }: { account: Account | null; onS
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <Link href="/" className="inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
+        <Link href="/" className="inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm sm:min-h-0 text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
           <ArrowLeft className="size-4" /> {account.name}
         </Link>
-        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Import trades into {account.name}</h1>
+        <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-balance sm:mt-2 sm:text-3xl">Import trades into {account.name}</h1>
         <p className="mt-1 text-muted-foreground">Trades you already imported are not added twice.</p>
       </div>
 
@@ -86,7 +87,7 @@ export function ImportPage({ account, onSelect }: { account: Account | null; onS
             if (f) load(f)
           }}
           className={cn(
-            "flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed bg-card px-6 py-14 text-center transition-colors",
+            "flex flex-col items-center gap-4 rounded-xl border-2 border-dashed bg-card px-5 py-10 text-center transition-colors sm:px-6 sm:py-14",
             over && "border-foreground/40 bg-muted"
           )}
         >
@@ -112,15 +113,16 @@ export function ImportPage({ account, onSelect }: { account: Account | null; onS
 
 function ImportResult({ result: r, onAgain }: { result: Import; onAgain: () => void }) {
   return (
-    <section className="rounded-xl border bg-card p-6 shadow-card">
-      <p className="flex items-center gap-2 font-display text-xl font-bold">
-        <CircleCheck className="size-5 text-profit" /> Import done
+    <section className="rounded-xl border bg-card p-5 shadow-card sm:p-6">
+      <p className="flex items-center gap-2 text-sm font-semibold">
+        <CircleCheck className="size-4 text-profit" /> Import done
       </p>
-      <p className="mt-2 text-muted-foreground">
-        {plural(r.added, "trade")} added, {r.duplicates} already stored, {plural(r.skipped, "row")} skipped.
+      <p className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl">{plural(r.added, "trade")} added</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {r.duplicates} already stored, {plural(r.skipped, "row")} skipped.
       </p>
       {r.skipped > 0 && <p className="mt-1 text-sm text-muted-foreground">Skipped rows have no valid open time, close time or profit.</p>}
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="mt-5 grid gap-2 sm:flex sm:flex-wrap">
         <Button asChild><Link href="/">Go to dashboard</Link></Button>
         <Button variant="outline" onClick={onAgain}>Import another file</Button>
       </div>
@@ -130,11 +132,27 @@ function ImportResult({ result: r, onAgain }: { result: Import; onAgain: () => v
 
 function PastImports({ accountId }: { accountId: string }) {
   const { data } = useImports(accountId)
+  const narrow = useNarrow()
   if (!data?.length) return null
   const num = "text-right font-mono tabular-nums"
   return (
     <section className="overflow-hidden rounded-xl border bg-card shadow-card">
       <h2 className="px-5 pt-5 pb-3 text-sm font-semibold">Past imports</h2>
+      {narrow ? (
+        <ul className="divide-y border-t">
+          {data.map((i) => (
+            <li key={i.id} className="flex items-center gap-3 px-5 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm">{i.fileName}</p>
+                <p className="text-xs text-muted-foreground tabular-nums">
+                  {formatDateTime(i.createdAt, LOCAL_TZ)} · {i.duplicates} already stored · {i.skipped} skipped
+                </p>
+              </div>
+              <span className="font-mono text-sm tabular-nums">+{i.added}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
@@ -157,6 +175,7 @@ function PastImports({ accountId }: { accountId: string }) {
           ))}
         </TableBody>
       </Table>
+      )}
     </section>
   )
 }

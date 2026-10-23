@@ -24,7 +24,7 @@ export function TradeReviewPanel({ ticket }: { ticket: string }) {
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="mt-1 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md text-sm sm:mt-3 sm:min-h-0 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <NotebookPen className="size-4" aria-hidden /> Review this trade
       </button>
@@ -54,7 +54,7 @@ function InlineEditor({ position, onDone }: { position: Position; onDone: () => 
       <div className="mb-3 flex min-h-7 items-center gap-2">
         <p className="text-sm font-semibold">Review</p>
         <SaveStatus state={answers.state} className="ml-auto" />
-        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={onDone}>Done</Button>
+        <Button variant="ghost" size="sm" className="-my-2 px-3 sm:my-0 sm:h-7 sm:px-2" onClick={onDone}>Done</Button>
       </div>
       <TradeReviewEditor position={position} answers={answers} size="sm" />
     </div>

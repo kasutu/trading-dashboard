@@ -2,13 +2,14 @@ import * as React from "react"
 import { CandlestickChart } from "lucide-react"
 import { pillGroup, pillItem } from "@/components/dashboard/filter-bar"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Input } from "@/components/ui/input"
 import { SaveStatus } from "@/components/journal/save-status"
 import { TradeShareButton } from "@/components/dashboard/trade-share"
 import { useTradeAnswers } from "@/hooks/use-answers"
 import { useCandles } from "@/hooks/use-api"
+import { useSettled } from "@/hooks/use-media"
 import { useJournalContext } from "@/hooks/use-journal"
 import type { Candle, LocalTrade, Timeframe } from "@/lib/api/types"
 import { duration, formatTimeRange, money, pnlClass, price, relativeDay, tzLabel } from "@/lib/format"
@@ -46,7 +47,7 @@ export function TradeChartButton({ compact, className, ...props }: Props & { com
 export function TradeChartDialog({ open, onOpenChange, ...props }: Props & { open: boolean; onOpenChange: (open: boolean) => void }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-4 p-4 sm:max-w-3xl sm:p-6">{open && <ChartBody {...props} />}</DialogContent>
+      <DialogContent size="full" className="sm:max-w-3xl">{open && <ChartBody {...props} />}</DialogContent>
     </Dialog>
   )
 }
@@ -71,7 +72,7 @@ function EditableBody(props: Props) {
 
   return (
     <Body {...props} levels={levels} onLevel={onLevel}>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+      <div className="grid grid-cols-2 items-center gap-x-4 gap-y-3 text-sm sm:flex sm:flex-wrap">
         <LevelInput label="SL" trade={trade} level="sl" value={levels.sl} onSave={(p) => onLevel("sl", p)} />
         <LevelInput label="TP" trade={trade} level="tp" value={levels.tp} onSave={(p) => onLevel("tp", p)} />
         <span className="text-muted-foreground">
@@ -103,7 +104,7 @@ function LevelInput({ label, trade, level, value, onSave }: { label: string; tra
     if (ok) setText(null)
   }
   return (
-    <label className="flex items-center gap-1.5">
+    <label className="flex min-w-0 items-center gap-1.5">
       <span className={cn("text-xs font-medium", level === "sl" ? "text-loss" : "text-profit")}>{label}</span>
       <Input
         inputMode="decimal"
@@ -115,7 +116,7 @@ function LevelInput({ label, trade, level, value, onSave }: { label: string; tra
         onChange={(e) => setText(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => e.key === "Enter" && commit()}
-        className="h-8 w-28 font-mono tabular-nums"
+        className="h-11 w-full min-w-0 font-mono tabular-nums sm:h-8 sm:w-28"
       />
     </label>
   )
@@ -126,21 +127,24 @@ function Body({ accountId, trade, tz, levels, onLevel, children }: Props & { lev
   const range = React.useMemo(() => candleWindow(trade.open, trade.close, tf), [trade.open, trade.close, tf])
   const { data, error, loading } = useCandles(accountId, trade.symbol, tf, range)
   const side = trade.side === "buy" ? "Buy" : "Sell"
+  // The chart draws on a canvas: wait until the dialog has finished opening, so the animation stays smooth.
+  const settled = useSettled()
 
   return (
     <>
-      <div className="flex items-start gap-3 pr-8">
-        <div className="min-w-0 space-y-1">
-          <DialogTitle className="font-display text-lg font-bold">
-            {trade.symbol} · {side} {trade.lots} lots
-          </DialogTitle>
-          <DialogDescription className="font-mono">
-            {relativeDay(trade.day, tz)}, {formatTimeRange(trade.open, trade.close, tz)}{" "}
-            <span className="whitespace-nowrap"><span aria-hidden>·</span> {duration(trade.durationMin)}</span>
-          </DialogDescription>
-        </div>
-        <span className={cn("ml-auto font-mono text-lg font-medium whitespace-nowrap tabular-nums", pnlClass(trade.net))}>{money(trade.net, true)}</span>
-        <TradeShareButton accountId={accountId} trade={trade} tz={tz} className="-my-1" />
+      <DialogHeader>
+        <DialogTitle className="text-base font-semibold">
+          {trade.symbol} · {side} {trade.lots} lots
+        </DialogTitle>
+        <DialogDescription className="font-mono text-xs">
+          {relativeDay(trade.day, tz)}, {formatTimeRange(trade.open, trade.close, tz)}{" "}
+          <span className="whitespace-nowrap"><span aria-hidden>·</span> {duration(trade.durationMin)}</span>
+        </DialogDescription>
+      </DialogHeader>
+      <DialogBody>
+      <div className="flex items-start gap-2">
+        <p className={cn("min-w-0 flex-1 font-display text-3xl font-bold tracking-tight tabular-nums sm:text-4xl", pnlClass(trade.net))}>{money(trade.net, true)}</p>
+        <TradeShareButton accountId={accountId} trade={trade} tz={tz} className="-mr-2" />
       </div>
 
       <ToggleGroup
@@ -161,7 +165,7 @@ function Body({ accountId, trade, tz, levels, onLevel, children }: Props & { lev
 
       <div className="relative min-w-0" aria-busy={loading}>
         <React.Suspense fallback={<Placeholder />}>
-          {data ? (
+          {data && settled ? (
             <TradeChart
               trade={trade}
               candles={data.candles}
@@ -194,6 +198,7 @@ function Body({ accountId, trade, tz, levels, onLevel, children }: Props & { lev
         {data && data.tf !== tf && `${tf} candles are not available this far back, so these are ${data.tf}. `}
         Times in {tzLabel(tz)}.{onLevel && " Drag the SL and TP lines to set your plan."}
       </p>
+      </DialogBody>
     </>
   )
 }
@@ -207,5 +212,5 @@ function offChart(t: LocalTrade, candles: Candle[]) {
 }
 
 function Placeholder({ text = "Loading prices…" }: { text?: string }) {
-  return <div className="flex h-[260px] items-center justify-center text-sm text-muted-foreground sm:h-[360px]">{text}</div>
+  return <div className="flex h-[min(50dvh,420px)] min-h-[260px] items-center justify-center rounded-lg bg-muted/40 text-sm text-muted-foreground sm:h-[360px]">{text}</div>
 }

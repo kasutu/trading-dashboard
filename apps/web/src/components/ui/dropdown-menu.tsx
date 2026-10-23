@@ -25,7 +25,7 @@ function DropdownMenuItem({ className, ...props }: React.ComponentProps<typeof M
   return (
     <MenuPrimitive.Item
       className={cn(
-        "relative flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none select-none focus:bg-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:text-muted-foreground",
+        "relative flex cursor-default items-center gap-2 rounded-md px-2 py-3 text-sm outline-none sm:py-1.5 select-none focus:bg-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:text-muted-foreground",
         className
       )}
       {...props}

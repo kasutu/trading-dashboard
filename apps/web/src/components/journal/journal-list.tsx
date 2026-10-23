@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useJournalContext } from "@/hooks/use-journal"
 import type { Position, TradeReview } from "@/lib/api/types"
-import { formatMonth, money, plural, pnlClass } from "@/lib/format"
+import { formatMonth, money, pct, plural, pnlClass } from "@/lib/format"
 import { MOODS, RISKS, isReviewed, moodOf } from "@/lib/journal"
 import { cn } from "@/lib/utils"
 import { PlanDot, RValue, ReviewBits } from "./review-bits"
@@ -44,11 +44,17 @@ export function JournalList() {
   }, [journal])
 
   if (!j) return null
+  const total = journal?.positions.length ?? 0
+  const done = total - [...unreviewed.values()].reduce((s, n) => s + n, 0)
   const visible = filter === "all" ? days : filter === "off" ? days.filter((d) => offDays.has(d)) : days.filter((d) => String(j.days.get(d)?.preMood) === filter)
   const page = visible.slice(0, shown)
 
   return (
-    <Panel title="Journal" description="Your answers for each day and trade. Open a day to see them.">
+    <Panel
+      title="Journal"
+      metric={total && days.length ? { value: pct(done / total), label: `Of your trades reviewed · ${done} of ${total}`, stats: [["Days in the journal", days.length]] } : undefined}
+      description="Your answers for each day and trade. Open a day to see them."
+    >
       {!journal ? (
         <p className="py-10 text-center text-sm text-muted-foreground">Loading your journal…</p>
       ) : !days.length ? (
@@ -91,7 +97,7 @@ export function JournalList() {
             <div className="space-y-5">
               {months(page).map(([month, list]) => (
                 <section key={month} aria-label={formatMonth(month, true)}>
-                  <h4 className="sticky top-14 z-10 -mx-1 mb-1 bg-card/90 px-1 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase backdrop-blur">
+                  <h4 className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 -mx-1 mb-1 bg-card px-1 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     {formatMonth(month, true)}
                   </h4>
                   <ul className="divide-y">
@@ -145,7 +151,7 @@ function JournalDay({ day, items, positions, left }: { day: string; items: Item[
         aria-expanded={open}
         aria-controls={`${id}-body`}
         onClick={() => setOpen(!open)}
-        className="group grid w-full cursor-pointer grid-cols-[2.75rem_minmax(0,1fr)_auto] items-start gap-3 rounded-lg py-3 text-left transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="group grid min-h-11 w-full cursor-pointer grid-cols-[2.5rem_minmax(0,1fr)_auto] items-start gap-3 rounded-lg py-3.5 sm:grid-cols-[2.75rem_minmax(0,1fr)_auto] sm:py-3 text-left transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <span className="flex flex-col items-center leading-none" aria-hidden>
           <span className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">{date.toLocaleDateString("en-US", { weekday: "short" })}</span>
@@ -173,8 +179,8 @@ function JournalDay({ day, items, positions, left }: { day: string; items: Item[
             // One note that grows from a one-line preview into the full text when the day opens.
             <span
               className={cn(
-                "block overflow-hidden text-sm break-words whitespace-pre-line transition-[max-height,color] duration-300 ease-out",
-                open ? "max-h-96 text-foreground" : "line-clamp-1 max-h-5 text-muted-foreground"
+                "block text-sm break-words whitespace-pre-line",
+                open ? "text-foreground" : "line-clamp-1 text-muted-foreground"
               )}
             >
               {d.note}
@@ -193,7 +199,7 @@ function JournalDay({ day, items, positions, left }: { day: string; items: Item[
       </button>
 
       {open && (
-        <div id={`${id}-body`} className="space-y-3 pb-4 pl-[3.5rem]">
+        <div id={`${id}-body`} className="space-y-3 pb-4 sm:pl-[3.5rem]">
           {(risks.length > 0 || d?.noRisks || watch.length > 0) && (
             <dl className="grid gap-1 text-xs sm:grid-cols-[7rem_minmax(0,1fr)]">
               {(risks.length > 0 || d?.noRisks) && (

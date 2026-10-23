@@ -39,9 +39,9 @@ export function CashFlowChart({ daily, rows }: { daily: CashDay[]; rows: LocalCa
           </li>
         ))}
       </ul>
-      <ChartContainer config={chartConfig} className="aspect-auto h-[260px] w-full">
+      <ChartContainer config={chartConfig} className="aspect-auto h-[200px] w-full sm:h-[260px]">
         <ComposedChart data={data} stackOffset="sign" margin={{ left: 4, right: 12, top: 8 }}>
-          <CartesianGrid vertical={false} strokeDasharray="2 4" />
+          <CartesianGrid vertical={false} strokeDasharray="2 4" strokeOpacity={0.6} />
           <XAxis
             dataKey="t"
             type="number"
@@ -53,7 +53,7 @@ export function CashFlowChart({ daily, rows }: { daily: CashDay[]; rows: LocalCa
             axisLine={false}
             minTickGap={24}
           />
-          <YAxis tickFormatter={compactMoney} tick={axisTick} tickLine={false} axisLine={false} width={44} />
+          <YAxis tickFormatter={compactMoney} tick={axisTick} tickLine={false} axisLine={false} width={40} tickCount={4} />
           <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeOpacity={0.4} />
           <ChartTooltip
             cursor={{ stroke: "var(--muted-foreground)", strokeDasharray: "3 3" }}

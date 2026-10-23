@@ -1,4 +1,5 @@
-// Shared drawing for the 1200 × 630 share images (stats card, calendar, trade).
+// Shared drawing for the share images (stats card, calendar, trade, any dashboard card). 1200 wide,
+// 630 tall except dashboard cards, which grow with the card.
 // The images follow the app's theme: light or dark, whichever is on when the image is drawn.
 import { MARK } from "@/components/brand/mark"
 import qrcode from "qrcode-generator"
@@ -43,6 +44,13 @@ export const C = { ...DARK }
 /** The theme the app shows now. */
 export const pageTheme = (): Theme => (document.documentElement.classList.contains("dark") ? "dark" : "light")
 
+/** Calls back when the theme (the `dark` class on <html>) changes. For useSyncExternalStore with pageTheme. */
+export function watchTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+  return () => observer.disconnect()
+}
+
 // SF Pro on Apple devices, the system font elsewhere. Numbers use the same font.
 export const DISPLAY = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
 export const BODY = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
@@ -58,15 +66,15 @@ export function text(ctx: CanvasRenderingContext2D, s: string, x: number, y: num
 }
 
 /** Sets the colours for the theme, sizes the canvas, fills the background and returns a context in 1200 × 630 units. */
-export function startCard(canvas: HTMLCanvasElement, theme: Theme = pageTheme()) {
+export function startCard(canvas: HTMLCanvasElement, theme: Theme = pageTheme(), h = CARD_H) {
   Object.assign(C, theme === "dark" ? DARK : LIGHT)
   canvas.width = CARD_W * SCALE
-  canvas.height = CARD_H * SCALE
+  canvas.height = h * SCALE
   const ctx = canvas.getContext("2d")!
   ctx.scale(SCALE, SCALE)
   ctx.textBaseline = "alphabetic"
   ctx.fillStyle = C.bg
-  ctx.fillRect(0, 0, CARD_W, CARD_H)
+  ctx.fillRect(0, 0, CARD_W, h)
   return ctx
 }
 
@@ -112,11 +120,11 @@ export const FOOTER_H = 112
 const QR = 84 // QR code size, including its light border
 
 /** Context on the left; on the right the address with a QR code to it, and the invitation unless the plan hides it. */
-export function drawFooter(ctx: CanvasRenderingContext2D, f: Footer) {
-  const base = CARD_H - 40
+export function drawFooter(ctx: CanvasRenderingContext2D, f: Footer, h = CARD_H) {
+  const base = h - 40
   text(ctx, f.context, PAD, base, `400 18px ${BODY}`, C.muted)
   const qrX = CARD_W - PAD - QR
-  drawQr(ctx, `https://${f.site}`, qrX, CARD_H - 28 - QR, QR)
+  drawQr(ctx, `https://${f.site}`, qrX, h - 28 - QR, QR)
   const right = qrX - 20
   if (f.invite) text(ctx, "Track your trades free", right, base - 26, `400 17px ${BODY}`, C.muted, "right")
   text(ctx, f.site, right, base, `600 20px ${BODY}`, C.text, "right")

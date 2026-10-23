@@ -442,5 +442,5 @@ export function TradeChart({ trade, candles, tf, tz, levels: given, onLevel, cla
     }
   }, [!!onLevel]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <div ref={box} className={cn("h-[260px] w-full sm:h-[360px]", className)} />
+  return <div ref={box} className={cn("h-[min(50dvh,420px)] min-h-[260px] w-full sm:h-[360px]", className)} />
 }
