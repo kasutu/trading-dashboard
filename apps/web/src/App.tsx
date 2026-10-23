@@ -29,7 +29,7 @@ function SignedOut({ theme }: { theme: Theme }) {
         <Button variant="ghost" size="sm" asChild><Link href="/pricing">Pricing</Link></Button>
         <Button variant="ghost" size="sm" asChild><Link href="/sign-in">Sign in</Link></Button>
       </AppHeader>
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-7xl px-4 pt-4 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-6">
         <Switch>
           <Route path="/"><Landing /></Route>
           <Route path="/sign-in"><AuthPage mode="sign-in" /></Route>
@@ -51,9 +51,9 @@ function SignedIn({ theme }: { theme: Theme }) {
     <>
       <AppHeader dark={theme.dark} onToggleTheme={theme.toggle} compact>
         {accounts.data && <AccountMenu accounts={accounts.data} account={account} onSelect={select} />}
-        <UserMenu />
+        <UserMenu dark={theme.dark} onToggleTheme={theme.toggle} />
       </AppHeader>
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-7xl px-4 pt-4 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-6">
         {accounts.error && (
           <p role="alert" className="mb-5 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{accounts.error}</p>
         )}

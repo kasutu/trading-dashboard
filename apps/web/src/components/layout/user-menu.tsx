@@ -1,5 +1,5 @@
 import * as React from "react"
-import { LogOut, Settings, Sparkles, Tag, User } from "lucide-react"
+import { LogOut, Moon, Settings, Sparkles, Sun, Tag, User } from "lucide-react"
 import { navigate } from "wouter/use-browser-location"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,8 +16,8 @@ import { planName } from "@/lib/plans"
 import { PlanBadge } from "./plan-badge"
 import { SettingsDialog } from "./settings-dialog"
 
-/** The signed-in user: name, plan, pricing, settings and sign out. */
-export function UserMenu() {
+/** The signed-in user: name, plan, pricing, settings and sign out. On phones it also holds the theme switch. */
+export function UserMenu({ dark, onToggleTheme }: { dark: boolean; onToggleTheme: () => void }) {
   const { data: me } = useMe()
   const [settings, setSettings] = React.useState(false)
 
@@ -30,7 +30,7 @@ export function UserMenu() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-2 px-2" aria-label={me ? `Account menu: ${me.username}, ${planName(me.plan)} plan` : "Account menu"}>
+          <Button variant="ghost" size="sm" className="gap-2 px-2.5 sm:px-2" aria-label={me ? `Account menu: ${me.username}, ${planName(me.plan)} plan` : "Account menu"}>
             <User />
             <span className="hidden max-w-32 truncate sm:inline">{me?.username}</span>
             {me && <PlanBadge plan={me.plan} />}
@@ -48,6 +48,7 @@ export function UserMenu() {
             <DropdownMenuItem onSelect={() => navigate("/pricing")}><Tag /> Plans and prices</DropdownMenuItem>
           )}
           <DropdownMenuItem onSelect={() => setSettings(true)}><Settings /> Settings</DropdownMenuItem>
+          <DropdownMenuItem className="sm:hidden" onSelect={onToggleTheme}>{dark ? <Sun /> : <Moon />} {dark ? "Light theme" : "Dark theme"}</DropdownMenuItem>
           <DropdownMenuItem onSelect={signOut}><LogOut /> Sign out</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
