@@ -33,7 +33,7 @@ const tabList =
 
 /** What each paid tab holds, for the locked panel on the Free plan. */
 const LOCKED = {
-  plan: ["What made money: your best hours, weekdays, symbol and holding time", "Limits tested on your own trades, then checked on days they were not fitted to"],
+  plan: ["What made money: your best hours, weekdays, symbol and holding time", "Limits found on your earlier days, then checked on your recent days"],
   timing: ["Net P&L by hour of the day", "A weekday and hour grid", "Net P&L by weekday and by holding time"],
   frequency: ["Overtrading: trades taken each day against the trades your best holding time allows", "Net P&L if you stop after a set number of trades each day", "Results of your 1st, 2nd, 3rd trade of the day", "Busy days and quiet days"],
 }

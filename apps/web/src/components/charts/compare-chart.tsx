@@ -6,7 +6,7 @@ import { ChartTip } from "./chart-tip"
 
 type Point = { key: string; actual: number; rules: number }
 
-/** Cumulative daily net P&L: what happened vs. with the limits. A line marks where the test days start. */
+/** Cumulative daily net P&L: what happened vs. with the limits. A line marks where your recent days start. */
 export function CompareChart({ data, splitDay }: { data: Point[]; splitDay: string }) {
   return (
     <ChartContainer config={chartConfig} className="aspect-auto h-[220px] w-full sm:h-[280px]">
@@ -19,7 +19,7 @@ export function CompareChart({ data, splitDay }: { data: Point[]; splitDay: stri
           x={splitDay}
           stroke="var(--muted-foreground)"
           strokeDasharray="4 4"
-          label={{ value: "Test days", position: "insideTopLeft", fontSize: 11, fill: "var(--muted-foreground)", dy: -16 }}
+          label={{ value: "Recent days", position: "insideTopLeft", fontSize: 11, fill: "var(--muted-foreground)", dy: -16 }}
         />
         <ChartTooltip
           cursor={{ stroke: "var(--muted-foreground)", strokeDasharray: "3 3" }}
