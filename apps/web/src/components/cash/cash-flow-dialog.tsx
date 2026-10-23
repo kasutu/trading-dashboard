@@ -18,7 +18,8 @@ export function CashFlowDialog({ accountId, tz, children }: Props) {
             Add what your imports do not have (a CSV file has no deposits or withdrawals; an MT5 report brings them). They are kept apart from your trading P&L.
           </DialogDescription>
         </DialogHeader>
-        <DialogBody>
+        {/* One column no wider than the dialog, so the selection bar wraps instead of widening it */}
+        <DialogBody className="grid-cols-[minmax(0,1fr)]">
           <CashFlowForm accountId={accountId} />
           <Entries accountId={accountId} tz={tz} />
         </DialogBody>

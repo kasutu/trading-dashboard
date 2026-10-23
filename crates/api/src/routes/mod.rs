@@ -39,6 +39,7 @@ pub fn app(pool: PgPool) -> Router {
             "/accounts/{id}/cash-flows",
             get(cash_flows::list).post(cash_flows::create),
         )
+        .route("/accounts/{id}/cash-flows/bulk", post(cash_flows::bulk))
         .route(
             "/accounts/{id}/cash-flows/{flow}",
             delete(cash_flows::remove),
