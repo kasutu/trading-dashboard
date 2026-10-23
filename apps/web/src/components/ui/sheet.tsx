@@ -1,32 +1,33 @@
 import * as React from "react"
-import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { cn } from "@/lib/utils"
+import { DialogBody, DialogClose, DialogDescription, DialogHeader, DialogOverlay } from "./dialog"
 
-/** A dialog that slides in from the right edge. */
+/** A dialog that fills the screen on phones (rising from the bottom) and slides in from the right edge from sm.
+ *  Use SheetHeader and SheetBody inside, so the title stays put while the body scrolls. */
 const Sheet = DialogPrimitive.Root
 const SheetTitle = DialogPrimitive.Title
-const SheetDescription = DialogPrimitive.Description
+const SheetDescription = DialogDescription
+const SheetHeader = DialogHeader
+const SheetBody = DialogBody
 
 function SheetContent({ className, children, ...props }: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
+      <DialogOverlay />
       <DialogPrimitive.Content
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex h-full w-full flex-col overflow-y-auto border-l bg-background shadow-lg sm:max-w-md",
-          "data-[state=open]:animate-in data-[state=open]:slide-in-from-right data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right",
+          "motion-sheet fixed inset-0 z-50 flex h-dvh w-full flex-col overflow-hidden bg-background shadow-lg outline-none",
+          "sm:left-auto sm:max-w-md sm:border-l",
           className
         )}
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute top-4 right-4 rounded-md p-1 text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none" aria-label="Close">
-          <XIcon className="size-4" />
-        </DialogPrimitive.Close>
+        <DialogClose />
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
   )
 }
 
-export { Sheet, SheetContent, SheetDescription, SheetTitle }
+export { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle }

@@ -39,9 +39,9 @@ export function MoodPicker({ value, onChange, size = "sm", label = "Mood", class
               <span
                 aria-hidden
                 className={cn(
-                  "flex items-center justify-center rounded-full leading-none transition-[transform,opacity,filter,background-color] duration-200 ease-out",
+                  "flex items-center justify-center rounded-full leading-none transition-[transform,opacity] duration-200 ease-out",
                   "peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 active:scale-90",
-                  lg ? "size-14 text-4xl" : "size-9 text-xl",
+                  lg ? "size-14 text-4xl" : "size-11 text-xl sm:size-9",
                   on ? "scale-110 bg-muted" : value ? "opacity-40 grayscale hover:opacity-100 hover:grayscale-0" : "hover:bg-muted"
                 )}
               >

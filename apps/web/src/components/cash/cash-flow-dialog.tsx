@@ -1,5 +1,5 @@
 import type * as React from "react"
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useCashFlows } from "@/hooks/use-api"
 import { CashFlowForm } from "./cash-flow-form"
 import { CashFlowList } from "./cash-flow-list"
@@ -11,15 +11,17 @@ export function CashFlowDialog({ accountId, tz, children }: Props) {
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-        <div className="space-y-1 pr-6">
+      <DialogContent size="full" className="sm:max-w-lg">
+        <DialogHeader>
           <DialogTitle className="font-display text-lg font-bold">Deposits and withdrawals</DialogTitle>
           <DialogDescription>
             Your trade file has no deposits or withdrawals, so add them here. They are kept apart from your trading P&L.
           </DialogDescription>
-        </div>
-        <CashFlowForm accountId={accountId} />
-        <Entries accountId={accountId} tz={tz} />
+        </DialogHeader>
+        <DialogBody>
+          <CashFlowForm accountId={accountId} />
+          <Entries accountId={accountId} tz={tz} />
+        </DialogBody>
       </DialogContent>
     </Dialog>
   )

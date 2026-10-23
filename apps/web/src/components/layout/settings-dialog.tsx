@@ -1,5 +1,5 @@
 import { MistakeSettings, SetupSettings } from "@/components/journal/tag-settings"
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useSettings } from "@/hooks/use-settings"
@@ -9,11 +9,12 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   const { settings, update } = useSettings()
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <div className="space-y-1 pr-6">
+      <DialogContent size="full" className="sm:max-w-lg">
+        <DialogHeader>
           <DialogTitle className="font-display text-xl font-bold">Settings</DialogTitle>
           <DialogDescription>Your journal setups and mistake tags are saved to your account.</DialogDescription>
-        </div>
+        </DialogHeader>
+        <DialogBody>
         <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
           <div className="space-y-1">
             <Label htmlFor="check-in">Check in before trading</Label>
@@ -23,6 +24,7 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
         </div>
         <SetupSettings />
         <MistakeSettings />
+        </DialogBody>
       </DialogContent>
     </Dialog>
   )

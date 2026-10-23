@@ -3,6 +3,7 @@ import { Share2 } from "lucide-react"
 import { toPng } from "html-to-image"
 import { Button } from "@/components/ui/button"
 import { useMe } from "@/hooks/use-api"
+import { useSettled } from "@/hooks/use-media"
 import { pageTheme, watchTheme } from "@/lib/card-canvas"
 import { cardScale, drawPanelCard, type Capture } from "@/lib/panel-card"
 import { cn } from "@/lib/utils"
@@ -28,7 +29,7 @@ export function CardShareButton({ target, title, className }: Props) {
         {...SHARE_IGNORE}
         variant="ghost"
         size="icon-sm"
-        className={cn("-my-1 text-muted-foreground", className)}
+        className={cn("text-muted-foreground", className)}
         onClick={() => setOpen(true)}
         aria-label={`Share ${title}`}
         title="Share as an image"
@@ -60,17 +61,19 @@ function CardShareDialog({ target, title, onClose }: Omit<Props, "className"> & 
   const [failed, setFailed] = React.useState(false)
   // Capture again when the theme changes, so the card matches the frame.
   const theme = React.useSyncExternalStore(watchTheme, pageTheme)
+  // Turning the card into an image is heavy: start once the dialog has finished opening.
+  const settled = useSettled()
 
   React.useEffect(() => {
     const node = target.current
-    if (!node) return
+    if (!node || !settled) return
     let live = true
     capture(node).then(
       (c) => live && setShot(c),
       () => live && setFailed(true)
     )
     return () => { live = false }
-  }, [target, theme])
+  }, [target, theme, settled])
 
   const data = React.useMemo(
     () => ({ context: today(), invite: me?.plan !== "latte" && me?.plan !== "owner", site: window.location.host, capture: shot }),

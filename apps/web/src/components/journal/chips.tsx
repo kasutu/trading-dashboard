@@ -10,7 +10,7 @@ const chipClass = (on: boolean, size: "sm" | "md" = "md") =>
   cn(
     "inline-flex max-w-full cursor-pointer items-center gap-1 rounded-full border text-left whitespace-nowrap transition-[background-color,border-color,color,transform] duration-150 ease-out",
     "focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-95",
-    size === "sm" ? "h-7 px-2.5 text-xs" : "h-8 px-3 text-sm",
+    size === "sm" ? "h-11 px-3 text-xs sm:h-7 sm:px-2.5" : "h-11 px-3.5 text-sm sm:h-8 sm:px-3",
     on ? "border-foreground bg-foreground text-background" : "border-border bg-card text-foreground hover:bg-muted"
   )
 
@@ -159,14 +159,14 @@ function AddChip({ label, onAdd, size = "md" }: { label: string; onAdd: (name: s
     window.addEventListener("keydown", onKey, true)
     return () => window.removeEventListener("keydown", onKey, true)
   }, [open])
-  const h = size === "sm" ? "h-7" : "h-8"
+  const h = size === "sm" ? "h-11 sm:h-7" : "h-11 sm:h-8"
   return (
     <>
       <span
         className={cn(
-          "inline-flex items-center overflow-hidden rounded-full border bg-card transition-[width,border-color] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
+          "inline-flex items-center overflow-hidden rounded-full border bg-card",
           h,
-          open ? "w-44" : size === "sm" ? "w-7" : "w-8",
+          open ? "w-44" : size === "sm" ? "w-11 sm:w-7" : "w-11 sm:w-8",
           error ? "border-destructive" : open && "border-foreground/40"
         )}
       >
