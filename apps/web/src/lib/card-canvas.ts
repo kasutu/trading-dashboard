@@ -1,13 +1,13 @@
-// Shared drawing for the share images (stats card, calendar, trade, any dashboard card). 1200 wide,
-// 630 tall except dashboard cards, which grow with the card.
+// Shared drawing for the share images (stats card, calendar, trade, any dashboard card). Every image is a
+// 1080 × 1080 square, the size social apps show without cropping.
 // The images follow the app's theme: light or dark, whichever is on when the image is drawn.
 import { MARK } from "@/components/brand/mark"
 import qrcode from "qrcode-generator"
 import type { Filters } from "@/lib/api/types"
 
-export const CARD_W = 1200
-export const CARD_H = 630
-export const PAD = 64
+export const CARD_W = 1080
+export const CARD_H = 1080
+export const PAD = 72
 const SCALE = 2 // render at 2x for sharp text
 
 export type Theme = "light" | "dark"
@@ -65,8 +65,9 @@ export function text(ctx: CanvasRenderingContext2D, s: string, x: number, y: num
   ctx.fillText(s, x, y)
 }
 
-/** Sets the colours for the theme, sizes the canvas, fills the background and returns a context in 1200 × 630 units. */
-export function startCard(canvas: HTMLCanvasElement, theme: Theme = pageTheme(), h = CARD_H) {
+/** Sets the colours for the theme, sizes the canvas, fills the background and returns a context in 1080 × 1080 units. */
+export function startCard(canvas: HTMLCanvasElement, theme: Theme = pageTheme()) {
+  const h = CARD_H
   Object.assign(C, theme === "dark" ? DARK : LIGHT)
   canvas.width = CARD_W * SCALE
   canvas.height = h * SCALE
@@ -116,18 +117,19 @@ export function shareFooter(f: Filters, invite: boolean): Footer {
 }
 
 /** Height of the footer band at the bottom of a card. Content above it must end before this. */
-export const FOOTER_H = 112
-const QR = 84 // QR code size, including its light border
+export const FOOTER_H = 132
+const QR = 96 // QR code size, including its light border
 
 /** Context on the left; on the right the address with a QR code to it, and the invitation unless the plan hides it. */
-export function drawFooter(ctx: CanvasRenderingContext2D, f: Footer, h = CARD_H) {
-  const base = h - 40
-  text(ctx, f.context, PAD, base, `400 18px ${BODY}`, C.muted)
+export function drawFooter(ctx: CanvasRenderingContext2D, f: Footer) {
+  const h = CARD_H
+  const base = h - 48
+  text(ctx, f.context, PAD, base, `400 20px ${BODY}`, C.muted)
   const qrX = CARD_W - PAD - QR
-  drawQr(ctx, `https://${f.site}`, qrX, h - 28 - QR, QR)
+  drawQr(ctx, `https://${f.site}`, qrX, h - 36 - QR, QR)
   const right = qrX - 20
-  if (f.invite) text(ctx, "Track your trades free", right, base - 26, `400 17px ${BODY}`, C.muted, "right")
-  text(ctx, f.site, right, base, `600 20px ${BODY}`, C.text, "right")
+  if (f.invite) text(ctx, "Track your trades free", right, base - 30, `400 19px ${BODY}`, C.muted, "right")
+  text(ctx, f.site, right, base, `600 22px ${BODY}`, C.text, "right")
 }
 
 /** A QR code: dark modules on a white rounded square in both themes, so phones read it. */

@@ -15,7 +15,7 @@ type Props = {
   controls?: React.ReactNode
   title: string
   description: string
-  /** Draws the 1200 × 630 image on the canvas. */
+  /** Draws the 1080 × 1080 image on the canvas. */
   draw: (canvas: HTMLCanvasElement) => void
   /** Text to post with the image. */
   caption: string
@@ -107,7 +107,7 @@ export function ShareImageDialog({ trigger, open, onOpenChange, controls, title,
 }
 
 /** The image preview. Mounts when the dialog opens and draws only once the open animation is over, so drawing the
- *  1200 × 630 canvas does not stall it. Until then the box keeps the image's shape. */
+ *  1080 × 1080 canvas does not stall it. Until then the box keeps the image's shape. */
 function Preview({ title, draw, theme, onCanvas }: { title: string; draw: Props["draw"]; theme: string; onCanvas: (c: HTMLCanvasElement | null) => void }) {
   const settled = useSettled()
   const [canvas, setCanvas] = React.useState<HTMLCanvasElement | null>(null)
@@ -121,7 +121,7 @@ function Preview({ title, draw, theme, onCanvas }: { title: string; draw: Props[
   return (
     <canvas
       ref={ref}
-      className="mx-auto block aspect-[40/21] h-auto w-full rounded-xl border bg-muted/40 shadow-card"
+      className="mx-auto block aspect-square h-auto w-full max-w-[min(100%,60dvh)] rounded-xl border bg-muted/40 shadow-card"
       aria-label={`${title} preview`}
     />
   )
