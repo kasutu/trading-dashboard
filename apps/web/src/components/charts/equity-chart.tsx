@@ -17,6 +17,8 @@ type FlowMark = { n: number; equity: number; deposits: number; withdrawals: numb
 function flowMarks(data: EquityPoint[], flows: LocalCashFlow[]): FlowMark[] {
   const marks = new Map<number, FlowMark>()
   for (const f of flows) {
+    // Broker adjustments (cents after a stop out) are left off the curve.
+    if (f.kind === "adjustment") continue
     const t = Date.parse(f.occurredAt)
     if (t < data[0].time) continue
     const p = data.find((d) => d.time >= t)

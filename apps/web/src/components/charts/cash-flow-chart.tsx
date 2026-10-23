@@ -1,7 +1,7 @@
 import { Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart"
 import type { CashDay, LocalCashFlow } from "@/lib/api/types"
-import { compactMoney, formatDay, formatLongDay, money } from "@/lib/format"
+import { FLOW_LABELS, compactMoney, formatDay, formatLongDay, money } from "@/lib/format"
 import { axisTick, chartConfig } from "./chart-config"
 
 const DAY = 86_400_000
@@ -14,22 +14,25 @@ type Point = CashDay & { t: number; out: number; tail?: boolean }
 const LEGEND = [
   ["Deposits", "var(--deposit)", "bar"],
   ["Withdrawals", "var(--withdrawal)", "bar"],
+  ["Adjustments", "var(--adjustment)", "bar"],
   ["Net deposited", "var(--chart-1)", "line"],
 ] as const
 
-/** Deposits up and withdrawals down on a time axis, with the running net deposited as a step line. */
+/** Deposits (and broker adjustments) up and withdrawals down on a time axis, with the running net deposited
+ *  (adjustments left out) as a step line. */
 export function CashFlowChart({ daily, rows }: { daily: CashDay[]; rows: LocalCashFlow[] }) {
+  const hasAdjustments = daily.some((d) => d.adjustments > 0)
   const points: Point[] = daily.map((d) => ({ ...d, t: toTime(d.day), out: -d.withdrawals }))
   const first = points[0].t
   const last = points.at(-1)!.t
   const pad = Math.max((last - first) * 0.04, 2 * DAY)
   const end = points.at(-1)!
-  const data: Point[] = [...points, { ...end, t: last + pad, deposits: 0, withdrawals: 0, out: 0, net: 0, tail: true }]
+  const data: Point[] = [...points, { ...end, t: last + pad, deposits: 0, withdrawals: 0, adjustments: 0, out: 0, net: 0, tail: true }]
 
   return (
     <div className="space-y-3">
       <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        {LEGEND.map(([label, color, mark]) => (
+        {LEGEND.filter(([label]) => hasAdjustments || label !== "Adjustments").map(([label, color, mark]) => (
           <li key={label} className="flex items-center gap-1.5">
             <span
               className={mark === "bar" ? "size-2.5 rounded-[3px]" : "h-0.5 w-3.5 rounded-full"}
@@ -65,6 +68,7 @@ export function CashFlowChart({ daily, rows }: { daily: CashDay[]; rows: LocalCa
             }}
           />
           <Bar dataKey="deposits" stackId="flow" fill="var(--deposit)" barSize={10} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+          <Bar dataKey="adjustments" stackId="flow" fill="var(--adjustment)" barSize={10} radius={[3, 3, 0, 0]} isAnimationActive={false} />
           <Bar dataKey="out" stackId="flow" fill="var(--withdrawal)" barSize={10} radius={[3, 3, 0, 0]} isAnimationActive={false} />
           <Line
             dataKey="cumulative"
@@ -91,9 +95,9 @@ function DayTip({ day, flows }: { day: CashDay; flows: LocalCashFlow[] }) {
           <div className="flex justify-between gap-4">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <span className="size-2 rounded-[2px]" style={{ background: `var(--${f.kind})` }} />
-              {f.kind === "deposit" ? "Deposit" : "Withdrawal"}
+              {FLOW_LABELS[f.kind]}
             </span>
-            <span className="font-mono font-medium tabular-nums">{f.kind === "deposit" ? "+" : "−"}{money(f.amount)}</span>
+            <span className="font-mono font-medium tabular-nums">{f.kind === "withdrawal" ? "−" : "+"}{money(f.amount)}</span>
           </div>
           {f.note && <p className="truncate pl-3.5 text-muted-foreground">{f.note}</p>}
         </div>

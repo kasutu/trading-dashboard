@@ -33,7 +33,7 @@ const tabList =
 
 /** What each paid tab holds, for the locked panel on the Free plan. */
 const LOCKED = {
-  plan: ["What made money: your best hours, weekdays, symbol and holding time", "Limits tested on your own trades, then checked on days they were not fitted to"],
+  plan: ["What made money: your best hours, weekdays, symbol and holding time", "Limits found on your earlier days, then checked on your recent days"],
   timing: ["Net P&L by hour of the day", "A weekday and hour grid", "Net P&L by weekday and by holding time"],
   frequency: ["Overtrading: trades taken each day against the trades your best holding time allows", "Net P&L if you stop after a set number of trades each day", "Results of your 1st, 2nd, 3rd trade of the day", "Busy days and quiet days"],
 }
@@ -48,7 +48,11 @@ export function Dashboard({ accountId }: { accountId: string }) {
   const insights = React.useMemo(() => (full ? buildInsights(full) : []), [full])
   const { data: me } = useMe()
   const { data: flows } = useCashFlows(accountId, filters.tz)
-  const [tabValue, setTab] = React.useState("overview")
+  // `/?tab=funding` opens a tab (the import result links there).
+  const [tabValue, setTab] = React.useState(() => {
+    const asked = new URLSearchParams(window.location.search).get("tab")
+    return asked && TAB_ORDER.includes(asked) ? asked : "overview"
+  })
   // Every tab is built ahead of time and kept, so picking one only shows it (see Views).
   const warm = useWarmTabs(tabValue, data)
   // A plain function, not a component, so the triggers keep their identity (and keyboard focus) across renders.

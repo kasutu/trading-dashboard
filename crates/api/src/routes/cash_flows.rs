@@ -1,4 +1,5 @@
-//! Deposits and withdrawals: list with totals, add, delete. The user enters them by hand.
+//! Deposits, withdrawals and broker adjustments: list with totals, add, delete. Entered by
+//! hand or imported from an MT5 report (those carry the deal ticket in `source_id`).
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -26,10 +27,12 @@ pub struct CashFlow {
     kind: String,
     amount: f64,
     note: Option<String>,
+    /// The broker's deal ticket for an imported flow; null when entered by hand.
+    source_id: Option<String>,
     created_at: DateTime<Utc>,
 }
 
-const COLUMNS: &str = "id, occurred_at, kind, amount, note, created_at";
+const COLUMNS: &str = "id, occurred_at, kind, amount, note, source_id, created_at";
 
 #[derive(Deserialize)]
 pub struct TzQuery {
@@ -83,10 +86,10 @@ pub async fn list(
 }
 
 fn kind_of(kind: &str) -> FlowKind {
-    if kind == "withdrawal" {
-        FlowKind::Withdrawal
-    } else {
-        FlowKind::Deposit
+    match kind {
+        "withdrawal" => FlowKind::Withdrawal,
+        "adjustment" => FlowKind::Adjustment,
+        _ => FlowKind::Deposit,
     }
 }
 
@@ -106,9 +109,9 @@ pub async fn create(
     Json(body): Json<NewCashFlow>,
 ) -> ApiResult<Json<CashFlow>> {
     let id = owned_account(&pool, &user, &id).await?;
-    if body.kind != "deposit" && body.kind != "withdrawal" {
+    if !["deposit", "withdrawal", "adjustment"].contains(&body.kind.as_str()) {
         return Err(ApiError::bad_request(
-            "Use deposit or withdrawal for \"kind\".",
+            "Use deposit, withdrawal or adjustment for \"kind\".",
         ));
     }
     if !body.amount.is_finite() || body.amount <= 0.0 {

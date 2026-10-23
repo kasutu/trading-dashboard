@@ -7,7 +7,8 @@ import type { Comparison, FocusItem, Optimization } from "@/lib/api/types"
 import { WEEKDAYS, formatPeriod, hourLabel, money, pct, plural, pnlClass } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-/** What to focus on (primary), then the limits found by the optimizer (secondary), checked on days it did not see. */
+/** What to focus on (primary), then the limits found by the optimizer (secondary). Both are found on your earlier days
+ *  (the first 70% of trading days) and checked on your recent days (the rest), which they never saw. */
 export function Plan({ opt }: { opt: Optimization | null }) {
   if (!opt)
     return (
@@ -21,6 +22,8 @@ export function Plan({ opt }: { opt: Optimization | null }) {
   const allGain = opt.all.withRules.net - opt.all.actual.net
   const tested = opt.focus.filter((f) => f.test.trades > 0)
   const held = tested.filter((f) => f.test.net > 0).length
+  // The recent days: every trading day from the split on (the curve has one point per day).
+  const recent = plural(opt.curve.filter((p) => p.key >= opt.splitDay).length, "day")
   const limits = [opt.rules.skipHours.length, opt.rules.skipWeekdays.length, opt.rules.cap !== null, opt.rules.lossLimit !== null].filter(Boolean).length
 
   return (
@@ -32,11 +35,11 @@ export function Plan({ opt }: { opt: Optimization | null }) {
             ? {
                 value: tested.length ? `${held} of ${tested.length}` : plural(opt.focus.length, "idea"),
                 tone: tested.length ? (held * 2 >= tested.length ? "profit" : "loss") : undefined,
-                label: tested.length ? "Held on the test days" : "Not traded on the test days yet",
+                label: tested.length ? `Still worked on your last ${recent}` : `Not traded on your last ${recent} yet`,
               }
             : undefined
         }
-        description={`What made money on ${range(opt.trainDays)}. The test line shows if it held on ${range(opt.testDays)}.`}
+        description={`Rules are found on your earlier days (${range(opt.trainDays)}), then checked on your recent days (${range(opt.testDays)}).`}
         className="lg:col-span-3"
       >
         <FocusList items={opt.focus} />
@@ -51,19 +54,19 @@ export function Plan({ opt }: { opt: Optimization | null }) {
       </Panel>
 
       <Panel
-        title="Test on new days"
+        title="Checked on your recent days"
         metric={{
           value: money(testGain, true),
           tone: testGain,
-          label: "Change on the test days",
+          label: `Change on your last ${recent}`,
           stats: [["Actual", money(opt.test.actual.net, true)], ["With limits", money(opt.test.withRules.net, true)]],
         }}
         description={
           <>
-            The limits were not fitted to {range(opt.testDays)}.{" "}
+            The limits were found on your earlier days and never saw {range(opt.testDays)}.{" "}
             {testGain > 0
-              ? "They also helped on these days: a good sign that they are not only a fit to old data."
-              : "They did not help on these days. They probably fit noise in the old data. Collect more trades and check again."}
+              ? "They also helped on these days: a good sign that they are not a fluke of your earlier days."
+              : "They did not help on these days. They probably matched chance patterns in your earlier days. Collect more trades and check again."}
             {opt.all.withRules.net < 0 && " Your net P&L stays negative with these limits. They reduce losses but do not make the strategy profitable."}
           </>
         }
@@ -91,10 +94,10 @@ export function Plan({ opt }: { opt: Optimization | null }) {
       <Panel
         title="Results by period"
         metric={{ value: money(allGain, true), tone: allGain, label: "Change on all days" }}
-        description="The test assumes each trade is independent. Past results do not guarantee future results."
+        description="This check assumes each trade is independent. Past results do not guarantee future results."
         className="lg:col-span-3"
       >
-        <ResultsTable rows={[["Fit days", opt.train], ["Test days", opt.test], ["All days", opt.all]]} />
+        <ResultsTable rows={[["Earlier days", opt.train], ["Recent days", opt.test], ["All days", opt.all]]} />
       </Panel>
     </div>
   )
@@ -105,7 +108,7 @@ const focusValue = (f: FocusItem) => (f.kind === "hour" ? f.keys.map(hourLabel) 
 
 function FocusList({ items }: { items: FocusItem[] }) {
   if (!items.length)
-    return <p className="text-sm text-muted-foreground">No hour, weekday, symbol or holding time made money on the fit days.</p>
+    return <p className="text-sm text-muted-foreground">No hour, weekday, symbol or holding time made money on your earlier days.</p>
   return (
     <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((f) => {
@@ -116,11 +119,11 @@ function FocusList({ items }: { items: FocusItem[] }) {
             <p className="mt-0.5 font-medium break-words">{focusValue(f)}</p>
             <dl className="mt-2 space-y-1 text-xs">
               <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">Fit days</dt>
+                <dt className="text-muted-foreground">Earlier days</dt>
                 <dd className="tabular-nums">{money(f.fit.net, true)} · {plural(f.fit.trades, "trade")}</dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">Test days</dt>
+                <dt className="text-muted-foreground">Recent days</dt>
                 <dd className={cn("flex items-center gap-1 tabular-nums", f.test.trades ? pnlClass(f.test.net) : "text-muted-foreground")}>
                   {f.test.trades ? money(f.test.net, true) : "No trades"}
                   {f.test.trades > 0 && (held ? <CircleCheck className="size-3.5" aria-label="Held" /> : <CircleAlert className="size-3.5" aria-label="Did not hold" />)}

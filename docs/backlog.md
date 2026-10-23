@@ -9,6 +9,10 @@ Requested features, newest last. Move an item to "Done" with the PR link when it
 - Move the check-in setting from the browser to `profiles`.
 - Inline rename and archive for setups and mistake tags (adding is inline; rename and archive are in Settings).
 
+### MT4 detailed report import
+
+- Needs a sample MT4 "Detailed Statement" file. The MT5 report import (`crates/engine/src/mt5.rs`) is the model.
+
 ## Done
 
 - **P&L by hour uses the opening time.** Already the case: the engine takes the hour from the opening time and the chart says "Hour the trade was opened". No change needed.
@@ -20,3 +24,4 @@ Requested features, newest last. Move an item to "Done" with the PR link when it
 - **Trade timeline (Gantt).** One bar for each trade from open to close, with the time in the market on top. It shows in the day sheet and from the overtrading chart. Click a trade for its price chart. The same strip, smaller, shows on each journal day and on the review card.
 - **Journal backend, mock removed.** Tables (`0004_journal.sql`), routes (`routes/journal.rs`) and the engine module (`journal.rs`) from `docs/journal-data.md`, with tests. The web app's fake backend (`VITE_MOCK`, `just mock`) is deleted. The trade chart's SL and TP save as `initialStop` and the new `initialTarget`.
 - **Trade chart candles.** The API reads them from TradingView's chart websocket (`src/tradingview.rs`), free and without an extra service, and keeps every bar in `candles` with the ranges asked in `candle_ranges`, so each range is fetched once. Without a TradingView account, older trades get longer candles (the chart says so).
+- **MT5 report import.** Drop the HTML report from MetaTrader 5's History tab on the import page: a server dry run shows the account, the positions to import, deposits, withdrawals and adjustments; the import adds one trade per position (close reason from its deals), the balance operations as cash flows (Exness `D-NULL` negative balance resets as the new `adjustment` kind) and remembers the account's MetaTrader login. Re-imports and tickets already stored from a CSV are skipped.

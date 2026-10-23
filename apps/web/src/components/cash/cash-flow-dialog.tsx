@@ -6,7 +6,7 @@ import { CashFlowList } from "./cash-flow-list"
 
 type Props = { accountId: string; tz: string; children: React.ReactNode }
 
-/** Add, see and delete the deposits and withdrawals of an account. `children` opens it. */
+/** Add, see and delete the deposits, withdrawals and adjustments of an account. `children` opens it. */
 export function CashFlowDialog({ accountId, tz, children }: Props) {
   return (
     <Dialog>
@@ -15,7 +15,7 @@ export function CashFlowDialog({ accountId, tz, children }: Props) {
         <DialogHeader>
           <DialogTitle className="font-display text-lg font-bold">Deposits and withdrawals</DialogTitle>
           <DialogDescription>
-            Your trade file has no deposits or withdrawals, so add them here. They are kept apart from your trading P&L.
+            Add what your imports do not have (a CSV file has no deposits or withdrawals; an MT5 report brings them). They are kept apart from your trading P&L.
           </DialogDescription>
         </DialogHeader>
         <DialogBody>
