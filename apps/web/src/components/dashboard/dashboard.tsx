@@ -48,7 +48,11 @@ export function Dashboard({ accountId }: { accountId: string }) {
   const insights = React.useMemo(() => (full ? buildInsights(full) : []), [full])
   const { data: me } = useMe()
   const { data: flows } = useCashFlows(accountId, filters.tz)
-  const [tabValue, setTab] = React.useState("overview")
+  // `/?tab=funding` opens a tab (the import result links there).
+  const [tabValue, setTab] = React.useState(() => {
+    const asked = new URLSearchParams(window.location.search).get("tab")
+    return asked && TAB_ORDER.includes(asked) ? asked : "overview"
+  })
   // Every tab is built ahead of time and kept, so picking one only shows it (see Views).
   const warm = useWarmTabs(tabValue, data)
   // A plain function, not a component, so the triggers keep their identity (and keyboard focus) across renders.
