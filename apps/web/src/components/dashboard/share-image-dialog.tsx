@@ -2,7 +2,7 @@ import * as React from "react"
 import { Check, Copy, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { canvasToPng, pageTheme } from "@/lib/card-canvas"
+import { canvasToPng, pageTheme, watchTheme } from "@/lib/card-canvas"
 
 type Props = {
   /** The button that opens the dialog. Leave out and pass `open` to open it from outside. */
@@ -81,7 +81,7 @@ export function ShareImageDialog({ trigger, open, onOpenChange, controls, title,
           <DialogTitle className="font-display text-lg font-bold">{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </div>
-        <canvas ref={setCanvas} className="aspect-[1200/630] w-full rounded-xl border shadow-card" aria-label={`${title} preview`} />
+        <canvas ref={setCanvas} className="mx-auto block h-auto max-h-[60vh] w-auto max-w-full rounded-xl border shadow-card" aria-label={`${title} preview`} />
         {controls}
         <div className="rounded-xl bg-muted/60 px-4 py-3">
           <p className="text-xs text-muted-foreground">Caption</p>
@@ -103,11 +103,4 @@ export function ShareImageDialog({ trigger, open, onOpenChange, controls, title,
       </DialogContent>
     </Dialog>
   )
-}
-
-/** Calls back when the `dark` class on <html> changes. */
-function watchTheme(onChange: () => void) {
-  const observer = new MutationObserver(onChange)
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
-  return () => observer.disconnect()
 }
