@@ -1,12 +1,12 @@
 import * as React from "react"
 import { EquityChart } from "@/components/charts/equity-chart"
-import type { Analytics, LocalCashFlow } from "@/lib/api/types"
+import type { Analytics } from "@/lib/api/types"
 import { duration, formatDay, formatPeriod, money, pct, plural } from "@/lib/format"
 import { MetricBlock, Stats } from "./panel"
 
 /** Net P&L, the equity curve and the key ratios in one card. Net P&L is the one number that stands out;
  *  every other figure is a quiet label and value. */
-export const SummaryCard = React.memo(function SummaryCard({ a, tz, flows }: { a: Analytics; tz: string; flows?: LocalCashFlow[] }) {
+export const SummaryCard = React.memo(function SummaryCard({ a, tz }: { a: Analytics; tz: string }) {
   const s = a.summary
   const days = [...a.daily].sort((x, y) => y.net - x.net)
   const bestDay = days[0]
@@ -32,7 +32,7 @@ export const SummaryCard = React.memo(function SummaryCard({ a, tz, flows }: { a
             ]}
           />
         </div>
-        <EquityChart data={a.curve} tz={tz} flows={flows} />
+        <EquityChart data={a.curve} tz={tz} />
       </div>
 
       <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 border-t pt-5 sm:grid-cols-3 lg:grid-cols-5">

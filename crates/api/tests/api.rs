@@ -695,6 +695,8 @@ async fn cash_flows_crud_and_summary() {
             "deposits": { "count": 2, "total": 600.5 },
             "withdrawals": { "count": 1, "total": 150.0 },
             "adjustments": { "count": 0, "total": 0.0 },
+            "transfersIn": { "count": 0, "total": 0.0 },
+            "transfersOut": { "count": 0, "total": 0.0 },
             "net": 450.5,
         })
     );
@@ -1281,6 +1283,8 @@ async fn mt5_import_into_an_empty_account() {
             "deposits": { "count": 2, "total": 1500.0 },
             "withdrawals": { "count": 1, "total": 200.0 },
             "adjustments": { "count": 1, "total": 3.4 },
+            "transfersIn": { "count": 0, "total": 0.0 },
+            "transfersOut": { "count": 1, "total": 200.0 },
             "net": 1300.0,
         })
     );
@@ -1357,6 +1361,27 @@ async fn mt5_import_into_an_empty_account() {
         .unwrap();
     assert_eq!(adj["note"], "Negative balance reset (broker) · D-NULL");
     assert_eq!(adj["sourceId"], "5016");
+    // The withdrawal with an INT part is an internal transfer; the deposits are not.
+    let internal: Vec<(&str, bool)> = f["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| {
+            (
+                r["sourceId"].as_str().unwrap(),
+                r["internal"].as_bool().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        internal,
+        [
+            ("5018", true),
+            ("5017", false),
+            ("5016", false),
+            ("5001", false)
+        ]
+    );
 
     // Importing it again adds nothing.
     let (s, v) = t.post(&path, mt5_body(false)).await;

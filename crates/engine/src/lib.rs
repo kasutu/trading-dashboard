@@ -533,6 +533,10 @@ pub struct CashFlow {
     pub kind: FlowKind,
     /// Always positive. `kind` gives the direction.
     pub amount: f64,
+    /// A move between the trader's own wallet or accounts at the broker (a deposit or
+    /// withdrawal of this account all the same).
+    #[serde(default)]
+    pub internal: bool,
 }
 
 /// Count and total of one kind of cash flow.
@@ -550,6 +554,10 @@ pub struct CashSummary {
     pub withdrawals: FlowTotal,
     /// Broker adjustments. Kept apart: not part of `net`.
     pub adjustments: FlowTotal,
+    /// The deposits that were internal transfers in (part of `deposits`).
+    pub transfers_in: FlowTotal,
+    /// The withdrawals that were internal transfers out (part of `withdrawals`).
+    pub transfers_out: FlowTotal,
     /// Deposits minus withdrawals.
     pub net: f64,
 }

@@ -52,6 +52,8 @@ pub struct Mt5CashFlow {
     pub comment: String,
     /// The note to store: the comment, with a plain-language prefix for adjustments.
     pub note: String,
+    /// An internal transfer (see [`is_internal`]).
+    pub internal: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -190,6 +192,7 @@ pub fn parse(text: &str, tz: &str) -> Result<Mt5Report, Mt5Error> {
                     Some(amount) => {
                         let comment = get("comment").to_string();
                         let (kind, note) = classify_balance(amount, &comment);
+                        let internal = kind != FlowKind::Adjustment && is_internal(&comment);
                         cash_flows.push(Mt5CashFlow {
                             deal: get("deal").to_string(),
                             time,
@@ -197,6 +200,7 @@ pub fn parse(text: &str, tz: &str) -> Result<Mt5Report, Mt5Error> {
                             amount: round2(amount.abs()),
                             comment,
                             note,
+                            internal,
                         });
                     }
                     None => *skipped.entry("balance".into()).or_default() += 1,
@@ -295,6 +299,16 @@ pub fn classify_balance(amount: f64, comment: &str) -> (FlowKind, String) {
         return (FlowKind::Adjustment, note);
     }
     (FlowKind::Deposit, c.to_string())
+}
+
+/// Whether a `balance` deal's comment marks an internal transfer: a move between the trader's
+/// own wallet or accounts at the broker. Exness comments are `<D|W>-<method>-<currency>-<ref>`,
+/// with an `INT` part for internal moves (`W-ALLINT-USD-INT-…`); `CC` (credit card) and local
+/// payment methods are money from or to outside the broker.
+pub fn is_internal(comment: &str) -> bool {
+    let mut parts = comment.trim().split('-');
+    matches!(parts.next(), Some(p) if p.eq_ignore_ascii_case("D") || p.eq_ignore_ascii_case("W"))
+        && parts.any(|p| p.eq_ignore_ascii_case("INT"))
 }
 
 /// A closing deal: its price and comment.
@@ -709,6 +723,23 @@ mod tests {
         assert_eq!(r.cash_flows[1].time, utc("2026-03-05T03:10:05Z"));
         // The credit deal is not imported, only counted.
         assert_eq!(r.skipped, BTreeMap::from([("credit".to_string(), 1)]));
+    }
+
+    #[test]
+    fn internal_transfers() {
+        assert!(is_internal("W-ALLINT-USD-INT-1234"));
+        assert!(is_internal("D-ALLINT-USD-INT-1234"));
+        assert!(!is_internal("D-CC-USD-1234"));
+        assert!(!is_internal("W-PHPAYMAY-USD-1234"));
+        assert!(
+            !is_internal("D-ALLINT-USD-1234"),
+            "only a whole INT part counts"
+        );
+        assert!(!is_internal("D-NULL"));
+        assert!(!is_internal("INT"));
+        let r = report();
+        let internal: Vec<bool> = r.cash_flows.iter().map(|f| f.internal).collect();
+        assert_eq!(internal, [false, false, false, true]);
     }
 
     #[test]
