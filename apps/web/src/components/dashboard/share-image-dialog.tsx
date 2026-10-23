@@ -2,11 +2,15 @@ import * as React from "react"
 import { Check, Copy, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { canvasToPng } from "@/lib/card-canvas"
+import { canvasToPng, pageTheme } from "@/lib/card-canvas"
 
 type Props = {
-  /** The button that opens the dialog. */
-  trigger: React.ReactNode
+  /** The button that opens the dialog. Leave out and pass `open` to open it from outside. */
+  trigger?: React.ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Options shown under the preview, for example a switch. */
+  controls?: React.ReactNode
   title: string
   description: string
   /** Draws the 1200 × 630 image on the canvas. */
@@ -17,16 +21,19 @@ type Props = {
 }
 
 /** A dialog with a share image preview: share sheet, copy caption, copy image, download. */
-export function ShareImageDialog({ trigger, title, description, draw, caption, fileName }: Props) {
+export function ShareImageDialog({ trigger, open, onOpenChange, controls, title, description, draw, caption, fileName }: Props) {
   const [canvas, setCanvas] = React.useState<HTMLCanvasElement | null>(null)
   const [status, setStatus] = React.useState<"idle" | "image" | "caption" | "error">("idle")
   // The system share sheet (phones, Safari, Edge). Elsewhere, copy and download cover it.
   const canShare =
     typeof navigator.canShare === "function" && navigator.canShare({ files: [new File([], fileName, { type: "image/png" })] })
 
+  // The image follows the app theme; redraw when it changes while the dialog is open.
+  const theme = React.useSyncExternalStore(watchTheme, pageTheme)
+
   React.useEffect(() => {
     if (canvas) draw(canvas)
-  }, [canvas, draw])
+  }, [canvas, draw, theme])
 
   const flash = (s: typeof status) => {
     setStatus(s)
@@ -61,14 +68,21 @@ export function ShareImageDialog({ trigger, title, description, draw, caption, f
   }
 
   return (
-    <Dialog onOpenChange={() => setStatus("idle")}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setStatus("idle")
+        onOpenChange?.(o)
+      }}
+    >
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-3xl">
         <div className="space-y-1 pr-6">
           <DialogTitle className="font-display text-lg font-bold">{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </div>
         <canvas ref={setCanvas} className="aspect-[1200/630] w-full rounded-xl border shadow-card" aria-label={`${title} preview`} />
+        {controls}
         <div className="rounded-xl bg-muted/60 px-4 py-3">
           <p className="text-xs text-muted-foreground">Caption</p>
           <p className="mt-1 text-sm">{caption}</p>
@@ -89,4 +103,11 @@ export function ShareImageDialog({ trigger, title, description, draw, caption, f
       </DialogContent>
     </Dialog>
   )
+}
+
+/** Calls back when the `dark` class on <html> changes. */
+function watchTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+  return () => observer.disconnect()
 }

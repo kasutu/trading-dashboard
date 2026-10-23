@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Input } from "@/components/ui/input"
 import { SaveStatus } from "@/components/journal/save-status"
+import { TradeShareButton } from "@/components/dashboard/trade-share"
 import { useTradeAnswers } from "@/hooks/use-answers"
 import { useCandles } from "@/hooks/use-api"
 import { useJournalContext } from "@/hooks/use-journal"
@@ -139,6 +140,7 @@ function Body({ accountId, trade, tz, levels, onLevel, children }: Props & { lev
           </DialogDescription>
         </div>
         <span className={cn("ml-auto font-mono text-lg font-medium whitespace-nowrap tabular-nums", pnlClass(trade.net))}>{money(trade.net, true)}</span>
+        <TradeShareButton accountId={accountId} trade={trade} tz={tz} className="-my-1" />
       </div>
 
       <ToggleGroup

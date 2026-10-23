@@ -8,9 +8,11 @@ const KEY = "jurno:settings"
 export type Settings = {
   /** Show the before-trading check-in when the dashboard opens. */
   checkIn: boolean
+  /** Show dollar amounts and lot size on the trade share card. */
+  shareAmounts: boolean
 }
 
-const DEFAULTS: Settings = { checkIn: true }
+const DEFAULTS: Settings = { checkIn: true, shareAmounts: true }
 const listeners = new Set<() => void>()
 
 function read(): Settings {

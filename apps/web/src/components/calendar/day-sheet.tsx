@@ -1,5 +1,6 @@
 import { TradeTimeline } from "@/components/charts/day-timeline-dialog"
 import { TradeChartButton } from "@/components/charts/trade-chart-dialog"
+import { TradeShareButton } from "@/components/dashboard/trade-share"
 import { SideBadge } from "@/components/dashboard/side-badge"
 import { YourDay } from "@/components/journal/day-review"
 import { TradeReviewPanel } from "@/components/journal/trade-review-panel"
@@ -48,7 +49,10 @@ export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
                     <SideBadge side={t.side} />
                     <span className="text-xs text-muted-foreground">{t.lots} lots</span>
                     <span className={cn("ml-auto font-mono font-medium tabular-nums", pnlClass(t.net))}>{money(t.net, true)}</span>
-                    <TradeChartButton compact accountId={accountId} trade={t} tz={tz} className="-my-1 -mr-2" />
+                    <span className="-my-1 -mr-2 flex items-center">
+                      <TradeChartButton compact accountId={accountId} trade={t} tz={tz} />
+                      <TradeShareButton accountId={accountId} trade={t} tz={tz} />
+                    </span>
                   </div>
                   <p className="mt-1 font-mono text-sm text-muted-foreground">
                     {formatTimeRange(t.open, t.close, tz)} <span aria-hidden>·</span> {duration(t.durationMin)}
