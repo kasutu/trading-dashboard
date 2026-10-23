@@ -204,6 +204,8 @@ Mt5ImportResult = {
 
 Deposits, withdrawals and adjustments are on every plan. They are not trades: they never change the P&L numbers. The web app shows them in the Funding tab; the equity curve leaves them off. An adjustment is money the broker put in that the trader did not send, such as Exness's negative balance reset (`D-NULL`); it is not counted in net deposited.
 
+MT5 balance deals are read from the deal comment: `D-` is money in (a deposit) and `W-` money out (a withdrawal). A comment with an `INT` part (`W-ALLINT-USD-INT-…`) is an internal transfer, money moved between the trader's own Exness wallet and accounts; without it the money came from or went outside (`CC` credit card, `PHPAYMAY` PayMaya, `PHGCASHG` GCash and so on). Internal transfers stay inside the deposit and withdrawal totals, since they did move this account's balance, and are flagged `internal` so the Funding tab can show them as "Transfer in / out" and total them apart ("Of which internal").
+
 Every route that takes `:id` checks that the account belongs to the session user (404 otherwise).
 
 ## MT5 report import

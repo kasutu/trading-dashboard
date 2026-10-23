@@ -9,10 +9,10 @@ use crate::stats::round2;
 use crate::{CashDay, CashFlow, CashReport, CashSummary, FlowKind, FlowTotal};
 
 pub fn report(flows: &[CashFlow], tz: Tz) -> CashReport {
-    let total = |kind: FlowKind| {
+    let total = |kind: FlowKind, only_internal: bool| {
         let amounts: Vec<f64> = flows
             .iter()
-            .filter(|f| f.kind == kind)
+            .filter(|f| f.kind == kind && (f.internal || !only_internal))
             .map(|f| f.amount)
             .collect();
         FlowTotal {
@@ -20,9 +20,11 @@ pub fn report(flows: &[CashFlow], tz: Tz) -> CashReport {
             total: round2(amounts.iter().sum()),
         }
     };
-    let deposits = total(FlowKind::Deposit);
-    let withdrawals = total(FlowKind::Withdrawal);
-    let adjustments = total(FlowKind::Adjustment);
+    let deposits = total(FlowKind::Deposit, false);
+    let withdrawals = total(FlowKind::Withdrawal, false);
+    let adjustments = total(FlowKind::Adjustment, false);
+    let transfers_in = total(FlowKind::Deposit, true);
+    let transfers_out = total(FlowKind::Withdrawal, true);
     let net = round2(deposits.total - withdrawals.total);
 
     // yyyy-mm-dd sorts as text, so the map is in date order.
@@ -57,6 +59,8 @@ pub fn report(flows: &[CashFlow], tz: Tz) -> CashReport {
             deposits,
             withdrawals,
             adjustments,
+            transfers_in,
+            transfers_out,
             net,
         },
         daily,
@@ -72,6 +76,7 @@ mod tests {
             time: time.parse().unwrap(),
             kind,
             amount,
+            internal: false,
         }
     }
 
@@ -125,6 +130,7 @@ mod tests {
         );
         // Adjustments are not deposits: net deposited leaves them out.
         assert_eq!(r.summary.net, 400.3);
+        assert_eq!(r.summary.transfers_in.count, 0);
         assert_eq!(
             r.daily,
             vec![
@@ -146,6 +152,26 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[test]
+    fn transfers_are_counted_inside_deposits_and_withdrawals() {
+        let internal = |time: &str, kind: FlowKind, amount: f64| CashFlow {
+            internal: true,
+            ..flow(time, kind, amount)
+        };
+        let flows = [
+            flow("2026-08-01T09:00:00Z", FlowKind::Deposit, 100.0),
+            internal("2026-08-02T09:00:00Z", FlowKind::Deposit, 50.0),
+            internal("2026-08-03T09:00:00Z", FlowKind::Withdrawal, 30.0),
+        ];
+        let r = report(&flows, Tz::UTC);
+        let t = |count, total| FlowTotal { count, total };
+        assert_eq!(r.summary.deposits, t(2, 150.0));
+        assert_eq!(r.summary.withdrawals, t(1, 30.0));
+        assert_eq!(r.summary.transfers_in, t(1, 50.0));
+        assert_eq!(r.summary.transfers_out, t(1, 30.0));
+        assert_eq!(r.summary.net, 120.0);
     }
 
     #[test]

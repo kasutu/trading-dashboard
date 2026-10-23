@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { invalidate } from "@/hooks/use-api"
 import { api } from "@/lib/api/client"
 import type { Mt5ImportResult } from "@/lib/api/types"
-import { LOCAL_TZ, formatDateTime, formatPeriod, money, plural, tzLabel } from "@/lib/format"
+import { LOCAL_TZ, formatDateTime, formatPeriod, money, plural, transfers, tzLabel } from "@/lib/format"
 import { SERVER_TIMEZONES, isExness } from "@/lib/mt5"
 
 export type ReportFile = { name: string; text: string }
@@ -149,6 +149,7 @@ function flowStats(p: Mt5ImportResult): [string, string][] {
     ["Deposits", `${money(s.deposits.total)} · ${s.deposits.count}`],
     ["Withdrawals", `${money(s.withdrawals.total)} · ${s.withdrawals.count}`],
   ]
+  if (s.transfersIn.count || s.transfersOut.count) stats.push(["Of which internal", transfers(s)])
   if (s.adjustments.count) stats.push(["Adjustments", `${money(s.adjustments.total)} · ${s.adjustments.count}`])
   const skipped = skippedText(p.skippedDeals)
   if (skipped) stats.push(["Not imported", skipped])

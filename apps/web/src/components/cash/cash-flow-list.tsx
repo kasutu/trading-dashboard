@@ -41,7 +41,7 @@ export function CashFlowList({ accountId, rows, tz }: { accountId: string; rows:
       <ul className="divide-y">
         {rows.map((f) => {
           const Icon = ICONS[f.kind]
-          const label = FLOW_LABELS[f.kind]
+          const label = f.internal ? (f.kind === "deposit" ? "Transfer in" : "Transfer out") : FLOW_LABELS[f.kind]
           return (
             <li key={f.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
               <span
@@ -50,7 +50,10 @@ export function CashFlowList({ accountId, rows, tz }: { accountId: string; rows:
                 <Icon className="size-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{label}</p>
+                <p className="text-sm font-medium">
+                  {label}
+                  {f.internal && <span className="font-normal text-muted-foreground"> · internal</span>}
+                </p>
                 <p className="truncate text-xs text-muted-foreground">
                   {[formatDateTime(f.occurredAt, tz), f.note].filter(Boolean).join(" · ")}
                 </p>
