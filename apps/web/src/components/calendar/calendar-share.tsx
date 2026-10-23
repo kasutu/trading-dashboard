@@ -11,7 +11,7 @@ import { money, plural } from "@/lib/format"
 
 type Props = { month: string; grid: string[]; byDay: Map<string, LocalTrade[]>; filters: Filters }
 
-/** Share button for the month on screen. Draws it as a 1200 × 630 image, like the stats card. */
+/** Share button for the month on screen. Draws it as a square image, like the stats card. */
 export function CalendarShare({ month, grid, byDay, filters }: Props) {
   const { data: me } = useMe()
   const invite = me?.plan !== "latte" && me?.plan !== "owner"

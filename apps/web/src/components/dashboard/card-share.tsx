@@ -41,18 +41,38 @@ export function CardShareButton({ target, title, className }: Props) {
   )
 }
 
+/** Widest a card is captured at. A wider card is narrowed to this for the capture, so its charts lay out the way
+ *  they do on a phone and the card fills the square image instead of being a thin strip in it. */
+const CAPTURE_W = 600
+
+const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r(null)))
+
 /** Renders a card to a PNG, leaving out anything marked with SHARE_IGNORE. */
 async function capture(node: HTMLElement): Promise<Capture> {
-  const { width: w, height: h } = node.getBoundingClientRect()
-  const url = await toPng(node, {
-    // Enough pixels for the size the card is drawn at in the 2x image, so small cards stay sharp.
-    pixelRatio: Math.max(2, Math.ceil(cardScale(w, h) * 2)),
-    filter: (n) => !(n instanceof HTMLElement && n.hasAttribute("data-share-ignore")),
-  })
-  const image = new Image()
-  image.src = url
-  await image.decode()
-  return { image, w, h }
+  const narrow = node.getBoundingClientRect().width > CAPTURE_W
+  const old = { width: node.style.width, maxWidth: node.style.maxWidth }
+  try {
+    if (narrow) {
+      node.style.width = `${CAPTURE_W}px`
+      node.style.maxWidth = `${CAPTURE_W}px`
+      // Let the charts see the new width (ResizeObserver) and draw again before taking the picture.
+      await nextFrame()
+      await new Promise((r) => setTimeout(r, 120))
+      await nextFrame()
+    }
+    const { width: w, height: h } = node.getBoundingClientRect()
+    const url = await toPng(node, {
+      // Enough pixels for the size the card is drawn at in the 2x image, so small cards stay sharp.
+      pixelRatio: Math.max(2, Math.ceil(cardScale(w, h) * 2)),
+      filter: (n) => !(n instanceof HTMLElement && n.hasAttribute("data-share-ignore")),
+    })
+    const image = new Image()
+    image.src = url
+    await image.decode()
+    return { image, w, h }
+  } finally {
+    if (narrow) Object.assign(node.style, old)
+  }
 }
 
 function CardShareDialog({ target, title, onClose }: Omit<Props, "className"> & { onClose: () => void }) {

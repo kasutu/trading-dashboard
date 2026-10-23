@@ -22,27 +22,25 @@ export type CalendarCardData = Footer & {
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-/** The month calendar as a 1200 × 630 image, in the same style as the stats card. */
+/** The month calendar as a square image: the month's net P&L large, then the grid, in the style of the stats card. */
 export function drawCalendarCard(canvas: HTMLCanvasElement, d: CalendarCardData) {
   const ctx = startCard(canvas)
   drawBrand(ctx)
+  text(ctx, d.title, CARD_W - PAD, PAD + 24, `400 24px ${BODY}`, C.muted, "right")
 
-  // Month title and summary, top right
-  text(ctx, d.title, CARD_W - PAD, PAD + 18, `700 28px ${DISPLAY}`, C.text, "right")
+  // Hero: the month's net, and a quiet summary under it
+  text(ctx, money(d.net, true), PAD, 232, `800 96px ${DISPLAY}`, tone(d.net))
   const summary = `${plural(d.trades, "trade")} · ${d.green} green, ${d.red} red ${d.green + d.red === 1 ? "day" : "days"}`
-  ctx.font = `400 17px ${BODY}`
-  const summaryW = ctx.measureText(summary).width
-  text(ctx, summary, CARD_W - PAD, PAD + 46, `400 17px ${BODY}`, C.muted, "right")
-  text(ctx, money(d.net, true), CARD_W - PAD - summaryW - 12, PAD + 46, `600 17px ${BODY}`, tone(d.net), "right")
+  text(ctx, summary, PAD, 280, `400 24px ${BODY}`, C.muted)
 
   // Grid
   const gap = 8
-  const top = 150
-  const bottom = CARD_H - FOOTER_H - 12
+  const top = 330
+  const bottom = CARD_H - FOOTER_H - 28
   const rows = d.cells.length / 7
   const colW = (CARD_W - PAD * 2 - gap * 6) / 7
   const rowH = (bottom - top - 24 - gap * (rows - 1)) / rows
-  WEEKDAYS.forEach((w, i) => text(ctx, w, PAD + i * (colW + gap) + colW / 2, top + 6, `500 14px ${BODY}`, C.muted, "center"))
+  WEEKDAYS.forEach((w, i) => text(ctx, w, PAD + i * (colW + gap) + colW / 2, top + 6, `500 16px ${BODY}`, C.muted, "center"))
 
   d.cells.forEach((cell, i) => {
     const x = PAD + (i % 7) * (colW + gap)
@@ -58,10 +56,10 @@ export function drawCalendarCard(canvas: HTMLCanvasElement, d: CalendarCardData)
       ctx.strokeStyle = tone(cell.net) + "55"
       ctx.stroke()
     }
-    text(ctx, cell.label, x + 10, y + 19, `500 14px ${BODY}`, C.muted)
+    text(ctx, cell.label, x + 10, y + 21, `500 15px ${BODY}`, C.muted)
     if (traded) {
-      text(ctx, plural(cell.trades, "trade"), x + colW - 10, y + 19, `400 13px ${BODY}`, C.muted, "right")
-      text(ctx, money(cell.net, true), x + 10, y + rowH - 11, `600 16px ${BODY}`, tone(cell.net))
+      text(ctx, String(cell.trades), x + colW - 10, y + 21, `400 14px ${BODY}`, C.muted, "right")
+      text(ctx, money(cell.net, true), x + 10, y + rowH - 12, `600 17px ${BODY}`, tone(cell.net))
     }
     ctx.globalAlpha = 1
   })
