@@ -1,4 +1,5 @@
-//! Deposits and withdrawals: totals and a per-day timeline.
+//! Deposits, withdrawals and broker adjustments: totals and a per-day timeline.
+//! Adjustments are kept apart: net deposited is deposits minus withdrawals.
 
 use std::collections::BTreeMap;
 
@@ -21,27 +22,30 @@ pub fn report(flows: &[CashFlow], tz: Tz) -> CashReport {
     };
     let deposits = total(FlowKind::Deposit);
     let withdrawals = total(FlowKind::Withdrawal);
+    let adjustments = total(FlowKind::Adjustment);
     let net = round2(deposits.total - withdrawals.total);
 
     // yyyy-mm-dd sorts as text, so the map is in date order.
-    let mut by_day: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+    let mut by_day: BTreeMap<String, (f64, f64, f64)> = BTreeMap::new();
     for f in flows {
         let day = f.time.with_timezone(&tz).format("%Y-%m-%d").to_string();
-        let (dep, wd) = by_day.entry(day).or_default();
+        let (dep, wd, adj) = by_day.entry(day).or_default();
         match f.kind {
             FlowKind::Deposit => *dep += f.amount,
             FlowKind::Withdrawal => *wd += f.amount,
+            FlowKind::Adjustment => *adj += f.amount,
         }
     }
     let mut cumulative = 0.0;
     let daily = by_day
         .into_iter()
-        .map(|(day, (dep, wd))| {
+        .map(|(day, (dep, wd, adj))| {
             cumulative += dep - wd;
             CashDay {
                 day,
                 deposits: round2(dep),
                 withdrawals: round2(wd),
+                adjustments: round2(adj),
                 net: round2(dep - wd),
                 cumulative: round2(cumulative),
             }
@@ -52,6 +56,7 @@ pub fn report(flows: &[CashFlow], tz: Tz) -> CashReport {
         summary: CashSummary {
             deposits,
             withdrawals,
+            adjustments,
             net,
         },
         daily,
@@ -94,6 +99,7 @@ mod tests {
             flow("2026-08-01T20:00:00Z", Deposit, 0.1),
             flow("2026-08-01T21:00:00Z", Deposit, 0.2),
             flow("2026-09-10T09:00:00Z", Deposit, 50.0),
+            flow("2026-09-10T10:00:00Z", Adjustment, 0.14),
         ];
         let r = report(&flows, Tz::UTC);
         assert_eq!(
@@ -110,6 +116,14 @@ mod tests {
                 total: 150.0
             }
         );
+        assert_eq!(
+            r.summary.adjustments,
+            FlowTotal {
+                count: 1,
+                total: 0.14
+            }
+        );
+        // Adjustments are not deposits: net deposited leaves them out.
         assert_eq!(r.summary.net, 400.3);
         assert_eq!(
             r.daily,
@@ -118,6 +132,7 @@ mod tests {
                     day: "2026-08-01".into(),
                     deposits: 500.3,
                     withdrawals: 0.0,
+                    adjustments: 0.0,
                     net: 500.3,
                     cumulative: 500.3,
                 },
@@ -125,6 +140,7 @@ mod tests {
                     day: "2026-09-10".into(),
                     deposits: 50.0,
                     withdrawals: 150.0,
+                    adjustments: 0.14,
                     net: -100.0,
                     cumulative: 400.3,
                 },
