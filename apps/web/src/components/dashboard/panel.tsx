@@ -65,14 +65,17 @@ export function MetricBlock({ metric: m, className, size = "md" }: { metric: Met
   )
 }
 
-/** Quiet label and value pairs: small muted labels, plain values. */
+/** A stat labelled "Worst …" is always red; it names the thing that hurts. */
+const isWorst = (label: React.ReactNode) => typeof label === "string" && /^worst\b/i.test(label)
+
+/** Quiet label and value pairs: small muted labels, plain values. "Worst" values are red. */
 export function Stats({ items, className }: { items: [React.ReactNode, React.ReactNode][]; className?: string }) {
   return (
     <dl className={cn("grid grid-cols-2 gap-x-4 gap-y-3 sm:flex sm:flex-wrap sm:gap-x-8", className)}>
       {items.map(([label, value], i) => (
         <div key={i} className="min-w-0">
           <dt className="text-xs text-muted-foreground">{label}</dt>
-          <dd className="mt-0.5 text-sm tabular-nums">{value}</dd>
+          <dd className={cn("mt-0.5 text-sm tabular-nums", isWorst(label) && "text-loss")}>{value}</dd>
         </div>
       ))}
     </dl>

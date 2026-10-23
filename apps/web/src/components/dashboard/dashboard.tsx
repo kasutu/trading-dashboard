@@ -3,7 +3,7 @@ import { Lock } from "lucide-react"
 import { DailyCheckIn } from "@/components/journal/daily-check-in"
 import { JournalProvider } from "@/components/journal/journal-provider"
 import { Tabs as TabsPrimitive } from "radix-ui"
-import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
+import { Tabs, TabsList } from "@/components/ui/tabs"
 import { useAnalytics, useCashFlows, useMe } from "@/hooks/use-api"
 import { useFilters } from "@/hooks/use-filters"
 import { filterQuery } from "@/lib/api/client"
@@ -49,9 +49,8 @@ export function Dashboard({ accountId }: { accountId: string }) {
   const { data: me } = useMe()
   const { data: flows } = useCashFlows(accountId, filters.tz)
   const [tabValue, setTab] = React.useState("overview")
-  // The picked tab's content renders as a deferred, interruptible update: React builds it in small slices and the
-  // browser keeps painting in between, instead of one long frame on a phone.
-  const shownTab = React.useDeferredValue(tabValue)
+  // Every tab is built ahead of time and kept, so picking one only shows it (see Views).
+  const warm = useWarmTabs(tabValue, data)
   // A plain function, not a component, so the triggers keep their identity (and keyboard focus) across renders.
   const trigger = (value: string, children: React.ReactNode) => (
     <TabsPrimitive.Trigger key={value} value={value} data-picked={value === tabValue} className={tab}>{children}</TabsPrimitive.Trigger>
@@ -96,7 +95,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
         ) : (
           <>
             <SummaryCard a={a} tz={filters.tz} flows={flows?.rows} />
-            <Tabs value={shownTab} onValueChange={setTab} className="gap-4 sm:gap-5">
+            <Tabs value={tabValue} onValueChange={setTab} className="gap-4 sm:gap-5">
               <TabsList ref={tabs} className={tabList}>
                 {trigger("overview", "Overview")}
                 {trigger("journal", "Journal")}
@@ -113,7 +112,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
                 {trigger("trades", "Trades")}
                 {trigger("funding", "Funding")}
               </TabsList>
-              <Views a={a} full={full} insights={insights} accountId={accountId} filters={filters} flows={flows} />
+              <Views tab={tabValue} warm={warm} a={a} full={full} insights={insights} accountId={accountId} filters={filters} flows={flows} />
             </Tabs>
           </>
         )}
@@ -122,7 +121,54 @@ export function Dashboard({ accountId }: { accountId: string }) {
   )
 }
 
+/** The tabs in the order they are built in the background: the likeliest next ones first. */
+const TAB_ORDER = ["overview", "trades", "journal", "notes", "risk", "timing", "frequency", "plan", "funding"]
+
+// Safari has no requestIdleCallback; a short timeout stands in.
+const hasIdle = typeof window.requestIdleCallback === "function"
+const idle = (fn: () => void) => (hasIdle ? window.requestIdleCallback(fn, { timeout: 1500 }) : window.setTimeout(fn, 200))
+const cancelIdle = (id: number) => (hasIdle ? window.cancelIdleCallback(id) : window.clearTimeout(id))
+
+/** The tabs that are built: the picked one at once, then the others one at a time while the browser is idle, so a
+ *  tap only shows a tab that is already there. New data (a filter change) starts over from the picked tab, so the
+ *  change itself only rebuilds what is on screen. */
+function useWarmTabs(tab: string, data: unknown) {
+  const [warm, setWarm] = React.useState<{ data: unknown; tabs: Set<string> }>(() => ({ data, tabs: new Set([tab]) }))
+  // During render, React's pattern for state that follows a value: new data or a tab not built yet.
+  let current = warm
+  if (warm.data !== data) current = { data, tabs: new Set([tab]) }
+  else if (!warm.tabs.has(tab)) current = { data, tabs: new Set([...warm.tabs, tab]) }
+  if (current !== warm) setWarm(current)
+
+  React.useEffect(() => {
+    const next = TAB_ORDER.find((t) => !current.tabs.has(t))
+    if (!next) return
+    const id = idle(() => React.startTransition(() => setWarm((w) => (w.data === data ? { data, tabs: new Set([...w.tabs, next]) } : w))))
+    return () => cancelIdle(id)
+  }, [current, data])
+  return current.tabs
+}
+
+/** One tab's content, kept once built. A hidden tab stays laid out at full width (so its charts keep their size) but
+ *  is invisible, out of the flow, and inert. */
+function TabPanel({ active, built, children }: { active: boolean; built: boolean; children: React.ReactNode }) {
+  if (!built) return null
+  return (
+    <div
+      role="tabpanel"
+      aria-hidden={!active}
+      inert={!active}
+      // Zero height and clipped, so a long hidden tab does not make the page scroll further.
+      className={active ? "min-w-0" : "pointer-events-none invisible absolute inset-x-0 top-0 h-0 min-w-0 overflow-hidden"}
+    >
+      {children}
+    </div>
+  )
+}
+
 type ViewsProps = {
+  tab: string
+  warm: Set<string>
   a: Analytics
   full: FullAnalytics | null
   insights: Insight[]
@@ -131,29 +177,28 @@ type ViewsProps = {
   flows: CashFlows | undefined
 }
 
-/** The tab panels. Memoized: tapping a tab re-renders only the pills, not the charts of the tab being left. */
-const Views = React.memo(function Views({ a, full, insights, accountId, filters, flows }: ViewsProps) {
-  return (
-    <>
-      <TabsContent value="overview"><Overview a={a} accountId={accountId} filters={filters} /></TabsContent>
-      <TabsContent value="journal"><Journal /></TabsContent>
-      <TabsContent value="notes">
-        <Notes insights={insights} locked={!full} />
-      </TabsContent>
-      <TabsContent value="plan">
-        {full ? <Plan opt={full.optimization} /> : <LockedPanel title="Plan" items={LOCKED.plan} />}
-      </TabsContent>
-      <TabsContent value="timing">
-        {full ? <Timing a={full} /> : <LockedPanel title="Timing" items={LOCKED.timing} />}
-      </TabsContent>
-      <TabsContent value="frequency">
-        {full ? <Frequency a={full} accountId={accountId} filters={filters} /> : <LockedPanel title="Frequency" items={LOCKED.frequency} />}
-      </TabsContent>
-      <TabsContent value="risk"><Risk a={a} /></TabsContent>
-      <TabsContent value="trades">
-        <TradesTable key={filterQuery(filters)} accountId={accountId} filters={filters} />
-      </TabsContent>
-      <TabsContent value="funding"><Funding accountId={accountId} flows={flows} tz={filters.tz} /></TabsContent>
-    </>
+/** The tab panels. The views are made once per data change; picking a tab passes the same elements again, so React
+ *  re-renders none of them and the switch is only a class change. */
+function Views({ tab, warm, a, full, insights, accountId, filters, flows }: ViewsProps) {
+  const views = React.useMemo(
+    () => ({
+      overview: <Overview a={a} accountId={accountId} filters={filters} />,
+      journal: <Journal />,
+      notes: <Notes insights={insights} locked={!full} />,
+      plan: full ? <Plan opt={full.optimization} /> : <LockedPanel title="Plan" items={LOCKED.plan} />,
+      timing: full ? <Timing a={full} /> : <LockedPanel title="Timing" items={LOCKED.timing} />,
+      frequency: full ? <Frequency a={full} accountId={accountId} filters={filters} /> : <LockedPanel title="Frequency" items={LOCKED.frequency} />,
+      risk: <Risk a={a} />,
+      trades: <TradesTable key={filterQuery(filters)} accountId={accountId} filters={filters} />,
+      funding: <Funding accountId={accountId} flows={flows} tz={filters.tz} />,
+    }),
+    [a, full, insights, accountId, filters, flows]
   )
-})
+  return (
+    <div className="relative min-w-0">
+      {TAB_ORDER.map((t) => (
+        <TabPanel key={t} active={t === tab} built={warm.has(t)}>{views[t as keyof typeof views]}</TabPanel>
+      ))}
+    </div>
+  )
+}
