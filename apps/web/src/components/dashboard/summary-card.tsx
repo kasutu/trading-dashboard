@@ -2,19 +2,20 @@ import * as React from "react"
 import { EquityChart } from "@/components/charts/equity-chart"
 import type { Analytics } from "@/lib/api/types"
 import { duration, formatDay, formatPeriod, money, pct, plural } from "@/lib/format"
+import { cn } from "@/lib/utils"
 import { MetricBlock, Stats } from "./panel"
 
 /** Net P&L, the equity curve and the key ratios in one card. Net P&L is the one number that stands out;
  *  every other figure is a quiet label and value. */
-export const SummaryCard = React.memo(function SummaryCard({ a, tz }: { a: Analytics; tz: string }) {
+export const SummaryCard = React.memo(function SummaryCard({ a, tz, className }: { a: Analytics; tz: string; className?: string }) {
   const s = a.summary
   const days = [...a.daily].sort((x, y) => y.net - x.net)
   const bestDay = days[0]
   const worstDay = days.at(-1)!
 
   return (
-    <section className="min-w-0 rounded-xl border bg-card p-5 shadow-card lg:p-6">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(240px,300px)_minmax(0,1fr)]">
+    <section className={cn("@container min-w-0 rounded-xl border bg-card p-5 shadow-card lg:p-6", className)}>
+      <div className="grid grid-cols-1 gap-6 @2xl:grid-cols-[minmax(240px,300px)_minmax(0,1fr)]">
         <div className="flex flex-col">
           <h2 className="text-sm font-semibold">Net P&L</h2>
           <MetricBlock
@@ -23,7 +24,7 @@ export const SummaryCard = React.memo(function SummaryCard({ a, tz }: { a: Analy
             metric={{ value: money(s.net, true), tone: s.net, label: `${plural(s.trades, "trade")} on ${plural(s.days, "day")} · ${formatPeriod(a.period)}` }}
           />
           <Stats
-            className="mt-6 sm:grid sm:gap-x-4 lg:mt-auto"
+            className="mt-6 sm:grid sm:gap-x-4 @2xl:mt-auto"
             items={[
               [`Best day · ${formatDay(bestDay.key)}`, money(bestDay.net, true)],
               [`Worst day · ${formatDay(worstDay.key)}`, money(worstDay.net, true)],
@@ -35,7 +36,7 @@ export const SummaryCard = React.memo(function SummaryCard({ a, tz }: { a: Analy
         <EquityChart data={a.curve} tz={tz} />
       </div>
 
-      <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 border-t pt-5 sm:grid-cols-3 lg:grid-cols-5">
+      <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 border-t pt-5 @lg:grid-cols-3 @4xl:grid-cols-5">
         <Kpi label="Win rate" value={pct(s.winRate, 1)} sub={`${s.wins} won · ${s.losses} lost`} />
         <Kpi
           label="Profit factor"
