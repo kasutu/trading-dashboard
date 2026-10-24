@@ -21,13 +21,13 @@ export const SummaryCard = React.memo(function SummaryCard({ a, tz, className }:
           <MetricBlock
             size="lg"
             className="mt-1"
-            metric={{ value: money(s.net, true), tone: s.net, label: `${plural(s.trades, "trade")} on ${plural(s.days, "day")} · ${formatPeriod(a.period)}` }}
+            metric={{ value: money(s.net, true), tone: s.net, label: `${plural(s.trades, "trade")} on ${plural(s.days, "day")}, ${formatPeriod(a.period)}` }}
           />
           <Stats
             className="mt-6 sm:grid sm:gap-x-4 @2xl:mt-auto"
             items={[
-              [`Best day · ${formatDay(bestDay.key)}`, money(bestDay.net, true)],
-              [`Worst day · ${formatDay(worstDay.key)}`, money(worstDay.net, true)],
+              [`Best day: ${formatDay(bestDay.key)}`, money(bestDay.net, true)],
+              [`Worst day: ${formatDay(worstDay.key)}`, money(worstDay.net, true)],
               ["Best trade", money(s.bestTrade, true)],
               ["Worst trade", money(s.worstTrade, true)],
             ]}
@@ -37,11 +37,11 @@ export const SummaryCard = React.memo(function SummaryCard({ a, tz, className }:
       </div>
 
       <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 border-t pt-5 @lg:grid-cols-3 @4xl:grid-cols-5">
-        <Kpi label="Win rate" value={pct(s.winRate, 1)} sub={`${s.wins} won · ${s.losses} lost`} />
+        <Kpi label="Win rate" value={pct(s.winRate, 1)} sub={`${s.wins} won, ${s.losses} lost`} />
         <Kpi
           label="Profit factor"
           value={s.profitFactor === null ? "∞" : s.profitFactor.toFixed(2)}
-          sub={`${money(s.grossWin)} won · ${money(Math.abs(s.grossLoss))} lost`}
+          sub={`${money(s.grossWin)} won, ${money(Math.abs(s.grossLoss))} lost`}
         />
         <Kpi label="Average win / loss" value={`${money(s.avgWin)} / ${money(Math.abs(s.avgLoss))}`} sub={`${money(s.avg, true)} per trade`} />
         <Kpi label="Max drawdown" value={money(s.maxDd)} sub={`Longest losing run: ${plural(s.maxLossStreak, "trade")}`} />

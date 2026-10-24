@@ -53,7 +53,7 @@ function FilterButton({ filters, symbols, onChange, children }: Props) {
     filters.range === "all" ? "All time" : `Last ${range}`,
     filters.symbol !== "all" && filters.symbol,
     filters.side !== "all" && (filters.side === "buy" ? "Buy only" : "Sell only"),
-  ].filter(Boolean).join(" · ")
+  ].filter(Boolean).join(", ")
 
   return (
     <div className="flex items-center gap-2">
@@ -156,7 +156,7 @@ function TzSelect({ filters, onChange, className, id }: Part) {
         <SelectValue />
       </SelectTrigger>
       <SelectContent align="end">
-        {TIMEZONES.map((z) => <SelectItem key={z} value={z}>{tzLabel(z)}{z === LOCAL_TZ && <span className="text-muted-foreground"> · Local</span>}</SelectItem>)}
+        {TIMEZONES.map((z) => <SelectItem key={z} value={z}>{tzLabel(z)}{z === LOCAL_TZ && <span className="text-muted-foreground"> (local)</span>}</SelectItem>)}
       </SelectContent>
     </Select>
   )

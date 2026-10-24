@@ -52,7 +52,7 @@ export function JournalList() {
   return (
     <Panel
       title="Journal"
-      metric={total && days.length ? { value: pct(done / total), label: `Of your trades reviewed · ${done} of ${total}`, stats: [["Days in the journal", days.length]] } : undefined}
+      metric={total && days.length ? { value: pct(done / total), label: `Of your trades reviewed: ${done} of ${total}`, stats: [["Days in the journal", days.length]] } : undefined}
       description="Your answers for each day and trade. Open a day to see them."
     >
       {!journal ? (

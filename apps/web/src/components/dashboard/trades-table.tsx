@@ -66,14 +66,14 @@ function TradeList({ accountId, rows, tz }: Props) {
             {/* Time on the left, the review, chart and share buttons (44px each) on the right. */}
             <div className="-my-1 flex items-center">
               <p className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground tabular-nums">
-                {formatTimeRange(t.open, t.close, tz)} · {duration(t.durationMin)}
+                {formatTimeRange(t.open, t.close, tz)}, {duration(t.durationMin)}
               </p>
               <TradeReviewCell ticket={t.ticket} />
               <TradeChartButton compact accountId={accountId} trade={t} tz={tz} />
               <TradeShareButton accountId={accountId} trade={t} tz={tz} />
             </div>
             <p className="pr-2 text-xs text-muted-foreground tabular-nums">
-              {t.lots} lots · {price(t.openPrice)} → {price(t.closePrice)} · {reasonLabel(t.reason)}
+              {t.lots} lots, {price(t.openPrice)} → {price(t.closePrice)}, {reasonLabel(t.reason)}
             </p>
           </li>
         </React.Fragment>

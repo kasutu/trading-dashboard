@@ -30,7 +30,7 @@ export function Pricing({ plan }: { plan?: Me["plan"] }) {
         aria-label="Billing period"
       >
         <ToggleGroupItem value="monthly" className="h-10 rounded-full sm:h-7 px-3 text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm dark:data-[state=on]:bg-popover">Monthly</ToggleGroupItem>
-        <ToggleGroupItem value="yearly" className="h-10 rounded-full sm:h-7 px-3 text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm dark:data-[state=on]:bg-popover">Yearly · 2 months free</ToggleGroupItem>
+        <ToggleGroupItem value="yearly" className="h-10 rounded-full sm:h-7 px-3 text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm dark:data-[state=on]:bg-popover">Yearly (2 months free)</ToggleGroupItem>
       </ToggleGroup>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">

@@ -12,7 +12,7 @@ export type TradeCardData = Footer & {
   r: number | null
   entry: number
   exit: number
-  /** "Mon, Sep 28 · 12:23 AM" */
+  /** "Mon, Sep 28, 12:23 AM" */
   opened: string
   /** "2 min" */
   held: string
@@ -64,7 +64,7 @@ export function drawTradeCard(canvas: HTMLCanvasElement, d: TradeCardData) {
   // Result
   text(ctx, headline(d), PAD, 330, `800 112px ${DISPLAY}`, tone(d.net))
   const sub = d.showAmounts ? [d.r !== null ? formatR(d.r) : null, movePct(d)] : [d.r !== null ? movePct(d) : null]
-  text(ctx, sub.filter(Boolean).join("  ·  "), PAD, 382, `500 27px ${MONO}`, C.muted)
+  text(ctx, sub.filter(Boolean).join(", "), PAD, 382, `500 27px ${MONO}`, C.muted)
 
   // Price chart across the card
   drawChart(ctx, d, { x: PAD, y: 432, w: CARD_W - PAD * 2, h: 300 })

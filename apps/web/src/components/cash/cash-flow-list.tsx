@@ -125,10 +125,10 @@ export function CashFlowList({ accountId, rows, tz }: { accountId: string; rows:
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">
                   {label}
-                  {f.internal && <span className="font-normal text-muted-foreground"> · internal</span>}
+                  {f.internal && <span className="font-normal text-muted-foreground"> (internal)</span>}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {[formatDateTime(f.occurredAt, tz), f.note].filter(Boolean).join(" · ")}
+                  {[formatDateTime(f.occurredAt, tz), f.note].filter(Boolean).join(", ")}
                 </p>
               </div>
               <span className="font-mono text-sm whitespace-nowrap tabular-nums">

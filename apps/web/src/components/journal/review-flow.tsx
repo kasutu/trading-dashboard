@@ -59,7 +59,7 @@ function Flow({ day, onClose }: { day: string; onClose: () => void }) {
             <DialogTitle className="font-display text-lg font-bold">{done ? "Day reviewed" : "Review trades"}</DialogTitle>
             <DialogDescription className="text-sm">
               {relativeDay(day, j.tz)}
-              {!done && <> · <span className="font-mono tabular-nums">{i + 1}</span> of <span className="font-mono tabular-nums">{stack.length}</span></>}
+              {!done && <>, <span className="font-mono tabular-nums">{i + 1}</span> of <span className="font-mono tabular-nums">{stack.length}</span></>}
             </DialogDescription>
           </div>
         </div>
@@ -172,7 +172,6 @@ function ReviewCard({ position, left, onNext }: { position: Position; left: numb
               <p className={cn("mt-1 font-display text-3xl font-bold tracking-tight tabular-nums", pnlClass(p.net))}>{money(p.net, true)}</p>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
                 <span className="font-mono tabular-nums">{p.day === today(j.tz) ? "" : `${formatDay(p.day)}, `}{formatTime(p.open, j.tz)}</span>
-                <span aria-hidden>·</span>
                 <span>Held {duration(held)}</span>
                 {v.followedPlan !== null && <span className="inline-flex items-center gap-1.5"><PlanDot value={v.followedPlan} />{v.followedPlan ? "On plan" : "Off plan"}</span>}
               </p>
@@ -272,7 +271,7 @@ function DayDone({ day, reviewed, onClose }: { day: string; reviewed: Position[]
             </p>
             {reviewed.length > 0 && (
               <p className="text-muted-foreground">
-                {on} on plan · {off} off plan · <span className={cn("font-mono tabular-nums", pnlClass(net))}>{money(net, true)}</span> on the day
+                {on} on plan, {off} off plan, <span className={cn("font-mono tabular-nums", pnlClass(net))}>{money(net, true)}</span> on the day
               </p>
             )}
           </div>

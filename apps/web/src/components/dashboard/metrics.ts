@@ -4,7 +4,7 @@ import { money, pnlClass } from "@/lib/format"
 /** The one number a card is about, like the result on the trade share card. */
 export type Metric = {
   value: React.ReactNode
-  /** What the number is, in a few words: "Best hour · 9 AM". */
+  /** What the number is, in a few words: "Best hour: 9 AM". */
   label?: React.ReactNode
   /** A number: green or red by its sign (for P&L). "profit" or "loss" for a good or bad figure. Leave out for neutral. */
   tone?: number | "profit" | "loss"
@@ -34,7 +34,7 @@ export function bestMetric<T extends { key: string; net: number }>(
   return {
     value: money(value(top), true),
     tone: value(top),
-    label: `${word("Best")} · ${name(top.key)}`,
-    stats: low && low !== top ? [[`${word("Worst")} · ${name(low.key)}`, money(value(low), true)]] : undefined,
+    label: `${word("Best")}: ${name(top.key)}`,
+    stats: low && low !== top ? [[`${word("Worst")}: ${name(low.key)}`, money(value(low), true)]] : undefined,
   }
 }

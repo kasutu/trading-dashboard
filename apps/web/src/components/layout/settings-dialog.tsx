@@ -15,13 +15,13 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
       <DialogContent size="full" className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display text-xl font-bold">Settings</DialogTitle>
-          <DialogDescription>Your journal setups and mistake tags are saved to your account.</DialogDescription>
+          <DialogDescription>Risk limits are under each account.</DialogDescription>
         </DialogHeader>
         <DialogBody>
         <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
           <div className="space-y-1">
-            <Label htmlFor="check-in">Check in before trading</Label>
-            <p id="check-in-help" className="text-sm text-muted-foreground">Asks how you feel and what you are watching when you open Jurno. Saved on this device.</p>
+            <Label htmlFor="check-in">Check-in</Label>
+            <p id="check-in-help" className="text-sm text-muted-foreground">Before you trade.</p>
           </div>
           <Switch id="check-in" aria-describedby="check-in-help" checked={settings.checkIn} onCheckedChange={(v) => update({ checkIn: v })} className="mt-0.5" />
         </div>
@@ -34,9 +34,7 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   )
 }
 
-const RISK_PCTS = [0.5, 1, 2, 3, 5]
-
-/** The Today card: how often it shows, the daily risk cap, and the daily notification. */
+/** The Today card: how often it shows, and the daily notification. */
 function ReminderSettings() {
   const { settings, update } = useSettings()
   const supported = typeof Notification !== "undefined"
@@ -54,43 +52,29 @@ function ReminderSettings() {
     <div className="space-y-4 rounded-lg border p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <Label htmlFor="reminder">Daily reminder</Label>
+          <Label htmlFor="reminder">Today card</Label>
           <p id="reminder-help" className="text-sm text-muted-foreground">
-            The Today card under Net P&L: the kind of day, trades left and your limits. "Once a day" shows it the first time you open Jurno each day.
+            Daily: first visit only.
           </p>
         </div>
         <Select value={settings.reminder} onValueChange={(v) => update({ reminder: v as ReminderFrequency })}>
           <SelectTrigger id="reminder" size="sm" aria-describedby="reminder-help" className="w-32 flex-none"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="always">Every visit</SelectItem>
-            <SelectItem value="daily">Once a day</SelectItem>
+            <SelectItem value="always">Always</SelectItem>
+            <SelectItem value="daily">Daily</SelectItem>
             <SelectItem value="off">Off</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div className="flex items-start justify-between gap-4 border-t pt-4">
         <div className="space-y-1">
-          <Label htmlFor="risk-pct">Max daily risk</Label>
-          <p id="risk-pct-help" className="text-sm text-muted-foreground">
-            A share of your balance (from the Funding tab). The Today card recommends the smaller of this and your plan's daily loss limit.
-          </p>
-        </div>
-        <Select value={String(settings.riskPct)} onValueChange={(v) => update({ riskPct: Number(v) })}>
-          <SelectTrigger id="risk-pct" size="sm" aria-describedby="risk-pct-help" className="w-40 flex-none"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {RISK_PCTS.map((p) => <SelectItem key={p} value={String(p)}>{p}% of balance</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex items-start justify-between gap-4 border-t pt-4">
-        <div className="space-y-1">
-          <Label htmlFor="reminder-notify">Notify me</Label>
+          <Label htmlFor="reminder-notify">Notify</Label>
           <p id="reminder-notify-help" className="text-sm text-muted-foreground">
             {!supported
-              ? "This browser does not support notifications."
+              ? "Not supported"
               : denied
-                ? "Notifications are blocked for Jurno. Allow them in your browser's site settings, then turn this on."
-                : "One notification a day with your plan, while Jurno is open in a tab. Saved on this device."}
+                ? "Blocked in browser"
+                : "Daily, while Jurno is open"}
           </p>
         </div>
         <Switch
@@ -104,7 +88,7 @@ function ReminderSettings() {
       </div>
       {settings.reminderNotify && (
         <div className="flex items-center justify-between gap-4">
-          <Label htmlFor="reminder-time" className="font-normal text-muted-foreground">Send at</Label>
+          <Label htmlFor="reminder-time" className="font-normal text-muted-foreground">Time</Label>
           <Input
             id="reminder-time"
             type="time"

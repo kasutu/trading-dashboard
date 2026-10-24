@@ -8,7 +8,7 @@ import { useAllAnalytics } from "@/hooks/use-all-analytics"
 import { useAnalytics, useCashFlows, useMe } from "@/hooks/use-api"
 import { useFilters } from "@/hooks/use-filters"
 import { filterQuery } from "@/lib/api/client"
-import type { Analytics, CashFlows, Filters, FullAnalytics } from "@/lib/api/types"
+import type { AccountRisk, Analytics, CashFlows, Filters, FullAnalytics } from "@/lib/api/types"
 import { buildInsights, type Insight } from "@/lib/insights"
 import { accountBalance } from "@/lib/risk"
 import { FilterBar } from "./filter-bar"
@@ -42,7 +42,7 @@ const LOCKED = {
 }
 
 /** The dashboard for one trading account. The server computes every number. */
-export function Dashboard({ accountId }: { accountId: string }) {
+export function Dashboard({ accountId, risk }: { accountId: string; risk: AccountRisk | null }) {
   const { filters, set } = useFilters()
   const { data, error } = useAnalytics(accountId, filters)
   const a: Analytics | null = data && !("empty" in data) ? data : null
@@ -108,7 +108,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
             {/* From xl: Net P&L takes 60% and the Today card the rest, both the same height. Below xl they stack. */}
             <div className="flex flex-col gap-4 sm:gap-5 xl:flex-row">
               <SummaryCard a={a} tz={filters.tz} className="xl:flex-[3]" />
-              <TodayCard accountId={accountId} a={allTime} balance={balance} tz={filters.tz} className="xl:flex-[2]" />
+              <TodayCard accountId={accountId} a={allTime} balance={balance} risk={risk} tz={filters.tz} className="xl:flex-[2]" />
             </div>
             <Tabs value={tabValue} onValueChange={setTab} className="gap-4 sm:gap-5">
               <TabsList ref={tabs} className={tabList}>
@@ -127,7 +127,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
                 {trigger("trades", "Trades")}
                 {trigger("funding", "Funding")}
               </TabsList>
-              <Views tab={tabValue} warm={warm} a={a} full={full} insights={insights} accountId={accountId} filters={filters} flows={flows} allTime={allTime} />
+              <Views tab={tabValue} warm={warm} a={a} full={full} insights={insights} accountId={accountId} filters={filters} flows={flows} balance={balance} risk={risk} />
             </Tabs>
           </>
         )}
@@ -190,12 +190,13 @@ type ViewsProps = {
   accountId: string
   filters: Filters
   flows: CashFlows | undefined
-  allTime: Analytics | null
+  balance: number | null
+  risk: AccountRisk | null
 }
 
 /** The tab panels. The views are made once per data change; picking a tab passes the same elements again, so React
  *  re-renders none of them and the switch is only a class change. */
-function Views({ tab, warm, a, full, insights, accountId, filters, flows, allTime }: ViewsProps) {
+function Views({ tab, warm, a, full, insights, accountId, filters, flows, balance, risk }: ViewsProps) {
   const views = React.useMemo(
     () => ({
       overview: <Overview a={a} accountId={accountId} filters={filters} />,
@@ -206,9 +207,9 @@ function Views({ tab, warm, a, full, insights, accountId, filters, flows, allTim
       frequency: full ? <Frequency a={full} accountId={accountId} filters={filters} /> : <LockedPanel title="Frequency" items={LOCKED.frequency} />,
       risk: <Risk a={a} />,
       trades: <TradesTable key={filterQuery(filters)} accountId={accountId} filters={filters} />,
-      funding: <Funding accountId={accountId} flows={flows} tz={filters.tz} tradingNet={allTime?.summary.net ?? null} />,
+      funding: <Funding accountId={accountId} flows={flows} tz={filters.tz} balance={balance} risk={risk} />,
     }),
-    [a, full, insights, accountId, filters, flows, allTime]
+    [a, full, insights, accountId, filters, flows, balance, risk]
   )
   return (
     <div className="relative min-w-0">

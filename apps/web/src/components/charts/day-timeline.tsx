@@ -130,9 +130,9 @@ function Tip({ trade: t, span: s, tz, left }: { trade: TimelineTrade; span: Span
       className="pointer-events-none absolute bottom-full z-20 mb-1 w-max -translate-x-1/2 rounded-lg border bg-popover px-2.5 py-1.5 text-xs shadow-lg"
       style={{ left: `${Math.min(85, Math.max(15, left))}%` }}
     >
-      <span className="font-medium">{t.symbol} · {t.side === "buy" ? "Buy" : "Sell"} {t.lots} lots</span>
+      <span className="font-medium">{t.symbol}, {t.side === "buy" ? "Buy" : "Sell"} {t.lots} lots</span>
       <span className="block font-mono text-muted-foreground tabular-nums">
-        {formatTimeRange(t.open, t.close, tz)} · {duration(s.end - s.start)}
+        {formatTimeRange(t.open, t.close, tz)}, {duration(s.end - s.start)}
       </span>
     </span>
   )
