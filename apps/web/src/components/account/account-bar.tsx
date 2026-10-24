@@ -1,12 +1,12 @@
-import { ArrowDownUp, Shield, Upload } from "lucide-react"
+import { ArrowDownUp, SlidersHorizontal, Upload } from "lucide-react"
 import { Link } from "wouter"
 import { CashFlowDialog } from "@/components/cash/cash-flow-dialog"
-import { RiskDialog } from "./risk-dialog"
+import { ConfigDialog } from "./config-dialog"
 import { Button } from "@/components/ui/button"
 import type { Account } from "@/lib/api/types"
 import { LOCAL_TZ, plural } from "@/lib/format"
 
-/** Title row of an account: its name, broker and trade count, and the risk, funding and import actions. */
+/** Title row of an account: its name, broker and trade count, and the configuration, funding and import actions. */
 export function AccountBar({ account }: { account: Account }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
@@ -16,9 +16,9 @@ export function AccountBar({ account }: { account: Account }) {
       </div>
       {/* Phones: three equal buttons with short words. */}
       <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto">
-        <RiskDialog key={account.id} account={account}>
-          <Button variant="outline"><Shield /> Risk</Button>
-        </RiskDialog>
+        <ConfigDialog key={account.id} account={account}>
+          <Button variant="outline"><SlidersHorizontal /> <span className="sm:hidden">Config</span><span className="hidden sm:inline">Configuration</span></Button>
+        </ConfigDialog>
         <CashFlowDialog accountId={account.id} tz={LOCAL_TZ}>
           <Button variant="outline">
             <ArrowDownUp /> <span className="sm:hidden">Funding</span><span className="hidden sm:inline">Deposits & withdrawals</span>

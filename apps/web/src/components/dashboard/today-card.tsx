@@ -4,7 +4,7 @@ import type { AccountRisk, Analytics } from "@/lib/api/types"
 import { LONG_WEEKDAYS, WEEKDAYS, hourLabel, hourList, money, plural, pnlClass } from "@/lib/format"
 import { DEFAULT_RISK, limits } from "@/lib/risk"
 import { storage } from "@/lib/storage"
-import { cn } from "@/lib/utils"
+import { best, cn } from "@/lib/utils"
 
 const seenKey = (accountId: string) => `jurno:today-seen:${accountId}`
 const notifiedKey = (accountId: string) => `jurno:today-notified:${accountId}`
@@ -50,8 +50,11 @@ function plan(a: Analytics, now: Date, tz: string, balance: number | null, risk:
   const full = a.locked ? null : a
   const opt = full?.optimization ?? null
   const r = opt?.rules ?? null
-  const L = limits(risk, balance, opt && { lossLimit: opt.rules.lossLimit, cap: opt.rules.cap })
-  const rest = !!r?.skipWeekdays.includes(weekday)
+  // Trades a day: the best cap on Frequency, so both pages agree.
+  const cap = full ? (best(full.capSim)?.cap ?? null) : null
+  const L = limits(risk, balance, { lossLimit: opt?.rules.lossLimit ?? null, cap })
+  const weekendOff = weekday >= 5 && !risk.weekends
+  const rest = weekendOff || !!r?.skipWeekdays.includes(weekday)
   const lossHit = L.daily !== null && dayNet <= -L.daily
   // A rest day or a hit loss limit leaves no trades, whatever the cap says.
   const left = rest || lossHit ? 0 : L.trades !== null ? Math.max(L.trades - n, 0) : null
@@ -71,7 +74,9 @@ function plan(a: Analytics, now: Date, tz: string, balance: number | null, risk:
       : lossHit
         ? { label: "Stop trading", tone: "loss", why: `You lost ${money(-dayNet)}. Your limit was ${money(L.daily!)}.` }
         : rest
-          ? { label: "Rest today", tone: "loss", why: `Your plan skips ${longDay}s.${wd?.trades && wd.net < 0 ? ` They lost you ${money(-wd.net)}.` : ""}` }
+          ? weekendOff
+            ? { label: "Rest today", tone: "loss", why: "Weekends are off. Turn them on in Configuration." }
+            : { label: "Rest today", tone: "loss", why: `Your plan skips ${longDay}s.${wd?.trades && wd.net < 0 ? ` They lost you ${money(-wd.net)}.` : ""}` }
           : keys("weekday").includes(WEEKDAYS[weekday])
             ? { label: "Good day to trade", tone: "profit", why: record }
             : {
@@ -87,7 +92,7 @@ function plan(a: Analytics, now: Date, tz: string, balance: number | null, risk:
     rules.push({
       text: `Stop if you lose ${money(L.daily)}`,
       note: L.from === "plan" ? "From your history" : pctOf ? `${risk.daily}% of ${money(balance!)}` : "Your limit",
-      warn: pctOf && L.daily < 1 ? `Is ${money(balance!)} your balance? Check Funding, or set dollar limits in Risk.` : undefined,
+      warn: pctOf && L.daily < 1 ? `Is ${money(balance!)} your balance? Check Funding, or set dollar limits in Configuration.` : undefined,
     })
   } else if (risk.kind === "percent" && risk.daily) {
     rules.push({ text: "Add your deposits to set a loss limit", note: `${risk.daily}% of balance` })

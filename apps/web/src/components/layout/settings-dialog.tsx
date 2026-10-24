@@ -15,7 +15,7 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
       <DialogContent size="full" className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display text-xl font-bold">Settings</DialogTitle>
-          <DialogDescription>Risk limits are under each account.</DialogDescription>
+          <DialogDescription>Risk limits and weekends are in each account's Configuration.</DialogDescription>
         </DialogHeader>
         <DialogBody>
         <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
