@@ -3,17 +3,17 @@ import { LockedPanel } from "@/components/dashboard/locked-panel"
 import type { Insight } from "@/lib/insights"
 
 const GROUPS = [
-  { tone: "bad", title: "What hurts", dot: "bg-loss" },
-  { tone: "good", title: "What helps", dot: "bg-profit" },
-  { tone: "info", title: "Worth a look", dot: "bg-muted-foreground" },
+  { tone: "bad", title: "Stop doing", dot: "bg-loss" },
+  { tone: "good", title: "Keep doing", dot: "bg-profit" },
+  { tone: "info", title: "Try this", dot: "bg-muted-foreground" },
 ] as const
 
 /** What the automatic notes hold, for the locked panel on the Free plan. */
-const LOCKED = ["Your best and worst hours, weekdays and days", "What helps and what hurts your results, with a chart for each"]
+const LOCKED = ["When to trade and when to avoid it", "What to stop doing and what to keep doing, with a chart for each"]
 
-/** The automatic notes (paid plans), grouped by whether they help or hurt. */
+/** The automatic advice (paid plans), grouped by what to stop, keep and try. */
 export function Notes({ insights, locked }: { insights: Insight[]; locked: boolean }) {
-  return locked ? <LockedPanel title="What helps and what hurts" items={LOCKED} /> : <Insights insights={insights} />
+  return locked ? <LockedPanel title="What to do" items={LOCKED} /> : <Insights insights={insights} />
 }
 
 /** All automatic notes, one card each, grouped by whether they help or hurt. */
@@ -21,8 +21,8 @@ function Insights({ insights }: { insights: Insight[] }) {
   if (!insights.length)
     return (
       <div className="rounded-xl border border-dashed bg-card py-16 text-center">
-        <p className="font-medium">No notes yet</p>
-        <p className="mt-1 text-sm text-muted-foreground">Notes show after 10 or more trades.</p>
+        <p className="font-medium">No advice yet</p>
+        <p className="mt-1 text-sm text-muted-foreground">Import 10 or more trades.</p>
       </div>
     )
   return (

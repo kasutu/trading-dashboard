@@ -36,7 +36,7 @@ const tabList =
 
 /** What each paid tab holds, for the locked panel on the Free plan. */
 const LOCKED = {
-  plan: ["What made money: your best hours, weekdays, symbol and holding time", "Limits found on your earlier days, then checked on your recent days"],
+  plan: ["What works: your best hours, weekdays, symbol and holding time", "Rules found on your older days, then tested on newer days"],
   timing: ["Net P&L by hour of the day", "A weekday and hour grid", "Net P&L by weekday and by holding time"],
   frequency: ["Overtrading: trades taken each day against the trades your best holding time allows", "Net P&L if you stop after a set number of trades each day", "Results of your 1st, 2nd, 3rd trade of the day", "Busy days and quiet days"],
 }
@@ -108,7 +108,7 @@ export function Dashboard({ accountId, risk }: { accountId: string; risk: Accoun
             {/* From xl: Net P&L takes 60% and the Today card the rest, both the same height. Below xl they stack. */}
             <div className="flex flex-col gap-4 sm:gap-5 xl:flex-row">
               <SummaryCard a={a} tz={filters.tz} className="xl:flex-[3]" />
-              <TodayCard accountId={accountId} a={allTime} balance={balance} risk={risk} tz={filters.tz} className="xl:flex-[2]" />
+              <TodayCard accountId={accountId} a={allTime} balance={balance} risk={risk} tz={filters.tz} className="xl:flex-[2] xl:self-start" />
             </div>
             <Tabs value={tabValue} onValueChange={setTab} className="gap-4 sm:gap-5">
               <TabsList ref={tabs} className={tabList}>

@@ -15,6 +15,25 @@ export const hourLabel = (h: number | string) => {
   const n = Number(h)
   return `${n % 12 || 12} ${n < 12 ? "AM" : "PM"}`
 }
+/** "a", "a and b", "a, b and c". */
+export const andList = (xs: string[]) => (xs.length < 2 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`)
+
+/** Hours as ranges: [20, 21, 22, 9] → "9 AM and 8 PM to 11 PM". A range ends when its last hour ends. */
+export function hourList(hours: number[]) {
+  const sorted = [...new Set(hours)].sort((a, b) => a - b)
+  const runs: [number, number][] = []
+  for (const h of sorted) {
+    const last = runs.at(-1)
+    if (last && h === last[1] + 1) last[1] = h
+    else runs.push([h, h])
+  }
+  return andList(runs.map(([a, b]) => (a === b ? hourLabel(a) : `${hourLabel(a)} to ${hourLabel((b + 1) % 24)}`)))
+}
+
+export const LONG_WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+/** "Mon" → "Monday". */
+export const longWeekday = (short: string) => LONG_WEEKDAYS[WEEKDAYS.indexOf(short)] ?? short
+
 /** Short 12-hour label for axes: 0 → "12am", 13 → "1pm" */
 export const hourShort = (h: number | string) => {
   const n = Number(h) % 24
