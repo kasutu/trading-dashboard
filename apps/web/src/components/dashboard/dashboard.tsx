@@ -13,6 +13,7 @@ import { FilterBar } from "./filter-bar"
 import { LockedPanel } from "./locked-panel"
 import { ShareDialog } from "./share-dialog"
 import { SummaryCard } from "./summary-card"
+import { TodayCard } from "./today-card"
 import { TradesTable } from "./trades-table"
 import { Frequency } from "./views/frequency"
 import { Funding } from "./views/funding"
@@ -79,6 +80,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
     <JournalProvider accountId={accountId} tz={filters.tz}>
       <DailyCheckIn />
       <div className="space-y-4 sm:space-y-5">
+        <TodayCard accountId={accountId} filters={filters} data={data} />
         <FilterBar filters={filters} symbols={symbols} onChange={set}>
           {a && <ShareDialog a={a} filters={filters} footer={me?.plan !== "latte" && me?.plan !== "owner"} />}
         </FilterBar>

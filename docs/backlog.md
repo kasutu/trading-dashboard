@@ -13,6 +13,17 @@ Requested features, newest last. Move an item to "Done" with the PR link when it
 
 - Needs a sample MT4 "Detailed Statement" file. The MT5 report import (`crates/engine/src/mt5.rs`) is the model.
 
+### Email the daily reminder
+
+Send the Today card's plan (kind of day, trades left, loss limit, best and skip hours) by email, so it arrives when Jurno is not open. The browser notification only works with Jurno open in a tab.
+
+- **Settings:** an "Email me" switch (off by default) and a frequency: every trading day (Mon–Fri), every day, or weekly (Monday, with the week's best days). Plus a send time in the user's timezone. These must be saved on the server (a column on `profiles`), not in the browser like the current reminder settings, because the server sends the email.
+- **Email address first:** accounts have no real email. Sign-up sets `<username>@users.jurno.invalid` (`apps/auth/src/server.ts`). Settings needs a field to add an address and verify it before the first send. Better Auth's email verification can do this.
+- **Sending:** a scheduled job in the API (every 15 minutes, for example) finds the users whose send time has passed today and who have not been sent yet, builds the plan from `optimization` with the same rules as `today-card.tsx`, and sends through a provider such as Resend or Postmark. Record the last send day so each user gets at most one email a day.
+- **Rules to share:** move the "kind of day" and "trades left" logic out of `today-card.tsx` into the engine, so the card and the email always say the same thing.
+- **Unsubscribe:** every email needs a one-click unsubscribe link that turns "Email me" off, plus the `List-Unsubscribe` header.
+- **Plans:** a Free account gets only today's trades and P&L, the same as the card.
+
 ## Done
 
 - **P&L by hour uses the opening time.** Already the case: the engine takes the hour from the opening time and the chart says "Hour the trade was opened". No change needed.

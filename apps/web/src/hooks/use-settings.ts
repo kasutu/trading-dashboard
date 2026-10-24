@@ -10,9 +10,17 @@ export type Settings = {
   checkIn: boolean
   /** Show dollar amounts and lot size on the trade share card. */
   shareAmounts: boolean
+  /** When the Today card shows: every visit, once a day (until dismissed), or never. */
+  reminder: ReminderFrequency
+  /** Send a browser notification with the day's plan once a day. */
+  reminderNotify: boolean
+  /** When that notification goes out, "HH:MM" in the dashboard timezone. */
+  reminderTime: string
 }
 
-const DEFAULTS: Settings = { checkIn: true, shareAmounts: true }
+export type ReminderFrequency = "always" | "daily" | "off"
+
+const DEFAULTS: Settings = { checkIn: true, shareAmounts: true, reminder: "always", reminderNotify: false, reminderTime: "08:00" }
 const listeners = new Set<() => void>()
 
 function read(): Settings {
