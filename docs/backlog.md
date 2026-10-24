@@ -24,6 +24,18 @@ Send the Today card's plan (kind of day, trades left, loss limit, best and skip 
 - **Unsubscribe:** every email needs a one-click unsubscribe link that turns "Email me" off, plus the `List-Unsubscribe` header.
 - **Plans:** a Free account gets only today's trades and P&L, the same as the card.
 
+### Playbook: plan trades before you take them
+
+A place to plan trades with numbers only: symbol, side, entry, stop loss (SL), take profit (TP) and lots. No chart drawing. Jurno works out the rest, so you know the risk before you place the order.
+
+- **Inputs:** symbol, buy or sell, entry, SL, TP and lots. An optional setup (from the journal setups) and a note.
+- **Computed:** risk and reward in dollars, risk-to-reward ratio (R:R), risk as a % of the account balance, and the distance to SL and TP in points. Also lots from risk: enter a dollar risk or a % of the balance instead of lots, and Jurno works out the lot size.
+- **Value per point:** the dollar value of one point per lot for each symbol. Work it out from the account's own trades (profit ÷ (price move × lots)), and let the user enter or correct it for symbols with no history.
+- **Checks against the plan:** warn when the trade breaks the Today card's plan. For example: no trades left today, the risk is more than the loss-limit room, it is a skip hour or rest day, or the R:R is below the user's minimum.
+- **Status:** each planned trade is planned, taken or skipped. After an import, match a taken trade to the actual trade (same symbol and side, opened near the planned entry on the same day). Then show plan against result: entry slippage, SL and TP moved, and lots changed. The review's `initialStop` and `initialTarget` can be filled from the plan.
+- **Storage:** a new `planned_trades` table per trading account, with routes under `/api/accounts/:id/playbook`. The R:R and risk math goes in the engine, so the web app and any later email or alert use the same numbers.
+- **Plans:** to decide which plans get it. One option: the calculator is free, and saving plans and comparing plan against result are paid.
+
 ## Done
 
 - **P&L by hour uses the opening time.** Already the case: the engine takes the hour from the opening time and the chart says "Hour the trade was opened". No change needed.
