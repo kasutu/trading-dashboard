@@ -222,7 +222,7 @@ async fn accounts_crud() {
 
     // Risk limits: set, check, clear.
     assert_eq!(a["risk"], Value::Null);
-    let risk = json!({ "kind": "percent", "daily": 2.0, "perTrade": 1.0, "maxTrades": 3 });
+    let risk = json!({ "kind": "percent", "daily": 2.0, "perTrade": 1.0, "maxTrades": null, "weekends": true });
     let (s, a) = t.send(Method::PATCH, &path, Some(COOKIE), Some(json!({ "risk": risk }))).await;
     assert_eq!(s, StatusCode::OK);
     assert_eq!(a["risk"], risk);

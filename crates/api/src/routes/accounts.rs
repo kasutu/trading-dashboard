@@ -104,7 +104,9 @@ pub async fn create(
     Ok(Json(fetch(&pool, id).await?))
 }
 
-/// Risk limits. Each limit is optional. `daily` and `per_trade` are a % of the balance or dollars, by `kind`.
+/// Account configuration: risk limits and weekend trading. Each limit is optional. `daily` and `per_trade` are a %
+/// of the balance or dollars, by `kind`. `max_trades` is no longer set by the app (the Frequency best cap is used) but
+/// stays readable for rows saved before.
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Risk {
@@ -112,6 +114,9 @@ pub struct Risk {
     daily: Option<f64>,
     per_trade: Option<f64>,
     max_trades: Option<u32>,
+    /// Trade on Saturdays and Sundays. Off: the Today card calls weekends rest days.
+    #[serde(default)]
+    weekends: bool,
 }
 
 #[derive(Serialize, Deserialize, PartialEq)]

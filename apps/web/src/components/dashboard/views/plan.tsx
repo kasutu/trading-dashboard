@@ -48,7 +48,7 @@ export function Plan({ opt }: { opt: Optimization | null }) {
       <Panel
         title="Your rules"
         metric={{ value: limits ? plural(limits, "rule") : "No rules", label: `Picked from ${opt.tested} options` }}
-        description="These rules made the most on your history. They keep at least 40% of your trades. The Today card uses your Risk limits when they are stricter."
+        description="These rules made the most on your history. They keep at least 40% of your trades. The Today card uses your Configuration limits when they are stricter."
       >
         <RuleList rules={opt.rules} />
       </Panel>

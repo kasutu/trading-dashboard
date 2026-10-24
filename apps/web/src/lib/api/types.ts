@@ -151,8 +151,9 @@ export type AnalyticsResponse = Analytics | { empty: true }
 
 export type Me = { id: string; username: string; plan: "free" | "espresso" | "latte" | "owner" }
 /** `mtLogin`: the MetaTrader login, set by the first MT5 report import. */
-/** Risk limits of a trading account. `daily` and `perTrade` are a % of the balance or dollars, by `kind`. Null: no limit. */
-export type AccountRisk = { kind: "percent" | "amount"; daily: number | null; perTrade: number | null; maxTrades: number | null }
+/** Configuration of a trading account. `daily` and `perTrade` are a % of the balance or dollars, by `kind`. Null: no
+ *  limit. `maxTrades` is no longer set (the Frequency best cap is used). `weekends`: trade on Saturdays and Sundays. */
+export type AccountRisk = { kind: "percent" | "amount"; daily: number | null; perTrade: number | null; maxTrades: number | null; weekends?: boolean }
 export type Account = { id: string; name: string; broker: string | null; currency: string; mtLogin: string | null; risk: AccountRisk | null; createdAt: string; trades: number }
 export type Import = { id: string; fileName: string; added: number; duplicates: number; skipped: number; createdAt: string }
 export type SavedMapping = { id: string; name: string; mapping: ColumnMapping; createdAt: string }
