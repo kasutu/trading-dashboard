@@ -1,5 +1,5 @@
 import type { FullAnalytics, Group } from "@/lib/api/types"
-import { REASONS, formatDay, hourLabel, hourShort, money, ordinal, pct, plural, sizeLabel, splitSizeKey } from "@/lib/format"
+import { REASONS, hourLabel, hourList, hourShort, longWeekday, money, ordinal, plural, splitSizeKey } from "@/lib/format"
 import { best } from "@/lib/utils"
 
 export type Insight = {
@@ -32,41 +32,36 @@ const pick = (gs: Group[], dir: 1 | -1) =>
   gs.filter((g) => g.trades >= MIN).sort((a, b) => dir * (b.net - a.net))[0]
 
 const sum = (gs: Group[]) => gs.reduce((s, g) => s + g.net, 0)
+const count = (gs: Group[]) => gs.reduce((s, g) => s + g.trades, 0)
+/** "made you +$140.00" or "lost you $90.00". */
+const result = (net: number) => (net >= 0 ? `made you ${money(net, true)}` : `lost you ${money(-net)}`)
+const won = (g: Group) => `You won ${g.wins} of ${g.trades}.`
 
-/** Plain-language findings from the analytics payload. Returns [] for fewer than 10 trades. */
+/** Advice from the analytics payload: each note is one action, its key number, and the fact behind it.
+ *  Returns [] for fewer than 10 trades. */
 export function buildInsights(a: FullAnalytics): Insight[] {
   const out: Insight[] = []
   if (a.summary.trades < 10) return out
   const actual = a.summary.net
 
   const hours = a.byHour
-  const worstH = pick(hours, -1)
-  if (worstH && worstH.net < 0)
+  const losingHours = hours.filter((h) => h.trades >= 3 && h.net < 0)
+  if (losingHours.length)
     out.push({
       tone: "bad",
-      title: "Worst hour",
-      figure: hourLabel(worstH.key),
-      detail: `${money(worstH.net, true)} over ${worstH.trades} trades, ${pct(worstH.winRate)} win rate.`,
-      viz: bars(hours, (g) => g === worstH, hourShort),
+      title: `Avoid ${hourList(losingHours.map((h) => Number(h.key)))}`,
+      figure: money(sum(losingHours), true),
+      detail: `${losingHours.length > 1 ? "These hours" : "This hour"} ${result(sum(losingHours))} in ${plural(count(losingHours), "trade")}.`,
+      viz: bars(hours, (g) => losingHours.includes(g), hourShort),
     })
   const bestH = pick(hours, 1)
   if (bestH && bestH.net > 0)
     out.push({
       tone: "good",
-      title: "Best hour",
-      figure: hourLabel(bestH.key),
-      detail: `${money(bestH.net, true)} over ${bestH.trades} trades, ${pct(bestH.winRate)} win rate.`,
+      title: `Trade at ${hourLabel(bestH.key)}`,
+      figure: money(bestH.net, true),
+      detail: `${hourLabel(bestH.key)} ${result(bestH.net)}. ${won(bestH)}`,
       viz: bars(hours, (g) => g === bestH, hourShort),
-    })
-
-  const losingHours = hours.filter((h) => h.trades >= 3 && h.net < 0)
-  if (losingHours.length)
-    out.push({
-      tone: "info",
-      title: `Skip ${losingHours.length} losing hour${losingHours.length > 1 ? "s" : ""}`,
-      figure: money(-sum(losingHours), true),
-      detail: `These hours lost money: ${losingHours.map((h) => hourLabel(h.key)).join(", ")}.`,
-      viz: bars(hours, (g) => losingHours.includes(g), hourShort),
     })
 
   const weekdays = a.byWeekday
@@ -74,48 +69,28 @@ export function buildInsights(a: FullAnalytics): Insight[] {
   if (bestD && bestD.net > 0)
     out.push({
       tone: "good",
-      title: "Best weekday",
-      figure: bestD.key,
-      detail: `${money(bestD.net, true)} over ${bestD.trades} trades, ${pct(bestD.winRate)} win rate.`,
+      title: `Trade on ${longWeekday(bestD.key)}s`,
+      figure: money(bestD.net, true),
+      detail: `${longWeekday(bestD.key)}s ${result(bestD.net)} in ${plural(bestD.trades, "trade")}.`,
       viz: bars(weekdays, (g) => g === bestD),
     })
   const worstD = pick(weekdays, -1)
   if (worstD && worstD.net < 0)
     out.push({
       tone: "bad",
-      title: "Worst weekday",
-      figure: worstD.key,
-      detail: `${money(worstD.net, true)} over ${worstD.trades} trades, ${pct(worstD.winRate)} win rate.`,
+      title: `Avoid ${longWeekday(worstD.key)}s`,
+      figure: money(worstD.net, true),
+      detail: `${longWeekday(worstD.key)}s ${result(worstD.net)} in ${plural(worstD.trades, "trade")}.`,
       viz: bars(weekdays, (g) => g === worstD),
-    })
-
-  const days = a.daily
-  const bestDay = best(days)
-  const worstDay = best(days.map((d) => ({ ...d, net: -d.net })))
-  if (bestDay && bestDay.net > 0)
-    out.push({
-      tone: "good",
-      title: "Best day",
-      figure: formatDay(bestDay.key, true),
-      detail: `${money(bestDay.net, true)} over ${bestDay.trades} trades, ${pct(bestDay.winRate)} win rate.`,
-      viz: bars(days, (g) => g.key === bestDay.key, (k) => formatDay(k)),
-    })
-  if (worstDay && worstDay.net > 0)
-    out.push({
-      tone: "bad",
-      title: "Worst day",
-      figure: formatDay(worstDay.key, true),
-      detail: `${money(-worstDay.net, true)} over ${worstDay.trades} trades, ${pct(worstDay.winRate)} win rate.`,
-      viz: bars(days, (g) => g.key === worstDay.key, (k) => formatDay(k)),
     })
 
   const cap = best(a.capSim)
   if (cap && cap.net > actual + 0.01)
     out.push({
       tone: "good",
-      title: `Stop after ${cap.cap} trade${cap.cap > 1 ? "s" : ""} a day`,
-      figure: `${money(cap.net - actual, true)} saved`,
-      detail: `Net P&L goes from ${money(actual, true)} to ${money(cap.net, true)}. Trades after the ${ordinal(cap.cap)} of the day lost money.`,
+      title: `Stop after ${plural(cap.cap, "trade")} a day`,
+      figure: money(cap.net - actual, true),
+      detail: `You would have ${money(cap.net - actual)} more. Trades after your ${ordinal(cap.cap)} each day lost money.`,
       viz: compare([["Actual", actual, false], [`Cap at ${cap.cap}`, cap.net, true]]),
     })
 
@@ -123,9 +98,9 @@ export function buildInsights(a: FullAnalytics): Insight[] {
   if (limit && limit.net > actual + 0.01)
     out.push({
       tone: "good",
-      title: `Stop for the day at −$${limit.limit}`,
-      figure: `${money(limit.net - actual, true)} saved`,
-      detail: `Net P&L goes from ${money(actual, true)} to ${money(limit.net, true)}. The limit stops ${limit.stoppedDays} days early.`,
+      title: `Stop at −$${limit.limit} a day`,
+      figure: money(limit.net - actual, true),
+      detail: `You would have ${money(limit.net - actual)} more. You would stop early on ${plural(limit.stoppedDays, "day")}.`,
       viz: compare([["Actual", actual, false], [`Stop at −$${limit.limit}`, limit.net, true]]),
     })
 
@@ -133,9 +108,9 @@ export function buildInsights(a: FullAnalytics): Insight[] {
   if (al.after.trades >= MIN && al.after.avg < al.other.avg)
     out.push({
       tone: "bad",
-      title: "Trades right after a loss",
-      figure: `${money(al.after.avg, true)} / trade`,
-      detail: `${al.after.trades} trades opened within ${al.windowMin} min of a loss, ${pct(al.after.winRate)} win rate. Other trades: ${money(al.other.avg, true)} / trade.`,
+      title: `Wait ${al.windowMin} min after a loss`,
+      figure: `${money(al.after.avg, true)} a trade`,
+      detail: `Trades within ${al.windowMin} min of a loss averaged ${money(al.after.avg, true)}. Other trades averaged ${money(al.other.avg, true)}.`,
       viz: compare([["After a loss", al.after.avg, true], ["Other trades", al.other.avg, false]]),
     })
 
@@ -145,9 +120,9 @@ export function buildInsights(a: FullAnalytics): Insight[] {
     const worse = ot.over.avg < ot.within.avg
     out.push({
       tone: worse ? "bad" : "info",
-      title: worse ? "Overtrading days" : "Busy days did fine",
-      figure: `${money(ot.over.avg, true)} / day`,
-      detail: `${plural(ot.over.trades, "day")} with more trades than your best holding time (${ot.best.key}) fits. Other days: ${money(ot.within.avg, true)} / day. See Frequency.`,
+      title: worse ? "Trade less on busy days" : "Keep your pace on busy days",
+      figure: `${money(ot.over.avg, true)} a day`,
+      detail: `Busy days averaged ${money(ot.over.avg, true)}. Other days averaged ${money(ot.within.avg, true)}. See Frequency.`,
       viz: compare([["Days over", ot.over.avg, true], ["Other days", ot.within.avg, false]]),
     })
   }
@@ -158,9 +133,9 @@ export function buildInsights(a: FullAnalytics): Insight[] {
   if (bestDur && worstDur && bestDur.net > 0 && worstDur.net < 0)
     out.push({
       tone: "info",
-      title: "Best holding time",
-      figure: bestDur.key,
-      detail: `${money(bestDur.net, true)} over ${bestDur.trades} trades. Holds of ${worstDur.key}: ${money(worstDur.net, true)}.`,
+      title: `Hold for ${bestDur.key}`,
+      figure: money(bestDur.net, true),
+      detail: `These trades ${result(bestDur.net)}. Holds of ${worstDur.key} ${result(worstDur.net)}.`,
       viz: bars(a.byDuration, (g) => g.key === bestDur.key),
     })
 
@@ -168,9 +143,9 @@ export function buildInsights(a: FullAnalytics): Insight[] {
   if (so)
     out.push({
       tone: "bad",
-      title: "Margin stop-outs",
-      figure: String(so.trades),
-      detail: `Stop-outs cost ${money(so.net, true)}. The position size was too large for the account balance.`,
+      title: "Use smaller positions",
+      figure: plural(so.trades, "stop-out"),
+      detail: `Margin stop-outs ${result(so.net)}. Your size was too big for your balance.`,
       viz: bars(a.byReason, (g) => g === so),
     })
 
@@ -180,9 +155,9 @@ export function buildInsights(a: FullAnalytics): Insight[] {
     const symbol = splitSizeKey(worstLot.key).symbol
     out.push({
       tone: "info",
-      title: "Worst position size",
-      figure: sizeLabel(worstLot.key),
-      detail: `${money(worstLot.net, true)} over ${worstLot.trades} trades, ${money(worstLot.avg, true)} / trade. The chart shows each size on ${symbol}.`,
+      title: `Avoid ${splitSizeKey(worstLot.key).lots} lots on ${symbol}`,
+      figure: money(worstLot.net, true),
+      detail: `That size ${result(worstLot.net)} in ${plural(worstLot.trades, "trade")}. The chart shows each size on ${symbol}.`,
       viz: bars(
         a.byLots.filter((g) => splitSizeKey(g.key).symbol === symbol),
         (g) => g.key === worstLot.key,
@@ -196,9 +171,9 @@ export function buildInsights(a: FullAnalytics): Insight[] {
     if (!top || sizes < 2) continue
     out.push({
       tone: "good",
-      title: `Best size on ${symbol}`,
-      figure: `${top.key} lots`,
-      detail: `${money(top.net, true)} over ${top.trades} trades, ${pct(top.winRate)} win rate.`,
+      title: `Trade ${top.key} lots on ${symbol}`,
+      figure: money(top.net, true),
+      detail: `That size ${result(top.net)}. ${won(top)}`,
       viz: bars(
         a.byLots.filter((g) => splitSizeKey(g.key).symbol === symbol),
         (g) => splitSizeKey(g.key).lots === top.key,
