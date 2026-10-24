@@ -99,8 +99,11 @@ export function Dashboard({ accountId }: { accountId: string }) {
           </div>
         ) : (
           <>
-            <SummaryCard a={a} tz={filters.tz} />
-            <TodayCard accountId={accountId} filters={filters} data={data} />
+            {/* From xl: Net P&L takes 60% and the Today card the rest, both the same height. Below xl they stack. */}
+            <div className="flex flex-col gap-4 sm:gap-5 xl:flex-row">
+              <SummaryCard a={a} tz={filters.tz} className="xl:flex-[3]" />
+              <TodayCard accountId={accountId} filters={filters} data={data} className="xl:flex-[2]" />
+            </div>
             <Tabs value={tabValue} onValueChange={setTab} className="gap-4 sm:gap-5">
               <TabsList ref={tabs} className={tabList}>
                 {trigger("overview", "Overview")}

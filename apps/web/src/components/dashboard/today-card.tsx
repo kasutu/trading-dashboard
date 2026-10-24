@@ -7,7 +7,6 @@ import { WEEKDAYS, hourLabel, money, plural, pnlClass } from "@/lib/format"
 import { storage } from "@/lib/storage"
 import { cn } from "@/lib/utils"
 import { toneClass, type Metric } from "./metrics"
-import { MetricBlock } from "./panel"
 
 const LONG_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 const seenKey = (accountId: string) => `jurno:today-seen:${accountId}`
@@ -133,7 +132,7 @@ function useDailyNotification(accountId: string, p: ReturnType<typeof plan> | nu
 
 /** The daily reminder: what kind of day today is, how many trades are left, and when to stop. How often it shows and
  *  whether it sends a notification are set in Settings. */
-export function TodayCard({ accountId, filters, data }: { accountId: string; filters: Filters; data: AnalyticsResponse | undefined }) {
+export function TodayCard({ accountId, filters, data, className }: { accountId: string; filters: Filters; data: AnalyticsResponse | undefined; className?: string }) {
   const { settings } = useSettings()
   const now = useNow()
   const a = useAllAnalytics(accountId, filters, data, settings.reminder !== "off" || settings.reminderNotify)
@@ -157,8 +156,8 @@ export function TodayCard({ accountId, filters, data }: { accountId: string; fil
 
   if (!p.rules)
     return (
-      <Shell date={p.date} verdict={null}>
-        <Row label="Today so far">{soFar}</Row>
+      <Shell date={p.date} verdict={null} className={className}>
+        <dl className="border-t"><Row label="Today so far">{soFar}</Row></dl>
         <p className="text-sm text-muted-foreground">
           {p.locked ? "Upgrade to see your best days, best hours and daily trade limit here." : "Your daily plan shows up after 10 trading days and 30 trades."}
         </p>
@@ -166,19 +165,48 @@ export function TodayCard({ accountId, filters, data }: { accountId: string; fil
     )
 
   const r = p.rules
+  const left = r.cap !== null ? Math.max(r.cap - p.n, 0) : null
   return (
-    <Shell date={p.date} verdict={p.verdict}>
-      <MetricBlock metric={p.metric} />
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
+    <Shell date={p.date} verdict={p.verdict} className={className}>
+      {r.cap !== null && left !== null ? (
+        <div>
+          <p className="flex items-baseline gap-2">
+            <span className={cn("font-display text-5xl font-bold tracking-tight tabular-nums", left === 0 && "text-loss")}>{left}</span>
+            <span className="text-sm text-muted-foreground">of {plural(r.cap, "trade")} left today</span>
+          </p>
+          {r.cap <= 20 && (
+            // One segment per trade allowed: filled ones are still yours to take.
+            <div className="mt-3 flex gap-1" aria-hidden>
+              {Array.from({ length: r.cap }, (_, k) => (
+                <span key={k} className={cn("h-1.5 flex-1 rounded-full transition-colors duration-300", k < left ? "bg-foreground" : "bg-muted")} />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="flex items-baseline gap-2">
+          <span className="font-display text-5xl font-bold tracking-tight tabular-nums">{p.n}</span>
+          <span className="text-sm text-muted-foreground">{p.n === 1 ? "trade" : "trades"} today · no daily cap</span>
+        </p>
+      )}
+      {/* A list in a narrow card (beside Net P&L, or on a phone), four columns when it spans the page. */}
+      <dl className="grid grid-cols-1 divide-y border-t @3xl:grid-cols-4 @3xl:gap-x-6 @3xl:divide-y-0 @3xl:pt-5">
         <Row label="Today so far">{soFar}</Row>
         <Row label="Daily loss limit">
-          {r.lossLimit !== null ? `Stop at −$${r.lossLimit}${!p.lossHit && p.dayNet < 0 ? ` · $${(r.lossLimit + p.dayNet).toFixed(2)} left` : ""}` : "None"}
+          {r.lossLimit !== null ? (
+            <>
+              <span className="block">Stop at −${r.lossLimit}</span>
+              {!p.lossHit && p.dayNet < 0 && <span className="block text-xs text-muted-foreground">${(r.lossLimit + p.dayNet).toFixed(2)} left</span>}
+            </>
+          ) : (
+            "None"
+          )}
         </Row>
         <Row label="Hours">
           {p.bestHours.length > 0 && <span className="block">Best: {p.bestHours.map(hourLabel).join(", ")}</span>}
           {r.skipHours.length > 0 && <span className="block">Skip: {[...r.skipHours].sort((x, y) => x - y).map(hourLabel).join(", ")}</span>}
           {!p.bestHours.length && !r.skipHours.length && "Any hour"}
-          {p.nowTag && <span className={cn("mt-0.5 block text-xs", toneClass(p.nowTag.tone))}>{p.nowTag.text}</span>}
+          {p.nowTag && <span className={cn("mt-0.5 block text-xs font-medium", toneClass(p.nowTag.tone))}>{p.nowTag.text}</span>}
         </Row>
         <Row label="Play">
           {p.bestDays.length > 0 && <span className="block">Best days: {p.bestDays.join(", ")}</span>}
@@ -191,22 +219,26 @@ export function TodayCard({ accountId, filters, data }: { accountId: string; fil
   )
 }
 
-function Shell({ date, verdict, children }: { date: string; verdict: Verdict | null; children: React.ReactNode }) {
+/** Each kind of day gets its own color: a soft wash at the top, a tinted edge and the headline. Normal days use the
+ *  brand amber, so the card stands out next to Net P&L every day. */
+const TONE = {
+  profit: { wash: "from-profit/15", edge: "border-profit/40", text: "text-profit" },
+  loss: { wash: "from-loss/15", edge: "border-loss/40", text: "text-loss" },
+  normal: { wash: "from-brand/20", edge: "border-brand/50", text: "" },
+}
+
+function Shell({ date, verdict, className, children }: { date: string; verdict: Verdict | null; className?: string; children: React.ReactNode }) {
+  const tone = TONE[verdict?.tone ?? "normal"]
   return (
-    <section aria-label="Today" className="flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-5 shadow-card">
-      <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-        <h2 className="text-sm font-semibold">Today · {date}</h2>
-        {verdict && (
-          <span
-            className={cn(
-              "rounded-full px-2 py-0.5 text-xs font-medium",
-              verdict.tone === "profit" ? "bg-profit/15 text-profit" : verdict.tone === "loss" ? "bg-loss/15 text-loss" : "bg-muted text-muted-foreground"
-            )}
-          >
-            {verdict.label}
-          </span>
-        )}
-        {verdict && <p className="w-full text-sm text-muted-foreground">{verdict.why}</p>}
+    <section
+      aria-label="Today"
+      className={cn("@container relative isolate flex min-w-0 flex-col gap-5 overflow-hidden rounded-xl border bg-card p-5 shadow-card lg:p-6", tone.edge, className)}
+    >
+      <div aria-hidden className={cn("pointer-events-none absolute inset-x-0 top-0 -z-10 h-32 bg-gradient-to-b to-transparent", tone.wash)} />
+      <header className="min-w-0 space-y-1">
+        <p className="text-xs font-medium text-muted-foreground">Today · {date}</p>
+        <h2 className={cn("font-display text-3xl leading-tight font-bold", tone.text)}>{verdict?.label ?? "Today"}</h2>
+        {verdict && <p className="text-sm text-muted-foreground">{verdict.why}</p>}
       </header>
       {children}
     </section>
@@ -215,9 +247,9 @@ function Shell({ date, verdict, children }: { date: string; verdict: Verdict | n
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="min-w-0">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-sm">{children}</dd>
+    <div className="flex min-w-0 items-baseline justify-between gap-4 py-3 last:pb-0 @3xl:block @3xl:py-0">
+      <dt className="flex-none text-sm text-muted-foreground @3xl:text-xs">{label}</dt>
+      <dd className="min-w-0 text-right text-sm @3xl:mt-0.5 @3xl:text-left">{children}</dd>
     </div>
   )
 }
