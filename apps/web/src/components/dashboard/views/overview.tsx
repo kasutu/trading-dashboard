@@ -46,10 +46,10 @@ function PeriodPnl({ a }: { a: Analytics }) {
         last && {
           value: money(last.net, true),
           tone: last.net,
-          label: `Latest ${unit} · ${name(last.key)}`,
+          label: `Latest ${unit}: ${name(last.key)}`,
           stats: [
             [`Green ${unit}s`, `${green} of ${rows.length}`],
-            ...(top && top !== last ? [[`Best · ${name(top.key)}`, money(top.net, true)] as [string, string]] : []),
+            ...(top && top !== last ? [[`Best: ${name(top.key)}`, money(top.net, true)] as [string, string]] : []),
           ],
         }
       }

@@ -58,7 +58,7 @@ function TradeShareDialog({ accountId, trade: t, tz, onClose }: Props & { onClos
 
   const review = journal?.trades.get(t.ticket)
   const setup = review?.setupId ? journal?.setups.get(review.setupId)?.name : undefined
-  const context = [setup, review?.grade && `Grade ${review.grade}`].filter(Boolean).join(" · ") || `Closed by ${reasonLabel(t.reason).toLowerCase()}`
+  const context = [setup, review?.grade && `Grade ${review.grade}`].filter(Boolean).join(", ") || `Closed by ${reasonLabel(t.reason).toLowerCase()}`
 
   const data = React.useMemo<TradeCardData>(
     () => ({
@@ -72,7 +72,7 @@ function TradeShareDialog({ accountId, trade: t, tz, onClose }: Props & { onClos
       r: rFrom(t, stopFor(t, review?.initialStop)),
       entry: t.openPrice,
       exit: t.closePrice,
-      opened: `${formatDay(t.day, true)} · ${formatTime(t.open, tz)}`,
+      opened: `${formatDay(t.day, true)}, ${formatTime(t.open, tz)}`,
       held: duration(t.durationMin),
       openTs: Date.parse(t.open) / 1000,
       closeTs: Date.parse(t.close) / 1000,
@@ -99,7 +99,7 @@ function TradeShareDialog({ accountId, trade: t, tz, onClose }: Props & { onClos
           <Switch id="share-amounts" checked={settings.shareAmounts} onCheckedChange={(v) => update({ shareAmounts: v })} />
           <Label htmlFor="share-amounts" className="font-normal">
             Show amounts
-            <span className="text-muted-foreground"> · dollar result and lot size</span>
+            <span className="text-muted-foreground"> (dollar result and lot size)</span>
           </Label>
         </div>
       }

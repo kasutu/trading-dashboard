@@ -59,7 +59,7 @@ export function JournalInsights() {
   return (
     <Panel
       title="What your journal says"
-      metric={top && { value: money(top.net, true), tone: top.net, label: `${costly ? "Costliest" : "Best"} · ${top.key}, ${plural(top.trades, unit)}` }}
+      metric={top && { value: money(top.net, true), tone: top.net, label: `${costly ? "Costliest" : "Best"}: ${top.key}, ${plural(top.trades, unit)}` }}
       description={v.about}
     >
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
@@ -119,7 +119,7 @@ export function JournalInsights() {
               </ul>
             )}
             <p className="text-xs text-muted-foreground">
-              {days ? "Green days" : "Win rate"} · average R · net P&L. Only answered {unit}s count.
+              {days ? "Green days" : "Win rate"}, average R, net P&L. Only answered {unit}s count.
             </p>
           </>
         )}

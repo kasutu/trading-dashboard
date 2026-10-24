@@ -43,7 +43,7 @@ export function Risk({ a }: { a: Analytics }) {
 function bestLotsMetric(rows: BestLots[]): Metric | undefined {
   const top = rows.filter((r) => r.best).reduce<BestLots | undefined>((b, r) => (!b || r.best!.net > b.best!.net ? r : b), undefined)
   if (!top?.best) return undefined
-  return { value: `${top.best.key} lots`, label: `Best size · ${top.symbol}, ${money(top.best.net, true)}, ${pct(top.best.winRate)} won` }
+  return { value: `${top.best.key} lots`, label: `Best size: ${top.symbol}, ${money(top.best.net, true)}, ${pct(top.best.winRate)} won` }
 }
 
 /** How most trades closed. */
@@ -51,7 +51,7 @@ function reasonMetric(rows: Group[]): Metric | undefined {
   const all = rows.reduce((s, r) => s + r.trades, 0)
   const top = rows.reduce<Group | undefined>((b, r) => (!b || r.trades > b.trades ? r : b), undefined)
   if (!top || !all) return undefined
-  return { value: pct(top.trades / all), label: `Closed by ${top.key.toLowerCase()} · ${plural(top.trades, "trade")}`, stats: [["Net P&L", money(top.net, true)]] }
+  return { value: pct(top.trades / all), label: `Closed by ${top.key.toLowerCase()}: ${plural(top.trades, "trade")}`, stats: [["Net P&L", money(top.net, true)]] }
 }
 
 /** Paid part of the Risk tab. */
@@ -67,7 +67,7 @@ function Simulations({ a }: { a: FullAnalytics }) {
           metric={{
             value: money(top.net, true),
             tone: top.net,
-            label: `Best limit · stop at −$${top.limit} a day`,
+            label: `Best limit: stop at −$${top.limit} a day`,
             stats: [["Actual", money(actual, true)], ["Change", money(top.net - actual, true)]],
           }}
           description="Net P&L if you stop for the day after a loss of $X."
@@ -92,7 +92,7 @@ function Simulations({ a }: { a: FullAnalytics }) {
         metric={{
           value: money(al.after.net, true),
           tone: al.after.net,
-          label: `Right after a loss · ${plural(al.after.trades, "trade")}, ${pct(al.after.winRate)} won, ${money(al.after.avg, true)} each`,
+          label: `Right after a loss: ${plural(al.after.trades, "trade")}, ${pct(al.after.winRate)} won, ${money(al.after.avg, true)} each`,
           stats: [
             ["All other trades", money(al.other.net, true)],
             ["Their win rate", pct(al.other.winRate)],
@@ -148,14 +148,14 @@ function BestLotsTable({ rows }: { rows: BestLots[] }) {
   )
 }
 
-/** "0.02 lots", then "+$120.50 · 62%" below. */
+/** "0.02 lots", then "+$120.50, 62%" below. */
 function LotStat({ g, rate }: { g: Group; rate?: boolean }) {
   return (
     <div className="font-mono tabular-nums">
       <div>{g.key} lots</div>
       <div className="text-xs">
         <span className={pnlClass(g.net)}>{money(g.net, true)}</span>
-        {rate && <span className="text-muted-foreground"> · {pct(g.winRate)} win</span>}
+        {rate && <span className="text-muted-foreground">, {pct(g.winRate)} win</span>}
       </div>
     </div>
   )

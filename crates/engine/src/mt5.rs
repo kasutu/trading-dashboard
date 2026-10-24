@@ -290,11 +290,11 @@ pub fn classify_balance(amount: f64, comment: &str) -> (FlowKind, String) {
     }
     if no_ref {
         let note = if c.eq_ignore_ascii_case("D-NULL") {
-            format!("Negative balance reset (broker) · {c}")
+            format!("Negative balance reset (broker): {c}")
         } else if c.is_empty() {
             "Balance adjustment (broker)".to_string()
         } else {
-            format!("Balance adjustment (broker) · {c}")
+            format!("Balance adjustment (broker): {c}")
         };
         return (FlowKind::Adjustment, note);
     }
@@ -717,7 +717,7 @@ mod tests {
         assert_eq!(r.cash_flows[0].note, "D-EXAMPLE-USD-1000000000001");
         assert_eq!(
             r.cash_flows[1].note,
-            "Negative balance reset (broker) · D-NULL"
+            "Negative balance reset (broker): D-NULL"
         );
         assert_eq!(r.cash_flows[1].comment, "D-NULL");
         assert_eq!(r.cash_flows[1].time, utc("2026-03-05T03:10:05Z"));

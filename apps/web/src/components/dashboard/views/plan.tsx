@@ -120,7 +120,7 @@ function FocusList({ items }: { items: FocusItem[] }) {
             <dl className="mt-2 space-y-1 text-xs">
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Earlier days</dt>
-                <dd className="tabular-nums">{money(f.fit.net, true)} · {plural(f.fit.trades, "trade")}</dd>
+                <dd className="tabular-nums">{money(f.fit.net, true)} on {plural(f.fit.trades, "trade")}</dd>
               </div>
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Recent days</dt>
@@ -181,7 +181,7 @@ function ResultsTable({ rows }: { rows: [string, Comparison][] }) {
                 <span className={cn("font-mono text-sm tabular-nums", pnlClass(gain))}>{money(gain, true)}</span>
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-                {money(actual.net, true)} → {money(withRules.net, true)} · {actual.trades} → {withRules.trades} trades · {pct(actual.winRate)} → {pct(withRules.winRate)} won
+                {money(actual.net, true)} → {money(withRules.net, true)}, {actual.trades} → {withRules.trades} trades, {pct(actual.winRate)} → {pct(withRules.winRate)} won
               </p>
             </li>
           )

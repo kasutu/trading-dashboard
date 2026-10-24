@@ -30,6 +30,6 @@ function slotMetric(cells: Group[][]): Metric | undefined {
   return {
     value: money(top.g.net, true),
     tone: top.g.net,
-    label: `Best hour of the week · ${WEEKDAYS[top.d]} ${hourLabel(top.h)}, ${plural(top.g.trades, "trade")}`,
+    label: `Best hour of the week: ${WEEKDAYS[top.d]} ${hourLabel(top.h)}, ${plural(top.g.trades, "trade")}`,
   }
 }

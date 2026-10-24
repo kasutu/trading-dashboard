@@ -40,7 +40,7 @@ function BreakdownList({ rows, label, className }: { rows: Group[]; label: strin
         <li key={r.key} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm">{r.key}</p>
-            <p className="text-xs text-muted-foreground tabular-nums">{plural(r.trades, "trade")} · {pct(r.winRate)} won</p>
+            <p className="text-xs text-muted-foreground tabular-nums">{plural(r.trades, "trade")}, {pct(r.winRate)} won</p>
           </div>
           <span className={cn("font-mono text-sm tabular-nums", pnlClass(r.net))}>{money(r.net, true)}</span>
         </li>

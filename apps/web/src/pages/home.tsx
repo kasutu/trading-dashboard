@@ -22,7 +22,7 @@ export function Home({ account, onSelect }: { account: Account | null; onSelect:
       {account.trades === 0 ? (
         <EmptyState title="No trades yet" text="Import the trade history CSV file from your broker to see your dashboard. Use Import trades above." />
       ) : (
-        <Dashboard key={account.id} accountId={account.id} />
+        <Dashboard key={account.id} accountId={account.id} risk={account.risk} />
       )}
     </div>
   )

@@ -134,11 +134,11 @@ function Body({ accountId, trade, tz, levels, onLevel, children }: Props & { lev
     <>
       <DialogHeader>
         <DialogTitle className="text-base font-semibold">
-          {trade.symbol} · {side} {trade.lots} lots
+          {trade.symbol}, {side} {trade.lots} lots
         </DialogTitle>
         <DialogDescription className="font-mono text-xs">
-          {relativeDay(trade.day, tz)}, {formatTimeRange(trade.open, trade.close, tz)}{" "}
-          <span className="whitespace-nowrap"><span aria-hidden>·</span> {duration(trade.durationMin)}</span>
+          {relativeDay(trade.day, tz)}, {formatTimeRange(trade.open, trade.close, tz)},{" "}
+          <span className="whitespace-nowrap">{duration(trade.durationMin)}</span>
         </DialogDescription>
       </DialogHeader>
       <DialogBody>

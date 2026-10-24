@@ -44,7 +44,7 @@ export function TradeCalendar({ accountId, filters, period }: Props) {
           metric={{
             value: inMonth.length ? money(monthNet, true) : "—",
             tone: inMonth.length ? monthNet : undefined,
-            label: `${monthTitle(month)} · ${inMonth.length ? plural(inMonth.length, "trade") : "no trades"}`,
+            label: `${monthTitle(month)}: ${inMonth.length ? plural(inMonth.length, "trade") : "no trades"}`,
           }}
         />
         <div className="-mr-2 flex flex-none sm:mr-0 sm:gap-1">

@@ -30,7 +30,7 @@ export function drawCalendarCard(canvas: HTMLCanvasElement, d: CalendarCardData)
 
   // Hero: the month's net, and a quiet summary under it
   text(ctx, money(d.net, true), PAD, 232, `800 96px ${DISPLAY}`, tone(d.net))
-  const summary = `${plural(d.trades, "trade")} · ${d.green} green, ${d.red} red ${d.green + d.red === 1 ? "day" : "days"}`
+  const summary = `${plural(d.trades, "trade")}, ${d.green} green, ${d.red} red ${d.green + d.red === 1 ? "day" : "days"}`
   text(ctx, summary, PAD, 280, `400 24px ${BODY}`, C.muted)
 
   // Grid

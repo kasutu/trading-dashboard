@@ -177,7 +177,7 @@ function PastImports({ accountId }: { accountId: string }) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm">{i.fileName}</p>
                 <p className="text-xs text-muted-foreground tabular-nums">
-                  {formatDateTime(i.createdAt, LOCAL_TZ)} · {i.duplicates} already stored · {i.skipped} skipped
+                  {formatDateTime(i.createdAt, LOCAL_TZ)}, {i.duplicates} already stored, {i.skipped} skipped
                 </p>
               </div>
               <span className="font-mono text-sm tabular-nums">+{i.added}</span>

@@ -113,11 +113,11 @@ export function tzLabel(tz: string) {
 export const today = (tz: string) => new Date().toLocaleDateString("en-CA", { timeZone: tz })
 
 /** Cash flow kinds as the app names them. */
-/** Internal transfers in and out: "in $350.00 · out $420.00". */
+/** Internal transfers in and out: "in $350.00, out $420.00". */
 export function transfers(s: Pick<CashSummary, "transfersIn" | "transfersOut">) {
   return [s.transfersIn.count && `in ${money(s.transfersIn.total)}`, s.transfersOut.count && `out ${money(s.transfersOut.total)}`]
     .filter(Boolean)
-    .join(" · ")
+    .join(", ")
 }
 
 export const FLOW_LABELS = { deposit: "Deposit", withdrawal: "Withdrawal", adjustment: "Adjustment" } as const

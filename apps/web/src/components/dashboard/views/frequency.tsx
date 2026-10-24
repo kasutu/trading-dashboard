@@ -23,7 +23,7 @@ export function Frequency({ a, accountId, filters }: { a: FullAnalytics; account
         metric={{
           value: money(top.net, true),
           tone: top.net,
-          label: `Best cap · stop after ${plural(top.cap, "trade")} a day`,
+          label: `Best cap: stop after ${plural(top.cap, "trade")} a day`,
           stats: [["Actual", money(actual, true)], ["Change", money(top.net - actual, true)]],
         }}
         description="Net P&L if you stop after N trades each day."
@@ -86,8 +86,8 @@ function Overtrading({ o, accountId, filters }: { o: OvertradingData; accountId:
         tone: o.over.trades ? "loss" : "profit",
         label: `Over your limit, of ${plural(days, "trading day")}`,
         stats: [
-          ["Net on days over", o.over.trades ? `${money(o.over.net, true)} · ${money(o.over.avg, true)} a day` : "No days"],
-          ["Net on other days", o.within.trades ? `${money(o.within.net, true)} · ${money(o.within.avg, true)} a day` : "No days"],
+          ["Net on days over", o.over.trades ? `${money(o.over.net, true)} (${money(o.over.avg, true)} a day)` : "No days"],
+          ["Net on other days", o.within.trades ? `${money(o.within.net, true)} (${money(o.within.avg, true)} a day)` : "No days"],
         ],
       }}
       description={

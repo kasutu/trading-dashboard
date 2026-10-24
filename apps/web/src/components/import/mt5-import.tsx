@@ -88,7 +88,7 @@ export function Mt5Import({ file, accountId, onReset }: Props) {
             <p className="text-sm font-semibold">MetaTrader 5 report</p>
             <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
               <span>Account <span className="font-mono tabular-nums text-foreground">{p.account.login}</span></span>
-              {p.account.server && <span>· {p.account.server}</span>}
+              {p.account.server && <span>{p.account.server}</span>}
               {p.account.kind && (
                 <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium capitalize text-foreground">{p.account.kind}</span>
               )}
@@ -101,7 +101,7 @@ export function Mt5Import({ file, accountId, onReset }: Props) {
                 p.trades.added === 1 ? "position to import" : "positions to import",
                 p.trades.duplicates > 0 && `${p.trades.duplicates} already stored`,
                 p.from && p.to && formatPeriod([dayOf(p.from), dayOf(p.to)]),
-              ].filter(Boolean).join(" · "),
+              ].filter(Boolean).join(", "),
               stats: flowStats(p),
             }}
           />
@@ -146,11 +146,11 @@ export function Mt5Import({ file, accountId, onReset }: Props) {
 function flowStats(p: Mt5ImportResult): [string, string][] {
   const s = p.cashFlows.summary
   const stats: [string, string][] = [
-    ["Deposits", `${money(s.deposits.total)} · ${s.deposits.count}`],
-    ["Withdrawals", `${money(s.withdrawals.total)} · ${s.withdrawals.count}`],
+    ["Deposits", `${money(s.deposits.total)} (${s.deposits.count})`],
+    ["Withdrawals", `${money(s.withdrawals.total)} (${s.withdrawals.count})`],
   ]
   if (s.transfersIn.count || s.transfersOut.count) stats.push(["Of which internal", transfers(s)])
-  if (s.adjustments.count) stats.push(["Adjustments", `${money(s.adjustments.total)} · ${s.adjustments.count}`])
+  if (s.adjustments.count) stats.push(["Adjustments", `${money(s.adjustments.total)} (${s.adjustments.count})`])
   const skipped = skippedText(p.skippedDeals)
   if (skipped) stats.push(["Not imported", skipped])
   return stats
@@ -181,7 +181,7 @@ function Mt5Result({ r, header }: { r: Mt5ImportResult; header: React.ReactNode 
             label: [
               r.trades.added === 1 ? "position added" : "positions added",
               r.trades.duplicates > 0 && `${r.trades.duplicates} already stored`,
-            ].filter(Boolean).join(" · "),
+            ].filter(Boolean).join(", "),
             stats: [
               ["Deposits, withdrawals, adjustments", `${r.cashFlows.added} added`],
               ["Already stored", String(r.cashFlows.duplicates)],
@@ -202,7 +202,7 @@ function Mt5Result({ r, header }: { r: Mt5ImportResult; header: React.ReactNode 
           <ul className="mt-2 space-y-1 text-muted-foreground">
             {dups.map((d) => (
               <li key={d.id} className="flex justify-between gap-3">
-                <span className="min-w-0 truncate capitalize">{d.kind} · {formatDateTime(d.occurredAt, LOCAL_TZ)}</span>
+                <span className="min-w-0 truncate capitalize">{d.kind}, {formatDateTime(d.occurredAt, LOCAL_TZ)}</span>
                 <span className="font-mono tabular-nums text-foreground">{money(d.amount)}</span>
               </li>
             ))}

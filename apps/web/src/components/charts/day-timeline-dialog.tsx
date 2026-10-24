@@ -43,7 +43,7 @@ function Body({ accountId, filters, day, children }: { accountId: string; filter
         <DialogDescription className="text-xs sm:text-sm">Times in {tzLabel(filters.tz)}. Tap a trade to see its price chart.</DialogDescription>
       </DialogHeader>
       <DialogBody>
-      {data && <MetricBlock metric={{ value: money(net, true), tone: net, label: `Net P&L · ${plural(trades.length, "trade")}` }} />}
+      {data && <MetricBlock metric={{ value: money(net, true), tone: net, label: `Net P&L on ${plural(trades.length, "trade")}` }} />}
       {children}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       {!data ? (

@@ -96,7 +96,7 @@ export function drawBrand(ctx: CanvasRenderingContext2D) {
 }
 
 export type Footer = {
-  /** Left side, for example the filters ("All symbols · Buy and sell"). */
+  /** Left side, for example the filters ("All symbols, Buy and sell"). */
   context: string
   /** Show the "Track your trades free" line above the address. Latte and owner hide it. */
   invite: boolean
@@ -110,7 +110,7 @@ export function shareFooter(f: Filters, invite: boolean): Footer {
     context: [
       f.symbol === "all" ? "All symbols" : f.symbol,
       f.side === "all" ? "Buy and sell" : f.side === "buy" ? "Buy only" : "Sell only",
-    ].join(" · "),
+    ].join(", "),
     invite,
     site: window.location.host,
   }

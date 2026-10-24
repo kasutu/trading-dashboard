@@ -220,6 +220,21 @@ async fn accounts_crud() {
     assert_eq!(a["name"], "Gold");
     assert_eq!(a["broker"], Value::Null);
 
+    // Risk limits: set, check, clear.
+    assert_eq!(a["risk"], Value::Null);
+    let risk = json!({ "kind": "percent", "daily": 2.0, "perTrade": 1.0, "maxTrades": 3 });
+    let (s, a) = t.send(Method::PATCH, &path, Some(COOKIE), Some(json!({ "risk": risk }))).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(a["risk"], risk);
+    let (s, _) = t
+        .send(Method::PATCH, &path, Some(COOKIE), Some(json!({ "risk": { "kind": "percent", "daily": 150, "perTrade": null, "maxTrades": null } })))
+        .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let (_, a) = t.send(Method::PATCH, &path, Some(COOKIE), Some(json!({ "name": "Gold" }))).await;
+    assert_eq!(a["risk"], risk, "a patch without risk keeps it");
+    let (_, a) = t.send(Method::PATCH, &path, Some(COOKIE), Some(json!({ "risk": null }))).await;
+    assert_eq!(a["risk"], Value::Null);
+
     let (_, list) = t.get("/api/accounts").await;
     assert_eq!(list.as_array().unwrap().len(), 1);
 
@@ -1463,7 +1478,7 @@ async fn mt5_import_into_an_empty_account() {
         .iter()
         .find(|r| r["kind"] == "adjustment")
         .unwrap();
-    assert_eq!(adj["note"], "Negative balance reset (broker) · D-NULL");
+    assert_eq!(adj["note"], "Negative balance reset (broker): D-NULL");
     assert_eq!(adj["sourceId"], "5016");
     // The withdrawal with an INT part is an internal transfer; the deposits are not.
     let internal: Vec<(&str, bool)> = f["rows"]

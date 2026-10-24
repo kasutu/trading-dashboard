@@ -60,7 +60,7 @@ export function DaySheet({ accountId, day, trades, tz, onClose }: Props) {
                     </span>
                   </div>
                   <p className="mt-1 font-mono text-sm text-muted-foreground">
-                    {formatTimeRange(t.open, t.close, tz)} <span aria-hidden>·</span> {duration(t.durationMin)}
+                    {formatTimeRange(t.open, t.close, tz)}, {duration(t.durationMin)}
                   </p>
                   <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
                     <Field label="Open price" value={price(t.openPrice)} />

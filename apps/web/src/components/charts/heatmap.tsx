@@ -46,11 +46,11 @@ export function Heatmap({ cells, weekdays }: { cells: Group[][]; weekdays: strin
         {cell && hover ? (
           <span>
             <span className="font-medium text-foreground">{weekdays[hover.d]} {hourLabel(hover.h)}</span>
-            {" · "}{plural(cell.trades, "trade")}
+            {", "}{plural(cell.trades, "trade")}
             {cell.trades > 0 && (
               <>
-                {" · "}<span className={cn("font-mono", pnlClass(cell.net))}>{money(cell.net, true)}</span>
-                {" · "}{pct(cell.winRate)} win rate
+                {", "}<span className={cn("font-mono", pnlClass(cell.net))}>{money(cell.net, true)}</span>
+                {", "}{pct(cell.winRate)} win rate
               </>
             )}
           </span>
