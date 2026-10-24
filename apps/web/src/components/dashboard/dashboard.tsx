@@ -14,7 +14,7 @@ import { accountBalance } from "@/lib/risk"
 import { FilterBar } from "./filter-bar"
 import { LockedPanel } from "./locked-panel"
 import { ShareDialog } from "./share-dialog"
-import { SummaryCard } from "./summary-card"
+import { KpiStrip, SummaryCard } from "./summary-card"
 import { TodayCard } from "./today-card"
 import { TradesTable } from "./trades-table"
 import { Frequency } from "./views/frequency"
@@ -108,8 +108,9 @@ export function Dashboard({ accountId, risk }: { accountId: string; risk: Accoun
             {/* From xl: Net P&L takes 60% and the Today card the rest, both the same height. Below xl they stack. */}
             <div className="flex flex-col gap-4 sm:gap-5 xl:flex-row">
               <SummaryCard a={a} tz={filters.tz} className="xl:flex-[3]" />
-              <TodayCard accountId={accountId} a={allTime} balance={balance} risk={risk} tz={filters.tz} className="xl:flex-[2] xl:self-start" />
+              <TodayCard accountId={accountId} a={allTime} balance={balance} risk={risk} tz={filters.tz} className="xl:flex-[2]" />
             </div>
+            <KpiStrip a={a} />
             <Tabs value={tabValue} onValueChange={setTab} className="gap-4 sm:gap-5">
               <TabsList ref={tabs} className={tabList}>
                 {trigger("overview", "Overview")}

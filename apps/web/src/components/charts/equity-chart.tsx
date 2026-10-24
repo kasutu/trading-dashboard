@@ -31,7 +31,7 @@ export function EquityChart({ data, tz }: { data: EquityPoint[]; tz: string }) {
           </defs>
           <CartesianGrid vertical={false} strokeDasharray="2 4" strokeOpacity={0.6} />
           <XAxis dataKey="n" hide />
-          <YAxis hide domain={["auto", "auto"]} />
+          <YAxis hide domain={["dataMin", "dataMax"]} />
           <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeOpacity={0.4} />
 
           {/* Faint guide from each extreme to the price axis */}

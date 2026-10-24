@@ -25,7 +25,7 @@ export function AccountBar({ account }: { account: Account }) {
           </Button>
         </CashFlowDialog>
         <Button asChild variant={account.trades ? "outline" : "default"}>
-          <Link href="/import"><Upload /> Import<span className="hidden sm:inline"> trades</span></Link>
+          <Link href="/import"><Upload /> <span>Import<span className="hidden sm:inline"> trades</span></span></Link>
         </Button>
       </div>
     </div>

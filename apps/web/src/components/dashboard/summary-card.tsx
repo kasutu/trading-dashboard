@@ -5,8 +5,8 @@ import { duration, formatDay, formatPeriod, money, pct, plural } from "@/lib/for
 import { cn } from "@/lib/utils"
 import { MetricBlock, Stats } from "./panel"
 
-/** Net P&L, the equity curve and the key ratios in one card. Net P&L is the one number that stands out;
- *  every other figure is a quiet label and value. */
+/** Net P&L and the equity curve. Net P&L is the one number that stands out; every other figure is a quiet label
+ *  and value. The chart grows to fill the card when the card beside it is taller. */
 export const SummaryCard = React.memo(function SummaryCard({ a, tz, className }: { a: Analytics; tz: string; className?: string }) {
   const s = a.summary
   const days = [...a.daily].sort((x, y) => y.net - x.net)
@@ -14,8 +14,8 @@ export const SummaryCard = React.memo(function SummaryCard({ a, tz, className }:
   const worstDay = days.at(-1)!
 
   return (
-    <section className={cn("@container min-w-0 rounded-xl border bg-card p-5 shadow-card lg:p-6", className)}>
-      <div className="grid grid-cols-1 gap-6 @2xl:grid-cols-[minmax(240px,300px)_minmax(0,1fr)]">
+    <section className={cn("@container flex min-w-0 flex-col rounded-xl border bg-card p-5 shadow-card lg:p-6", className)}>
+      <div className="grid flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] gap-6 @2xl:grid-cols-[minmax(240px,300px)_minmax(0,1fr)] @2xl:grid-rows-1">
         <div className="flex flex-col">
           <h2 className="text-sm font-semibold">Net P&L</h2>
           <MetricBlock
@@ -35,8 +35,16 @@ export const SummaryCard = React.memo(function SummaryCard({ a, tz, className }:
         </div>
         <EquityChart data={a.curve} tz={tz} />
       </div>
+    </section>
+  )
+})
 
-      <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 border-t pt-5 @lg:grid-cols-3 @4xl:grid-cols-5">
+/** The key ratios as one full-width row under Net P&L and the Today card. */
+export const KpiStrip = React.memo(function KpiStrip({ a }: { a: Analytics }) {
+  const s = a.summary
+  return (
+    <section aria-label="Key ratios" className="rounded-xl border bg-card p-5 shadow-card lg:px-6">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-6">
         <Kpi label="Win rate" value={pct(s.winRate, 1)} sub={`${s.wins} won, ${s.losses} lost`} />
         <Kpi
           label="Profit factor"
