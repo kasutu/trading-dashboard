@@ -16,11 +16,14 @@ export type Settings = {
   reminderNotify: boolean
   /** When that notification goes out, "HH:MM" in the dashboard timezone. */
   reminderTime: string
+  /** The most to risk in a day, as a % of the account balance. The Today card recommends the smaller of this and the
+   *  plan's daily loss limit. */
+  riskPct: number
 }
 
 export type ReminderFrequency = "always" | "daily" | "off"
 
-const DEFAULTS: Settings = { checkIn: true, shareAmounts: true, reminder: "always", reminderNotify: false, reminderTime: "08:00" }
+const DEFAULTS: Settings = { checkIn: true, shareAmounts: true, reminder: "always", reminderNotify: false, reminderTime: "08:00", riskPct: 2 }
 const listeners = new Set<() => void>()
 
 function read(): Settings {

@@ -36,6 +36,20 @@ A place to plan trades with numbers only: symbol, side, entry, stop loss (SL), t
 - **Storage:** a new `planned_trades` table per trading account, with routes under `/api/accounts/:id/playbook`. The R:R and risk math goes in the engine, so the web app and any later email or alert use the same numbers.
 - **Plans:** to decide which plans get it. One option: the calculator is free, and saving plans and comparing plan against result are paid.
 
+### Connect an Exness account and sync trades automatically
+
+Today trades come in only by file: a CSV or the MT5 report (`crates/engine/src/mt5.rs`, `crates/api/src/routes/mt5_import.rs`). With our Exness Rust SDK (link: TODO), Jurno can connect to the account and fetch closed trades, deposits and withdrawals itself. The Today card, the plan and the journal then stay current without an export.
+
+- **First, check the SDK:** which login it needs (read-only investor password, or OAuth/API token), whether it returns closed deals with ticket, open and close time, side, lots, prices, SL, TP, commission, swap and profit, and whether it returns balance operations (deposits, withdrawals, internal transfers). Note the rate limits and whether it works from a Linux server or needs the MT5 terminal.
+- **Connect:** a "Connect Exness" button on the trading account. Ask only for read access: an investor (read-only) password, never the trading password. Fill `trading_accounts.mt_login` from the connection. A "Disconnect" button deletes the stored login.
+- **Store credentials safely:** encrypt them at rest with a key from the environment (not in the database), never return them to the browser, and never write them to logs. Store only what the SDK needs to refresh access.
+- **Sync:** a scheduled job in the API (every 5–15 minutes for connected accounts, plus a "Sync now" button). Fetch deals since the last synced time, with a small overlap. Map them with the same rules as the MT5 import, so partial closes and internal transfers behave the same. Trades already skip duplicates by `(account_id, ticket)`, and cash flows by `source_id`, so a re-sync adds nothing twice.
+- **Status:** show last sync time, trades added, and errors (wrong password, expired access, broker down) on the account. After 3 failed syncs in a row, stop and ask the user to reconnect.
+- **After a sync:** refresh the analytics, so the Today card's trades left and loss-limit room update during the day. This also lets the daily reminder email (above) use same-day data.
+- **Keep file import:** for other brokers and for history older than the SDK returns.
+- **Plans:** to decide which plans get it. Auto sync is a good fit for a paid plan; manual import stays free.
+- **Risk:** depending on an unofficial broker interface can break without warning. Keep the sync behind a feature flag, and fall back to file import when it fails.
+
 ## Done
 
 - **P&L by hour uses the opening time.** Already the case: the engine takes the hour from the opening time and the chart says "Hour the trade was opened". No change needed.
