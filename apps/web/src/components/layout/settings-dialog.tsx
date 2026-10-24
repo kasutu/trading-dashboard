@@ -34,7 +34,9 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   )
 }
 
-/** The Today card: how often it shows, and the daily notification. */
+const RISK_PCTS = [0.5, 1, 2, 3, 5]
+
+/** The Today card: how often it shows, the daily risk cap, and the daily notification. */
 function ReminderSettings() {
   const { settings, update } = useSettings()
   const supported = typeof Notification !== "undefined"
@@ -63,6 +65,20 @@ function ReminderSettings() {
             <SelectItem value="always">Every visit</SelectItem>
             <SelectItem value="daily">Once a day</SelectItem>
             <SelectItem value="off">Off</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-start justify-between gap-4 border-t pt-4">
+        <div className="space-y-1">
+          <Label htmlFor="risk-pct">Max daily risk</Label>
+          <p id="risk-pct-help" className="text-sm text-muted-foreground">
+            A share of your balance (from the Funding tab). The Today card recommends the smaller of this and your plan's daily loss limit.
+          </p>
+        </div>
+        <Select value={String(settings.riskPct)} onValueChange={(v) => update({ riskPct: Number(v) })}>
+          <SelectTrigger id="risk-pct" size="sm" aria-describedby="risk-pct-help" className="w-40 flex-none"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {RISK_PCTS.map((p) => <SelectItem key={p} value={String(p)}>{p}% of balance</SelectItem>)}
           </SelectContent>
         </Select>
       </div>

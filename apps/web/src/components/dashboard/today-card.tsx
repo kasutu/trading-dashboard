@@ -1,9 +1,8 @@
 import * as React from "react"
-import { useApi } from "@/hooks/use-api"
 import { useSettings } from "@/hooks/use-settings"
-import { filterQuery } from "@/lib/api/client"
-import type { Analytics, AnalyticsResponse, Filters } from "@/lib/api/types"
+import type { Analytics } from "@/lib/api/types"
 import { WEEKDAYS, hourLabel, money, plural, pnlClass } from "@/lib/format"
+import { dailyRisk, type DailyRisk } from "@/lib/risk"
 import { storage } from "@/lib/storage"
 import { cn } from "@/lib/utils"
 import { toneClass, type Metric } from "./metrics"
@@ -35,34 +34,21 @@ function clock(now: Date, tz: string) {
   }
 }
 
-/** The account's analytics on all trades, whatever the filter bar says, so the plan does not change with the filters.
- *  Reuses the dashboard's data when its filters are already "all". */
-function useAllAnalytics(accountId: string, filters: Filters, data: AnalyticsResponse | undefined, enabled: boolean) {
-  const all = filters.range === "all" && filters.symbol === "all" && filters.side === "all"
-  const path = enabled && !all ? `/accounts/${accountId}/analytics?${filterQuery({ ...filters, range: "all", symbol: "all", side: "all" })}` : null
-  const own = useApi<AnalyticsResponse>(path)
-  const res = all ? data : own.data
-  // Keep the last result while a new one loads, so the card does not blink when the filters change.
-  const [last, setLast] = React.useState<Analytics | null>(null)
-  const a = res && !("empty" in res) ? res : null
-  if (a && a !== last) setLast(a)
-  return a ?? last
-}
-
 type Verdict = { label: string; tone?: "profit" | "loss"; why: string }
 
 /** Everything the card and the notification say about today. */
-function plan(a: Analytics, now: Date, tz: string) {
+function plan(a: Analytics, now: Date, tz: string, balance: number | null, riskPct: number) {
   const { day, weekday, hour } = clock(now, tz)
   const longDay = LONG_DAYS[weekday] ?? "Today"
   const done = a.daily.find((d) => d.key === day)
   const n = done?.trades ?? 0
   const dayNet = done?.net ?? 0
   const date = now.toLocaleDateString("en-US", { timeZone: tz, weekday: "short", month: "short", day: "numeric" })
-  const base = { day, date, n, dayNet }
-
   const full = a.locked ? null : a
   const opt = full?.optimization
+  const risk = dailyRisk(opt?.rules.lossLimit ?? null, balance, riskPct, opt?.rules.cap ?? null)
+  const lossHit = risk !== null && dayNet <= -risk.limit
+  const base = { day, date, n, dayNet, risk, lossHit, balance, riskPct }
   if (!full || !opt) return { ...base, locked: !!a.locked, rules: null }
 
   const r = opt.rules
@@ -73,11 +59,10 @@ function plan(a: Analytics, now: Date, tz: string) {
   const record = wd && wd.trades ? `Your ${longDay}s: ${money(wd.net, true)} over ${plural(wd.trades, "trade")}.` : `No ${longDay} trades yet.`
 
   const capHit = r.cap !== null && n >= r.cap
-  const lossHit = r.lossLimit !== null && dayNet <= -r.lossLimit
   const verdict: Verdict = capHit
     ? { label: "Done for today", tone: "loss", why: `You took ${n} of ${plural(r.cap!, "trade")}. Stop here.` }
     : lossHit
-      ? { label: "Done for today", tone: "loss", why: `You are at ${money(dayNet, true)}, past your −$${r.lossLimit} limit. Stop here.` }
+      ? { label: "Done for today", tone: "loss", why: `You are at ${money(dayNet, true)}, past your −${money(risk!.limit)} daily risk. Stop here.` }
       : r.skipWeekdays.includes(weekday)
         ? { label: "Rest day", tone: "loss", why: `Your plan skips ${longDay}s. ${record}` }
         : bestDays.includes(WEEKDAYS[weekday])
@@ -100,7 +85,6 @@ function plan(a: Analytics, now: Date, tz: string) {
     ...base,
     locked: false,
     rules: r,
-    lossHit,
     verdict,
     metric,
     nowTag,
@@ -132,12 +116,13 @@ function useDailyNotification(accountId: string, p: ReturnType<typeof plan> | nu
 
 /** The daily reminder: what kind of day today is, how many trades are left, and when to stop. How often it shows and
  *  whether it sends a notification are set in Settings. */
-export function TodayCard({ accountId, filters, data, className }: { accountId: string; filters: Filters; data: AnalyticsResponse | undefined; className?: string }) {
+/** `a`: analytics on all trades (useAllAnalytics). */
+/** `a`: analytics on all trades (useAllAnalytics). `balance`: the account balance, null when there are no deposits. */
+export function TodayCard({ accountId, a, balance, tz, className }: { accountId: string; a: Analytics | null; balance: number | null; tz: string; className?: string }) {
   const { settings } = useSettings()
   const now = useNow()
-  const a = useAllAnalytics(accountId, filters, data, settings.reminder !== "off" || settings.reminderNotify)
-  const p = React.useMemo(() => (a ? plan(a, now, filters.tz) : null), [a, now, filters.tz])
-  useDailyNotification(accountId, p, now, filters.tz)
+  const p = React.useMemo(() => (a ? plan(a, now, tz, balance, settings.riskPct) : null), [a, now, tz, balance, settings.riskPct])
+  useDailyNotification(accountId, p, now, tz)
   // "Once a day": shown on the first visit of the day, hidden on later ones. Decided once per visit, so it never
   // disappears while you look at it.
   const [seen, setSeen] = React.useState<boolean | null>(null)
@@ -157,7 +142,10 @@ export function TodayCard({ accountId, filters, data, className }: { accountId: 
   if (!p.rules)
     return (
       <Shell date={p.date} verdict={null} className={className}>
-        <dl className="border-t"><Row label="Today so far">{soFar}</Row></dl>
+        <dl className="divide-y border-t">
+          <Row label="Today so far">{soFar}</Row>
+          {p.risk && <Row label="Daily risk"><RiskValue p={p} /></Row>}
+        </dl>
         <p className="text-sm text-muted-foreground">
           {p.locked ? "Upgrade to see your best days, best hours and daily trade limit here." : "Your daily plan shows up after 10 trading days and 30 trades."}
         </p>
@@ -192,16 +180,7 @@ export function TodayCard({ accountId, filters, data, className }: { accountId: 
       {/* A list in a narrow card (beside Net P&L, or on a phone), four columns when it spans the page. */}
       <dl className="grid grid-cols-1 divide-y border-t @3xl:grid-cols-4 @3xl:gap-x-6 @3xl:divide-y-0 @3xl:pt-5">
         <Row label="Today so far">{soFar}</Row>
-        <Row label="Daily loss limit">
-          {r.lossLimit !== null ? (
-            <>
-              <span className="block">Stop at −${r.lossLimit}</span>
-              {!p.lossHit && p.dayNet < 0 && <span className="block text-xs text-muted-foreground">${(r.lossLimit + p.dayNet).toFixed(2)} left</span>}
-            </>
-          ) : (
-            "None"
-          )}
-        </Row>
+        <Row label="Daily risk">{p.risk ? <RiskValue p={p} /> : "No limit"}</Row>
         <Row label="Hours">
           {p.bestHours.length > 0 && <span className="block">Best: {p.bestHours.map(hourLabel).join(", ")}</span>}
           {r.skipHours.length > 0 && <span className="block">Skip: {[...r.skipHours].sort((x, y) => x - y).map(hourLabel).join(", ")}</span>}
@@ -242,6 +221,21 @@ function Shell({ date, verdict, className, children }: { date: string; verdict: 
       </header>
       {children}
     </section>
+  )
+}
+
+/** Stop at −$X, then how much room is left and where the number comes from. */
+function RiskValue({ p }: { p: { risk: DailyRisk | null; lossHit: boolean; dayNet: number; balance: number | null; riskPct: number } }) {
+  const r = p.risk!
+  const pct = r.share !== null ? `${+(r.share * 100).toFixed(1)}% of ${money(p.balance!)}` : null
+  const why = r.from === "balance" ? `${p.riskPct}% of your ${money(p.balance!)} balance` : pct ? `Your plan's limit · ${pct}` : "Your plan's limit"
+  return (
+    <>
+      <span className="block">Stop at −{money(r.limit)}</span>
+      {r.perTrade !== null && <span className="block">{money(r.perTrade)} a trade</span>}
+      {!p.lossHit && p.dayNet < 0 && <span className="block text-xs text-muted-foreground">{money(r.limit + p.dayNet)} left today</span>}
+      <span className="block text-xs text-muted-foreground">{why}</span>
+    </>
   )
 }
 
