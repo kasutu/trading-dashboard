@@ -16,11 +16,11 @@ export function Landing() {
   return (
     <div className="pt-6 pb-16 sm:pt-14">
       <section className="max-w-3xl">
-        <p className="text-sm font-medium text-muted-foreground">Trade journal for MT5 and CSV exports</p>
-        <h1 className="mt-2 font-display text-4xl font-bold tracking-tight text-balance sm:text-6xl">A trade journal that fills itself in.</h1>
+        <p className="text-sm font-medium text-muted-foreground">For MetaTrader 5 and CSV trade histories</p>
+        <h1 className="mt-2 font-display text-4xl font-bold tracking-tight text-balance sm:text-6xl">A trade journal that fills in the numbers for you.</h1>
         <p className="mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
-          Import your broker's trade history. Jurno builds the journal and your stats from it. You only add what a file cannot know: why you
-          took the trade.
+          Import your broker's trade history, and Jurno builds your journal and stats from it. You add the one thing a file can't tell: why
+          you took the trade.
         </p>
         <Cta className="mt-8" />
       </section>
@@ -41,21 +41,21 @@ export function Landing() {
         <Step
           n={1}
           title="Import instead of typing"
-          text="Upload the MT5 report from Exness, or a CSV from any broker. Jurno reads every trade, deposit and withdrawal. A new import skips the trades you already have."
+          text="Upload the MT5 report from Exness, or a CSV from another broker after you match its columns. From the MT5 report, Jurno reads every trade, deposit and withdrawal. A new import skips the trades you already have."
         >
           <ImportReceipt />
         </Step>
         <Step
           n={2}
           title="Review a trade in seconds"
-          text="Pick how you felt, the setup and any mistakes. Tap, do not type. Your journal then shows which setups and moods make you money. The journal is free."
+          text="Pick how you felt, the setup and any mistakes. Just tap, no typing. Reviewing is free. Seeing which setups and moods make you money is on Espresso and Latte."
         >
           <ReviewSample />
         </Step>
         <Step
           n={3}
           title="Get advice from your own trades"
-          text="Jurno tests hours, weekdays, trade caps and loss limits on your history, and turns what it finds into actions. Included in Espresso and Latte."
+          text="Jurno finds the hours and days that lose you money, and the trade caps and loss limits that would have helped. Each finding is one action, like these. Included in Espresso and Latte."
           wide
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -66,7 +66,7 @@ export function Landing() {
 
       <section className="mt-24 rounded-2xl border bg-card px-6 py-12 text-center shadow-card sm:mt-32 sm:py-16">
         <h2 className="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">Start with last month's trades.</h2>
-        <p className="mx-auto mt-3 max-w-md text-muted-foreground">The free plan covers one trading account, the dashboard and the journal.</p>
+        <p className="mx-auto mt-3 max-w-md text-muted-foreground">The free plan includes one trading account, the dashboard and the journal.</p>
         <Cta className="mt-8 sm:justify-center" />
       </section>
     </div>
@@ -147,7 +147,7 @@ function ImportReceipt() {
 const SETUPS = [{ value: "breakout", label: "Breakout" }, { value: "pullback", label: "Pullback" }, { value: "range", label: "Range" }]
 const MISTAKES = [{ value: "early", label: "Entered early" }, { value: "moved", label: "Moved stop" }, { value: "size", label: "Too big" }, { value: "fomo", label: "FOMO" }]
 
-/** A working review card on a sample trade. Nothing is saved. */
+/** A working review card on a sample trade. Nothing here is saved. */
 function ReviewSample() {
   const [mood, setMood] = React.useState<Mood | null>(4)
   const [setup, setSetup] = React.useState<string | null>("pullback")
@@ -173,7 +173,7 @@ function ReviewSample() {
           <MultiChips label="Mistakes" options={MISTAKES} value={mistakes} onChange={setMistakes} size="sm" />
         </div>
       </div>
-      <p className="mt-4 text-xs text-muted-foreground">Try it. This sample saves nothing.</p>
+      <p className="mt-4 text-xs text-muted-foreground">Try it. Nothing here is saved.</p>
     </div>
   )
 }
