@@ -136,20 +136,21 @@ function useDailyNotification(accountId: string, p: ReturnType<typeof plan> | nu
 
 /** The daily reminder: what to do today, the rules for today, and questions to ask before each trade.
  *  `a`: analytics on all trades. `balance`: null when the account has no deposits. `risk`: the account's limits. */
-export function TodayCard({ accountId, a, balance, risk, tz, className }: { accountId: string; a: Analytics | null; balance: number | null; risk: AccountRisk | null; tz: string; className?: string }) {
+/** `preview`: sample data on the landing page. Always shown, and never sends a notification. */
+export function TodayCard({ accountId, a, balance, risk, tz, className, preview }: { accountId: string; a: Analytics | null; balance: number | null; risk: AccountRisk | null; tz: string; className?: string; preview?: boolean }) {
   const { settings } = useSettings()
   const now = useNow()
   const p = React.useMemo(() => (a ? plan(a, now, tz, balance, risk ?? DEFAULT_RISK) : null), [a, now, tz, balance, risk])
-  useDailyNotification(accountId, p, now, tz)
+  useDailyNotification(accountId, preview ? null : p, now, tz)
   // "Daily": show on the first visit of the day only. Decided once per visit, so the card never disappears while
   // you read it.
   const [seen, setSeen] = React.useState<boolean | null>(null)
   if (p && seen === null) setSeen(storage.get(seenKey(accountId)) === p.day)
   const day = p?.day
   React.useEffect(() => {
-    if (day && seen === false && settings.reminder === "daily") storage.set(seenKey(accountId), day)
-  }, [accountId, day, seen, settings.reminder])
-  if (!p || settings.reminder === "off" || (settings.reminder === "daily" && seen)) return null
+    if (!preview && day && seen === false && settings.reminder === "daily") storage.set(seenKey(accountId), day)
+  }, [accountId, day, seen, settings.reminder, preview])
+  if (!p || (!preview && (settings.reminder === "off" || (settings.reminder === "daily" && seen)))) return null
 
   return (
     <Shell date={p.date} verdict={p.verdict} className={className}>
