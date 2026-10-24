@@ -54,7 +54,7 @@ function ReminderSettings() {
         <div className="space-y-1">
           <Label htmlFor="reminder">Daily reminder</Label>
           <p id="reminder-help" className="text-sm text-muted-foreground">
-            The Today card at the top of the dashboard: the kind of day, trades left and your limits. "Once a day" stays until you close it.
+            The Today card under Net P&L: the kind of day, trades left and your limits. "Once a day" shows it the first time you open Jurno each day.
           </p>
         </div>
         <Select value={settings.reminder} onValueChange={(v) => update({ reminder: v as ReminderFrequency })}>

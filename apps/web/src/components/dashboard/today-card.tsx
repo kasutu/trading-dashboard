@@ -1,6 +1,4 @@
 import * as React from "react"
-import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { useApi } from "@/hooks/use-api"
 import { useSettings } from "@/hooks/use-settings"
 import { filterQuery } from "@/lib/api/client"
@@ -12,7 +10,7 @@ import { toneClass, type Metric } from "./metrics"
 import { MetricBlock } from "./panel"
 
 const LONG_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-const dismissKey = (accountId: string) => `jurno:today-dismissed:${accountId}`
+const seenKey = (accountId: string) => `jurno:today-seen:${accountId}`
 const notifiedKey = (accountId: string) => `jurno:today-notified:${accountId}`
 
 /** The time now, updated every minute, so the hour advice and the notification stay current while the app is open. */
@@ -141,15 +139,16 @@ export function TodayCard({ accountId, filters, data }: { accountId: string; fil
   const a = useAllAnalytics(accountId, filters, data, settings.reminder !== "off" || settings.reminderNotify)
   const p = React.useMemo(() => (a ? plan(a, now, filters.tz) : null), [a, now, filters.tz])
   useDailyNotification(accountId, p, now, filters.tz)
-  // "Every visit": closing hides it until the next visit. "Once a day": until tomorrow.
-  const [closed, setClosed] = React.useState(false)
-  if (!p || settings.reminder === "off" || closed) return null
-  if (settings.reminder === "daily" && storage.get(dismissKey(accountId)) === p.day) return null
+  // "Once a day": shown on the first visit of the day, hidden on later ones. Decided once per visit, so it never
+  // disappears while you look at it.
+  const [seen, setSeen] = React.useState<boolean | null>(null)
+  if (p && seen === null) setSeen(storage.get(seenKey(accountId)) === p.day)
+  const day = p?.day
+  React.useEffect(() => {
+    if (day && seen === false && settings.reminder === "daily") storage.set(seenKey(accountId), day)
+  }, [accountId, day, seen, settings.reminder])
+  if (!p || settings.reminder === "off" || (settings.reminder === "daily" && seen)) return null
 
-  const dismiss = () => {
-    if (settings.reminder === "daily") storage.set(dismissKey(accountId), p.day)
-    setClosed(true)
-  }
   const soFar = (
     <span className={cn("tabular-nums", p.n ? pnlClass(p.dayNet) : "text-muted-foreground")}>
       {p.n ? `${plural(p.n, "trade")} · ${money(p.dayNet, true)}` : "No trades yet"}
@@ -158,7 +157,7 @@ export function TodayCard({ accountId, filters, data }: { accountId: string; fil
 
   if (!p.rules)
     return (
-      <Shell date={p.date} verdict={null} onDismiss={dismiss}>
+      <Shell date={p.date} verdict={null}>
         <Row label="Today so far">{soFar}</Row>
         <p className="text-sm text-muted-foreground">
           {p.locked ? "Upgrade to see your best days, best hours and daily trade limit here." : "Your daily plan shows up after 10 trading days and 30 trades."}
@@ -168,7 +167,7 @@ export function TodayCard({ accountId, filters, data }: { accountId: string; fil
 
   const r = p.rules
   return (
-    <Shell date={p.date} verdict={p.verdict} onDismiss={dismiss}>
+    <Shell date={p.date} verdict={p.verdict}>
       <MetricBlock metric={p.metric} />
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
         <Row label="Today so far">{soFar}</Row>
@@ -192,27 +191,22 @@ export function TodayCard({ accountId, filters, data }: { accountId: string; fil
   )
 }
 
-function Shell({ date, verdict, onDismiss, children }: { date: string; verdict: Verdict | null; onDismiss: () => void; children: React.ReactNode }) {
+function Shell({ date, verdict, children }: { date: string; verdict: Verdict | null; children: React.ReactNode }) {
   return (
     <section aria-label="Today" className="flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-5 shadow-card">
-      <header className="flex items-start gap-3">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
-          <h2 className="text-sm font-semibold">Today · {date}</h2>
-          {verdict && (
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-xs font-medium",
-                verdict.tone === "profit" ? "bg-profit/15 text-profit" : verdict.tone === "loss" ? "bg-loss/15 text-loss" : "bg-muted text-muted-foreground"
-              )}
-            >
-              {verdict.label}
-            </span>
-          )}
-          {verdict && <p className="w-full text-sm text-muted-foreground">{verdict.why}</p>}
-        </div>
-        <Button variant="ghost" size="icon" className="-mt-1.5 -mr-2 size-8 flex-none" onClick={onDismiss} aria-label="Hide today's reminder">
-          <X />
-        </Button>
+      <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 className="text-sm font-semibold">Today · {date}</h2>
+        {verdict && (
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-xs font-medium",
+              verdict.tone === "profit" ? "bg-profit/15 text-profit" : verdict.tone === "loss" ? "bg-loss/15 text-loss" : "bg-muted text-muted-foreground"
+            )}
+          >
+            {verdict.label}
+          </span>
+        )}
+        {verdict && <p className="w-full text-sm text-muted-foreground">{verdict.why}</p>}
       </header>
       {children}
     </section>

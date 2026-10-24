@@ -80,7 +80,6 @@ export function Dashboard({ accountId }: { accountId: string }) {
     <JournalProvider accountId={accountId} tz={filters.tz}>
       <DailyCheckIn />
       <div className="space-y-4 sm:space-y-5">
-        <TodayCard accountId={accountId} filters={filters} data={data} />
         <FilterBar filters={filters} symbols={symbols} onChange={set}>
           {a && <ShareDialog a={a} filters={filters} footer={me?.plan !== "latte" && me?.plan !== "owner"} />}
         </FilterBar>
@@ -101,6 +100,7 @@ export function Dashboard({ accountId }: { accountId: string }) {
         ) : (
           <>
             <SummaryCard a={a} tz={filters.tz} />
+            <TodayCard accountId={accountId} filters={filters} data={data} />
             <Tabs value={tabValue} onValueChange={setTab} className="gap-4 sm:gap-5">
               <TabsList ref={tabs} className={tabList}>
                 {trigger("overview", "Overview")}
