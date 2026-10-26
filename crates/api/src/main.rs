@@ -42,6 +42,12 @@ async fn main() {
         .await
         .unwrap_or_else(|e| fail(&format!("Cannot listen on port {}: {e}", config.port)));
 
+    // Background jobs: the reminder emails and the Exness sync.
+    tokio::spawn(api::reminders::run(pool.clone()));
+    if api::config::features().exness_sync {
+        tokio::spawn(api::exness_sync::run(pool.clone()));
+    }
+
     tracing::info!("listening on [::]:{}", config.port);
     axum::serve(listener, api::app(pool))
         .await

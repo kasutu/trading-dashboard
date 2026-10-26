@@ -1,6 +1,6 @@
 // Sample data for the landing page previews. Made up, not a real account.
-import type { AccountRisk, Analytics, Group } from "@/lib/api/types"
-import { LOCAL_TZ, WEEKDAYS, today } from "@/lib/format"
+import type { Analytics, Group, TodayPlan } from "@/lib/api/types"
+import { LOCAL_TZ, today } from "@/lib/format"
 import type { Insight } from "@/lib/insights"
 
 const g = (key: string, net: number, trades: number, wins: number): Group =>
@@ -15,7 +15,6 @@ const curve = Array.from({ length: 180 }, (_, n) => {
   return { n, time: t0 + n * 4 * 3600e3, equity: Math.round(equity * 100) / 100, drawdown: 0, net }
 })
 
-const weekday = WEEKDAYS[(new Date().getDay() + 6) % 7]
 
 export const SAMPLE: Analytics = {
   period: ["2026-09-01", "2026-10-23"],
@@ -28,22 +27,40 @@ export const SAMPLE: Analytics = {
   },
   curve,
   daily: [g("2026-09-12", 212.4, 5, 4), g("2026-10-02", -131.8, 7, 2), g(today(LOCAL_TZ), 18.6, 1, 1)],
-  byWeekday: [g(weekday, 284.5, 31, 19)],
-  capSim: [{ key: "3", cap: 3, net: 912.1, trades: 110 }],
-  afterLoss: { windowMin: 10, after: g("after", -96, 18, 5), other: g("other", 864, 162, 94) },
-  optimization: {
-    focus: [
-      { kind: "weekday", keys: [weekday, "Tue"], fit: { trades: 0, net: 0, winRate: 0 }, test: { trades: 0, net: 0, winRate: 0 } },
-      { kind: "hour", keys: ["9", "10", "14"], fit: { trades: 0, net: 0, winRate: 0 }, test: { trades: 0, net: 0, winRate: 0 } },
-      { kind: "symbol", keys: ["XAUUSD"], fit: { trades: 0, net: 0, winRate: 0 }, test: { trades: 0, net: 0, winRate: 0 } },
-      { kind: "duration", keys: ["15–30m"], fit: { trades: 0, net: 0, winRate: 0 }, test: { trades: 0, net: 0, winRate: 0 } },
-    ],
-    rules: { skipHours: [20, 21, 22], skipWeekdays: [], cap: 3, lossLimit: 60 },
-  },
 } as unknown as Analytics
 
-export const SAMPLE_RISK: AccountRisk = { kind: "percent", daily: 2, perTrade: 1, maxTrades: null, weekends: true }
-export const SAMPLE_BALANCE = 2500
+/** The Today card for the sample account: what the server would say with 2% a day and 1% a trade on $2,500. */
+export function sampleToday(): TodayPlan {
+  const now = new Date()
+  const long = now.toLocaleDateString("en-US", { weekday: "long" })
+  const rule = (text: string, note: string | null = null): TodayPlan["rules"][number] => ({ text, note, warn: null, tone: null })
+  return {
+    day: today(LOCAL_TZ),
+    date: now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+    weekday: (now.getDay() + 6) % 7,
+    trades: 1,
+    dayNet: 18.6,
+    limits: { daily: 50, from: "account", perTrade: 16.66, trades: 3 },
+    left: 2,
+    rest: false,
+    stop: false,
+    verdict: { label: "Good day to trade", tone: "profit", why: `${long}s made you +$284.50.` },
+    rules: [
+      rule("Stop if you lose $50.00", "2% of $2,500.00"),
+      rule("Risk up to $16.66 a trade"),
+      rule("Trade at 9 AM to 11 AM and 2 PM"),
+      rule("Avoid 8 PM to 11 PM"),
+      rule("Trade XAUUSD and hold 15–30m"),
+    ],
+    questions: ["Is it a good hour?", "Does this trade risk $16.66 or less?", "Did 10 min pass since your last loss?"],
+    bestWeekdays: [long, "Tuesday"],
+    skipWeekdays: [],
+    hour: now.getHours(),
+    bestHours: [9, 10, 14],
+    skipHours: [20, 21, 22],
+    locked: false,
+  }
+}
 
 const hours = Array.from({ length: 24 }, (_, h) => h)
 export const SAMPLE_INSIGHTS: Insight[] = [

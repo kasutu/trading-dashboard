@@ -10,6 +10,7 @@ import { price } from "@/lib/format"
 import { GRADES, MISTAKE_GROUPS, NOTE_MAX, formatR, rFrom } from "@/lib/journal"
 import { cn } from "@/lib/utils"
 import { ChoiceChips, MultiChips, Question } from "./chips"
+import { MISTAKE_TAGS, SETUP_TAGS } from "./manage-tags"
 import { MoodPicker } from "./mood-picker"
 
 type Props = {
@@ -99,6 +100,7 @@ export function SetupQuestion({ value, onChange, size }: { value: string | null;
           value={value}
           onChange={onChange}
           onAdd={async (name) => onChange((await createSetup(name)).id)}
+          manage={SETUP_TAGS}
         />
       ) : (
         <p className="text-sm text-muted-foreground">Loading…</p>
@@ -129,6 +131,7 @@ export function MistakeQuestion({ answers, size, title = "What went wrong?" }: {
                 value={v.mistakeIds}
                 onChange={(ids) => set({ mistakeIds: ids, noMistakes: false })}
                 onAdd={async (name) => set({ mistakeIds: [...v.mistakeIds, (await createMistake(name, g.value)).id], noMistakes: false })}
+                manage={MISTAKE_TAGS}
               />
             </div>
           )

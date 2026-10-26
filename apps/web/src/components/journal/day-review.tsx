@@ -11,6 +11,7 @@ import { NOTE_MAX, RISKS, toReview } from "@/lib/journal"
 import { ChoiceChips, MultiChips, Question } from "./chips"
 import { MoodPicker } from "./mood-picker"
 import { SaveStatus } from "./save-status"
+import { SETUP_TAGS } from "./manage-tags"
 import { NoteCount } from "./trade-review-editor"
 
 type BeforeProps = { answers: DayAnswers; size?: "sm" | "md" }
@@ -50,6 +51,7 @@ export function WatchAnswer({ answers, size = "sm" }: BeforeProps) {
       value={v.watchSetupIds}
       onChange={(watchSetupIds) => set({ watchSetupIds })}
       onAdd={async (name) => set({ watchSetupIds: [...v.watchSetupIds, (await createSetup(name)).id] })}
+      manage={SETUP_TAGS}
     />
   )
 }

@@ -2,7 +2,7 @@ import * as React from "react"
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Scale, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { cashFlowsPath, invalidate } from "@/hooks/use-api"
+import { cashFlowsPath, invalidate, todayPath } from "@/hooks/use-api"
 import { api } from "@/lib/api/client"
 import type { LocalCashFlow } from "@/lib/api/types"
 import { FLOW_LABELS, formatDateTime, money } from "@/lib/format"
@@ -49,6 +49,8 @@ export function CashFlowList({ accountId, rows, tz }: { accountId: string; rows:
     try {
       await request()
       invalidate(cashFlowsPath(accountId))
+      // The balance changed: the Today card limits follow it.
+      invalidate(todayPath(accountId))
       return true
     } catch (err) {
       setError((err as Error).message)

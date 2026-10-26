@@ -3,13 +3,13 @@ import { Upload } from "lucide-react"
 import { Link } from "wouter"
 import { InsightCard } from "@/components/dashboard/insight-card"
 import { KpiStrip, SummaryCard } from "@/components/dashboard/summary-card"
-import { TodayCard } from "@/components/dashboard/today-card"
+import { TodayView } from "@/components/dashboard/today-card"
 import { ChoiceChips, MultiChips } from "@/components/journal/chips"
 import { MoodPicker } from "@/components/journal/mood-picker"
 import { Button } from "@/components/ui/button"
 import type { Mood } from "@/lib/api/types"
 import { LOCAL_TZ } from "@/lib/format"
-import { SAMPLE, SAMPLE_BALANCE, SAMPLE_INSIGHTS, SAMPLE_RISK } from "./landing-sample"
+import { SAMPLE, SAMPLE_INSIGHTS, sampleToday } from "./landing-sample"
 
 /** First screen for signed-out visitors: what Jurno does, shown with the real dashboard parts on sample data. */
 export function Landing() {
@@ -30,7 +30,7 @@ export function Landing() {
         <div className="flex flex-col gap-4 rounded-2xl border bg-muted/40 p-3 sm:p-5">
           <div className="flex flex-col gap-4 xl:flex-row">
             <SummaryCard a={SAMPLE} tz={LOCAL_TZ} className="xl:flex-[3]" />
-            <TodayCard preview accountId="sample" a={SAMPLE} balance={SAMPLE_BALANCE} risk={SAMPLE_RISK} tz={LOCAL_TZ} className="xl:flex-[2]" />
+            <TodayView p={sampleToday()} className="xl:flex-[2]" />
           </div>
           <KpiStrip a={SAMPLE} />
         </div>

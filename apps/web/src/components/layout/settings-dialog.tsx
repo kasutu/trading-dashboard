@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { useSettings, type ReminderFrequency } from "@/hooks/use-settings"
+import { EmailSettings } from "./email-settings"
 
 /** App settings. Opened from the user menu. */
 export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -21,11 +22,12 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
         <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
           <div className="space-y-1">
             <Label htmlFor="check-in">Check-in</Label>
-            <p id="check-in-help" className="text-sm text-muted-foreground">Before you trade.</p>
+            <p id="check-in-help" className="text-sm text-muted-foreground">Before you trade. On all your devices.</p>
           </div>
           <Switch id="check-in" aria-describedby="check-in-help" checked={settings.checkIn} onCheckedChange={(v) => update({ checkIn: v })} className="mt-0.5" />
         </div>
         <ReminderSettings />
+        <EmailSettings />
         <SetupSettings />
         <MistakeSettings />
         </DialogBody>

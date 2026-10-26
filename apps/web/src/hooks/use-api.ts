@@ -1,8 +1,9 @@
 import * as React from "react"
 import { api, filterQuery } from "@/lib/api/client"
 import type {
-  Account, AnalyticsResponse, Candles, CashFlows, ColumnMapping, DayReview, DayReviewInput, Filters, Import, Journal, JournalSummary,
-  JournalTags, Me, MistakeGroup, MistakeTag, SavedMapping, Setup, Timeframe, TradePage, TradeReview, TradeReviewInput,
+  Account, AnalyticsResponse, Candles, CashFlows, ColumnMapping, DayReview, DayReviewInput, EmailSettings, ExnessConnection, Filters,
+  Import, Journal, JournalSummary, JournalTags, Me, MistakeGroup, MistakeTag, Playbook, SavedMapping, Setup, Timeframe, TodayResponse,
+  TradePage, TradeReview, TradeReviewInput,
 } from "@/lib/api/types"
 
 // Mounted queries listen here. invalidate() makes the ones whose path starts with a prefix fetch again.
@@ -54,6 +55,20 @@ export const useTrades = (accountId: string, f: Filters, extra: Record<string, s
 export const cashFlowsPath = (accountId: string) => `/accounts/${accountId}/cash-flows`
 export const useCashFlows = (accountId: string, tz: string) =>
   useApi<CashFlows>(`${cashFlowsPath(accountId)}?${new URLSearchParams({ tz })}`)
+
+export const todayPath = (accountId: string) => `/accounts/${accountId}/today`
+export const useToday = (accountId: string | null, tz: string) =>
+  useApi<TodayResponse>(accountId && `${todayPath(accountId)}?${new URLSearchParams({ tz })}`)
+
+export const EMAIL_PATH = "/email"
+export const useEmailSettings = () => useApi<EmailSettings>(EMAIL_PATH)
+
+export const playbookPath = (accountId: string) => `/accounts/${accountId}/playbook`
+export const usePlaybook = (accountId: string, tz: string) =>
+  useApi<Playbook>(`${playbookPath(accountId)}?${new URLSearchParams({ tz })}`)
+
+export const exnessPath = (accountId: string) => `/accounts/${accountId}/exness`
+export const useExness = (accountId: string | null) => useApi<ExnessConnection>(accountId && exnessPath(accountId))
 
 export const journalPath = (accountId: string) => `/accounts/${accountId}/journal`
 export const useJournal = (accountId: string, tz: string) =>

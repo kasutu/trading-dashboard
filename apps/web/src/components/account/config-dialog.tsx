@@ -10,6 +10,7 @@ import { invalidate } from "@/hooks/use-api"
 import { api } from "@/lib/api/client"
 import type { Account, AccountRisk } from "@/lib/api/types"
 import { DEFAULT_RISK } from "@/lib/risk"
+import { ExnessSection } from "./exness-section"
 
 /** The account's configuration: max loss a day and risk per trade (% of balance or dollars), and weekend trading.
  *  An empty field means no limit. Trades a day come from the best cap on Frequency. */
@@ -51,7 +52,7 @@ export function ConfigDialog({ account, children }: { account: Account; children
       }}
     >
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <form onSubmit={submit} className="space-y-5">
           <div className="space-y-1 pr-10 sm:pr-6">
             <DialogTitle className="font-display text-lg font-bold">Configuration</DialogTitle>
@@ -81,6 +82,7 @@ export function ConfigDialog({ account, children }: { account: Account; children
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={busy}>{busy ? "Saving…" : "Save"}</Button>
         </form>
+        <ExnessSection account={account} />
       </DialogContent>
     </Dialog>
   )

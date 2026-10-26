@@ -6,9 +6,10 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 default:
     @just --list
 
-# First run: create .env with a random secret and install the npm packages
+# First run: create .env with random secrets and install the npm packages
 setup:
     [ -f .env ] || { cp .env.example .env && sed -i "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$(openssl rand -base64 32)|" .env && echo "Created .env"; }
+    grep -q '^CREDENTIALS_KEY=.' .env || { sed -i '/^CREDENTIALS_KEY=$/d' .env && echo "CREDENTIALS_KEY=$(openssl rand -base64 32)" >> .env && echo "Added CREDENTIALS_KEY to .env"; }
     cd apps/auth && npm install
     cd apps/web && npm install
 

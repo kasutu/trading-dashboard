@@ -149,7 +149,11 @@ async fn me_creates_the_profile() {
     assert_eq!(s, StatusCode::OK);
     assert_eq!(
         v,
-        json!({ "id": "u_alice", "username": "Alice.T", "plan": "free" })
+        json!({
+            "id": "u_alice", "username": "Alice.T", "plan": "free",
+            "settings": { "checkIn": true, "minRr": null },
+            "features": { "exness": true, "email": false },
+        })
     );
     let n: i64 = sqlx::query_scalar("select count(*) from profiles")
         .fetch_one(&t.pool)
@@ -223,16 +227,37 @@ async fn accounts_crud() {
     // Risk limits: set, check, clear.
     assert_eq!(a["risk"], Value::Null);
     let risk = json!({ "kind": "percent", "daily": 2.0, "perTrade": 1.0, "maxTrades": null, "weekends": true });
-    let (s, a) = t.send(Method::PATCH, &path, Some(COOKIE), Some(json!({ "risk": risk }))).await;
+    let (s, a) = t
+        .send(
+            Method::PATCH,
+            &path,
+            Some(COOKIE),
+            Some(json!({ "risk": risk })),
+        )
+        .await;
     assert_eq!(s, StatusCode::OK);
     assert_eq!(a["risk"], risk);
     let (s, _) = t
         .send(Method::PATCH, &path, Some(COOKIE), Some(json!({ "risk": { "kind": "percent", "daily": 150, "perTrade": null, "maxTrades": null } })))
         .await;
     assert_eq!(s, StatusCode::BAD_REQUEST);
-    let (_, a) = t.send(Method::PATCH, &path, Some(COOKIE), Some(json!({ "name": "Gold" }))).await;
+    let (_, a) = t
+        .send(
+            Method::PATCH,
+            &path,
+            Some(COOKIE),
+            Some(json!({ "name": "Gold" })),
+        )
+        .await;
     assert_eq!(a["risk"], risk, "a patch without risk keeps it");
-    let (_, a) = t.send(Method::PATCH, &path, Some(COOKIE), Some(json!({ "risk": null }))).await;
+    let (_, a) = t
+        .send(
+            Method::PATCH,
+            &path,
+            Some(COOKIE),
+            Some(json!({ "risk": null })),
+        )
+        .await;
     assert_eq!(a["risk"], Value::Null);
 
     let (_, list) = t.get("/api/accounts").await;
@@ -1657,4 +1682,470 @@ async fn mt5_import_errors() {
         .await;
     assert_eq!(s, StatusCode::OK, "{v}");
     assert_eq!(v["from"], "2026-03-01T08:00:00Z");
+}
+
+// ---------------------------------------------------------------------------
+// Settings, Today card, reminder email, playbook, Exness sync
+// ---------------------------------------------------------------------------
+
+impl TestApp {
+    async fn import_winning(&self, id: &str) -> u64 {
+        let body =
+            json!({ "fileName": "w.csv", "csv": WINNING, "mapping": engine::exness_mapping() });
+        let (_, import) = self
+            .post(&format!("/api/accounts/{id}/imports"), body)
+            .await;
+        import["added"].as_u64().unwrap()
+    }
+}
+
+#[tokio::test]
+async fn settings_follow_the_user() {
+    let t = setup().await;
+    let (s, v) = t
+        .patch(
+            "/api/me/settings",
+            json!({ "checkIn": false, "minRr": 1.5 }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v, json!({ "checkIn": false, "minRr": 1.5 }));
+    let (_, me) = t.get("/api/me").await;
+    assert_eq!(me["settings"], json!({ "checkIn": false, "minRr": 1.5 }));
+    // Keys left out are kept; null clears.
+    let (_, v) = t.patch("/api/me/settings", json!({ "minRr": null })).await;
+    assert_eq!(v, json!({ "checkIn": false, "minRr": null }));
+    for bad in [
+        json!({ "checkIn": "yes" }),
+        json!({ "minRr": -1 }),
+        json!({ "theme": "dark" }),
+    ] {
+        let (s, _) = t.patch("/api/me/settings", bad.clone()).await;
+        assert_eq!(s, StatusCode::BAD_REQUEST, "{bad}");
+    }
+}
+
+#[tokio::test]
+async fn today_plan_from_the_engine() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let path = format!("/api/accounts/{id}/today?tz=Asia/Manila");
+    let (s, v) = t.get(&path).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(v, json!({ "empty": true }));
+    t.import_winning(&id).await;
+
+    // Free: the paid parts are left out.
+    let (s, v) = t.get(&path).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["locked"], true);
+    assert!(v["verdict"]["label"].is_string());
+    assert!(v["date"].is_string());
+    assert_eq!(v["limits"]["trades"], Value::Null);
+
+    t.set_plan("u_alice", "espresso").await;
+    let (_, v) = t.get(&path).await;
+    assert_eq!(v["locked"], false);
+    assert!(v["limits"]["trades"].is_u64(), "the best cap: {v}");
+    let (s, _) = t.get(&format!("/api/accounts/{id}/today?tz=Nope")).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn email_verify_and_unsubscribe() {
+    let t = setup().await;
+    let (s, v) = t.get("/api/email").await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(v["email"], Value::Null);
+    assert_eq!(v["frequency"], "weekdays");
+
+    let (s, v) = t
+        .patch("/api/email", json!({ "email": " Alice@Example.com ", "enabled": true, "time": "07:30", "tz": "Asia/Manila" }))
+        .await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["email"], "alice@example.com");
+    assert_eq!(v["verified"], false);
+    assert_eq!(v["time"], "07:30");
+    for bad in [
+        json!({ "email": "x@users.jurno.invalid" }),
+        json!({ "time": "7:30" }),
+        json!({ "frequency": "hourly" }),
+        json!({ "tz": "Mars" }),
+    ] {
+        let (s, _) = t.patch("/api/email", bad.clone()).await;
+        assert_eq!(s, StatusCode::BAD_REQUEST, "{bad}");
+    }
+    // Sent a minute ago: wait before another link.
+    let (s, _) = t.post("/api/email/verify", json!({})).await;
+    assert_eq!(s, StatusCode::CONFLICT);
+    let (s, _) = t.post("/api/email/test", json!({})).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST, "not verified yet");
+
+    let token: String =
+        sqlx::query_scalar("select verify_token from email_reminders where user_id = 'u_alice'")
+            .fetch_one(&t.pool)
+            .await
+            .unwrap();
+    let html = |path: String| {
+        let app = t.app.clone();
+        async move {
+            let res = app
+                .oneshot(Request::get(path).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+            let status = res.status();
+            let body = res.into_body().collect().await.unwrap().to_bytes();
+            (status, String::from_utf8(body.to_vec()).unwrap())
+        }
+    };
+    let (s, page) = html(format!("/api/email/verify?token={token}")).await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(page.contains("Email verified"), "{page}");
+    let (_, page) = html(format!("/api/email/verify?token={token}")).await;
+    assert!(page.contains("does not work"), "used once");
+    let (_, v) = t.get("/api/email").await;
+    assert_eq!(v["verified"], true);
+
+    // Due at 07:30 Manila on a weekday, once a day.
+    let id = t.new_account().await;
+    t.import_winning(&id).await;
+    let monday_8am_manila = "2026-10-26T00:00:00Z".parse().unwrap();
+    assert_eq!(
+        api::reminders::send_due(&t.pool, monday_8am_manila)
+            .await
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        api::reminders::send_due(&t.pool, monday_8am_manila)
+            .await
+            .unwrap(),
+        0
+    );
+    let saturday = "2026-10-31T00:00:00Z".parse().unwrap();
+    assert_eq!(
+        api::reminders::send_due(&t.pool, saturday).await.unwrap(),
+        0,
+        "weekdays only"
+    );
+    let (s, v) = t.post("/api/email/test", json!({})).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+
+    // A changed address needs verifying again.
+    let (_, v) = t
+        .patch("/api/email", json!({ "email": "new@example.com" }))
+        .await;
+    assert_eq!(v["verified"], false);
+    let unsub: String = sqlx::query_scalar(
+        "select unsubscribe_token from email_reminders where user_id = 'u_alice'",
+    )
+    .fetch_one(&t.pool)
+    .await
+    .unwrap();
+    let (_, page) = html(format!("/api/email/unsubscribe?token={unsub}")).await;
+    assert!(page.contains("unsubscribed"), "{page}");
+    let (_, v) = t.get("/api/email").await;
+    assert_eq!(v["enabled"], false);
+}
+
+#[tokio::test]
+async fn playbook_calc_save_and_match() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    t.import_winning(&id).await;
+    let base = format!("/api/accounts/{id}/playbook");
+
+    // The calculator is free. XAUUSD's value per point comes from the trades.
+    let calc = json!({ "symbol": "xauusd", "side": "buy", "entry": 2400.5, "stopLoss": 2399.5, "takeProfit": 2402.5,
+        "size": { "by": "lots", "value": 0.1 }, "tz": "UTC" });
+    let (s, v) = t.post(&format!("{base}/calc"), calc.clone()).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["math"]["rr"], 2.0);
+    assert!(v["value"]["valuePerPoint"].is_number(), "{v}");
+    assert!(v["math"]["risk"].is_number());
+
+    let (s, _) = t.post(&base, calc.clone()).await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "saving is paid");
+    let (_, list) = t.get(&base).await;
+    assert_eq!(list["locked"], true);
+
+    t.set_plan("u_alice", "espresso").await;
+    // Planned just before trade 1002 (opened 2026-08-03 00:05 UTC at 2400.5).
+    let (s, plan) = t.post(&base, calc).await;
+    assert_eq!(s, StatusCode::CREATED, "{plan}");
+    assert_eq!(plan["symbol"], "XAUUSD");
+    assert_eq!(plan["status"], "planned");
+    let pid = plan["id"].as_str().unwrap().to_string();
+    sqlx::query("update planned_trades set created_at = '2026-08-03 00:00:00+00', lots = 0.5 where id = $1::uuid")
+        .bind(&pid)
+        .execute(&t.pool)
+        .await
+        .unwrap();
+    let (_, list) = t.get(&base).await;
+    let p = &list["plans"][0];
+    assert_eq!(p["status"], "taken", "{list}");
+    assert!(p["ticket"].is_string());
+    assert!(p["result"]["net"].is_number());
+    // The review's starting stop comes from the plan.
+    let stop: Option<f64> =
+        sqlx::query_scalar("select initial_stop from trade_reviews where account_id = $1::uuid")
+            .bind(&id)
+            .fetch_optional(&t.pool)
+            .await
+            .unwrap()
+            .flatten();
+    assert_eq!(stop, Some(2399.5));
+
+    let (s, v) = t
+        .patch(
+            &format!("{base}/{pid}"),
+            json!({ "status": "skipped", "note": "late" }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["status"], "skipped");
+    assert_eq!(v["ticket"], Value::Null);
+    let (s, _) = t
+        .patch(&format!("{base}/{pid}"), json!({ "status": "maybe" }))
+        .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+
+    // Wrong side stop.
+    let bad = json!({ "symbol": "XAUUSD", "side": "buy", "entry": 2400, "stopLoss": 2401, "size": { "by": "lots", "value": 0.1 } });
+    let (s, v) = t.post(&base, bad).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    assert_eq!(
+        v["error"],
+        "For a buy, the stop loss must be below the entry."
+    );
+
+    // Own value per point.
+    let (s, v) = t
+        .send(
+            Method::PUT,
+            &format!("{base}/symbols/btcusd"),
+            Some(COOKIE),
+            Some(json!({ "point": 0.01, "valuePerPoint": 0.01 })),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["symbol"], "BTCUSD");
+    let (_, list) = t.get(&base).await;
+    assert!(list["symbols"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|v| v["symbol"] == "BTCUSD" && v["source"] == "user"));
+
+    let (s, _) = t
+        .send(Method::DELETE, &format!("{base}/{pid}"), Some(COOKIE), None)
+        .await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+    let (s, _) = t
+        .send(
+            Method::DELETE,
+            &format!("{base}/{pid}"),
+            Some(BOB_COOKIE),
+            None,
+        )
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn exness_connect_checks_and_status() {
+    let t = setup().await;
+    let id = t.new_account().await;
+    let path = format!("/api/accounts/{id}/exness");
+    let (s, v) = t.get(&path).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(v["connected"], false);
+    assert_eq!(v["locked"], true);
+
+    let body =
+        json!({ "accountId": "31000160318", "apiKey": "key", "privateKey": "11".repeat(32) });
+    let (s, _) = t
+        .send(Method::PUT, &path, Some(COOKIE), Some(body.clone()))
+        .await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "paid plans only");
+    t.set_plan("u_alice", "espresso").await;
+    let (s, v) = t
+        .send(
+            Method::PUT,
+            &path,
+            Some(COOKIE),
+            Some(json!({ "accountId": "abc", "apiKey": "k", "privateKey": "x" })),
+        )
+        .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST, "{v}");
+    // The test server has no CREDENTIALS_KEY, so keys are never stored.
+    let (s, v) = t.send(Method::PUT, &path, Some(COOKIE), Some(body)).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{v}");
+    assert!(v["error"].as_str().unwrap().contains("CREDENTIALS_KEY"));
+    let (s, _) = t.post(&format!("{path}/sync"), json!({})).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn exness_history_becomes_trades_and_cash_flows() {
+    use exness::model::{DealHistoryItem, OrderHistoryItem};
+    let t = setup().await;
+    let id: Uuid = t.new_account().await.parse().unwrap();
+    let deal = |id: &str,
+                kind: &str,
+                time: &str,
+                pos: Option<&str>,
+                dir: Option<&str>,
+                vol: &str,
+                price: &str,
+                profit: &str|
+     -> DealHistoryItem {
+        serde_json::from_value(json!({
+            "event_time": time,
+            "deal": {
+                "deal_id": id, "type": kind, "create_time": time, "order_id": format!("o{id}"),
+                "position_id": pos, "direction": dir, "instrument": pos.map(|_| "XAUUSD"),
+                "volume": vol, "price": price, "profit": { "amount": profit, "currency": "USD" }, "commission": "-0.10",
+            }
+        }))
+        .unwrap()
+    };
+    let deals = [
+        deal(
+            "1",
+            "balance",
+            "2026-10-01T09:00:00Z",
+            None,
+            None,
+            "0",
+            "0",
+            "500.00",
+        ),
+        deal(
+            "2",
+            "open",
+            "2026-10-01T10:00:00Z",
+            Some("777"),
+            Some("buy"),
+            "0.02",
+            "2650.00",
+            "0",
+        ),
+        deal(
+            "3",
+            "close",
+            "2026-10-01T10:30:00Z",
+            Some("777"),
+            Some("sell"),
+            "0.02",
+            "2655.00",
+            "10.00",
+        ),
+    ];
+    let orders: Vec<OrderHistoryItem> = vec![serde_json::from_value(json!({
+        "event_time": "2026-10-01T10:30:00Z",
+        "order": { "order_id": "o3", "order_type": "market", "state": "filled", "create_time": "2026-10-01T10:30:00Z",
+                   "position_id": "777", "reason": "tp", "take_profit_price": "2655.00" }
+    }))
+    .unwrap()];
+    api::exness_sync::store_history(&t.pool, id, &deals, &orders)
+        .await
+        .unwrap();
+    let first = api::exness_sync::import_history(&t.pool, id).await.unwrap();
+    assert_eq!((first.trades, first.flows), (1, 1));
+    // Again: nothing twice.
+    api::exness_sync::store_history(&t.pool, id, &deals, &orders)
+        .await
+        .unwrap();
+    let again = api::exness_sync::import_history(&t.pool, id).await.unwrap();
+    assert_eq!((again.trades, again.flows), (0, 0));
+
+    let (_, v) = t.get(&format!("/api/accounts/{id}/trades")).await;
+    let row = &v["rows"][0];
+    assert_eq!(row["ticket"], "777");
+    assert_eq!(row["reason"], "tp");
+    assert_eq!(row["tp"], 2655.0);
+    assert_eq!(row["net"], 9.8);
+    let (_, v) = t.get(&format!("/api/accounts/{id}/cash-flows")).await;
+    assert_eq!(v["summary"]["deposits"]["total"], 500.0);
+    let (_, imports) = t.get(&format!("/api/accounts/{id}/imports")).await;
+    assert_eq!(imports[0]["fileName"], "Exness sync");
+}
+
+#[tokio::test]
+async fn new_routes_are_scoped_to_the_tenant() {
+    let t = setup().await;
+    t.set_plan("u_alice", "espresso").await;
+    t.set_plan("u_bob", "espresso").await;
+    let id = t.new_account().await;
+    t.import_winning(&id).await;
+    let (s, plan) = t
+        .post(
+            &format!("/api/accounts/{id}/playbook"),
+            json!({ "symbol": "XAUUSD", "side": "buy", "entry": 2400.5, "stopLoss": 2399.5, "size": { "by": "lots", "value": 0.1 } }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{plan}");
+    let pid = plan["id"].as_str().unwrap();
+    let calc = json!({ "symbol": "XAUUSD", "side": "buy", "entry": 1, "stopLoss": 0.5, "size": { "by": "lots", "value": 0.1 } });
+    let keys = json!({ "accountId": "1", "apiKey": "k", "privateKey": "11".repeat(32) });
+    let tries = [
+        (Method::GET, format!("/api/accounts/{id}/today"), None),
+        (Method::GET, format!("/api/accounts/{id}/playbook"), None),
+        (
+            Method::POST,
+            format!("/api/accounts/{id}/playbook"),
+            Some(calc.clone()),
+        ),
+        (
+            Method::POST,
+            format!("/api/accounts/{id}/playbook/calc"),
+            Some(calc),
+        ),
+        (
+            Method::PATCH,
+            format!("/api/accounts/{id}/playbook/{pid}"),
+            Some(json!({ "status": "skipped" })),
+        ),
+        (
+            Method::DELETE,
+            format!("/api/accounts/{id}/playbook/{pid}"),
+            None,
+        ),
+        (
+            Method::PUT,
+            format!("/api/accounts/{id}/playbook/symbols/XAUUSD"),
+            Some(json!({ "point": 0.01, "valuePerPoint": 1 })),
+        ),
+        (
+            Method::DELETE,
+            format!("/api/accounts/{id}/playbook/symbols/XAUUSD"),
+            None,
+        ),
+        (Method::GET, format!("/api/accounts/{id}/exness"), None),
+        (
+            Method::PUT,
+            format!("/api/accounts/{id}/exness"),
+            Some(keys),
+        ),
+        (Method::DELETE, format!("/api/accounts/{id}/exness"), None),
+        (
+            Method::POST,
+            format!("/api/accounts/{id}/exness/sync"),
+            None,
+        ),
+    ];
+    for (method, path, body) in tries {
+        let (s, v) = t.send(method.clone(), &path, Some(BOB_COOKIE), body).await;
+        assert_eq!(s, StatusCode::NOT_FOUND, "{method} {path}: {v}");
+    }
+    // Alice's plan is untouched, and Bob's email settings are his own.
+    let (_, list) = t.get(&format!("/api/accounts/{id}/playbook")).await;
+    assert_eq!(list["plans"][0]["status"], "planned");
+    t.patch("/api/email", json!({ "email": "alice@example.com" }))
+        .await;
+    let (_, bob) = t
+        .send(Method::GET, "/api/email", Some(BOB_COOKIE), None)
+        .await;
+    assert_eq!(bob["email"], Value::Null);
 }
