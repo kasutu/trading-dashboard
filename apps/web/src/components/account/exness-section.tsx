@@ -144,20 +144,19 @@ function ConnectForm({ account, c, onDone }: { account: Account; c: ExnessConnec
         }
       }}
     >
-      <p className="text-sm text-muted-foreground">
-        Create an API key in Exness Key Management. Give it access to history only, never Payments. If the key allows only some IP addresses, add
-        this server's.
-      </p>
+      <KeyHelp />
       <div className="space-y-1.5">
         <Label htmlFor={`${id}-acc`}>Exness account number</Label>
         <Input id={`${id}-acc`} name="accountId" inputMode="numeric" required defaultValue={c.exnessAccountId ?? account.mtLogin ?? ""} className="font-mono" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={`${id}-key`}>API key</Label>
+        <p className="text-xs text-muted-foreground">Starts with exnsk. Sent to Exness with every request; on its own it cannot sign one.</p>
         <Input id={`${id}-key`} name="apiKey" required spellCheck={false} className="font-mono" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={`${id}-secret`}>Private key</Label>
+        <p className="text-xs text-muted-foreground">The secret key Exness showed once when you made the key, or your own private.pem.</p>
         <Textarea
           id={`${id}-secret`}
           name="privateKey"
@@ -185,5 +184,28 @@ function ConnectForm({ account, c, onDone }: { account: Account; c: ExnessConnec
         <Button type="button" variant="ghost" onClick={onDone}>Cancel</Button>
       </div>
     </form>
+  )
+}
+
+/** What to pick in Exness Key Management, step by step. Exness does not name its access options in its docs, so this
+ *  says what Jurno does with the key: it only reads. */
+function KeyHelp() {
+  return (
+    <div className="space-y-2 rounded-lg border p-3 text-sm">
+      <p className="font-medium">Make a key in Exness Key Management</p>
+      <ol className="list-decimal space-y-1.5 pl-5 text-muted-foreground">
+        <li><span className="text-foreground">Trading account:</span> pick only this account, not a group.</li>
+        <li>
+          <span className="text-foreground">Access:</span> the least the form offers. Jurno only reads your account details, trade history and
+          deposits and withdrawals. It never places, changes or closes a trade. Never turn on Payments.
+        </li>
+        <li>
+          <span className="text-foreground">Allowed IPs:</span> leave empty. Jurno&apos;s server has no fixed IP address, so a key limited to
+          some IPs is refused.
+        </li>
+        <li><span className="text-foreground">Expiry:</span> any date. When the key expires, syncing stops and Jurno asks you to connect again.</li>
+        <li>Copy the account number, the API key and the secret key here. Exness shows the secret key only once.</li>
+      </ol>
+    </div>
   )
 }

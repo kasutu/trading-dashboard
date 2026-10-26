@@ -95,8 +95,13 @@ pub fn explain(e: &exness::Error) -> String {
     match e {
         E::Key(m) => format!("The private key is not valid: {m}."),
         E::Api { status: 401 | 403, error } => format!(
-            "Exness refused the API key ({}). Check the key, that it has history access, and that this server's IP is allowed.",
-            error.error_message
+            "Exness refused the key ({}). {}",
+            error.error_message,
+            match error.error_message.as_str() {
+                "AUTH_PERMISSION_DENIED" => "Make sure the key is for this trading account, has no allowed IPs set, and can read the account.",
+                "AUTH_INVALID_SIGNATURE" => "The secret key does not belong to this API key. Copy both again.",
+                _ => "Check the API key and the secret key, and that the key has not expired.",
+            }
         ),
         E::Api { status: 404, .. } | E::Http { status: 404, .. } => {
             "Exness does not know this account. Check the account number.".into()
@@ -104,7 +109,7 @@ pub fn explain(e: &exness::Error) -> String {
         E::Api { status: 429, .. } => "Exness asked Jurno to slow down. It tries again later.".into(),
         E::Api { status, error } => format!("Exness answered {status}: {}.", error.error_message),
         E::Http { status: 401 | 403, .. } => {
-            "Exness refused the request. Check the API key and that this server's IP is allowed.".into()
+            "Exness refused the request. Check that the key has no allowed IPs set and has not expired.".into()
         }
         E::Http { status, .. } => format!("Exness answered {status}. Try again later."),
         E::Transport(_) | E::Timeout(_) => "Cannot reach Exness. Jurno tries again later.".into(),
