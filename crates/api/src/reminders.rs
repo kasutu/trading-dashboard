@@ -16,6 +16,8 @@ use crate::config::features;
 use crate::mailer::{self, esc, Email};
 
 const EVERY: Duration = Duration::from_secs(15 * 60);
+/// Building the email for one user (the analytics of their accounts) is stopped after this long.
+const BUILD_TIMEOUT: Duration = Duration::from_secs(2 * 60);
 
 /// Runs forever. Start it once, next to the HTTP server.
 pub async fn run(pool: PgPool) {
@@ -60,46 +62,82 @@ pub async fn send_due(pool: &PgPool, now: DateTime<Utc>) -> Result<usize, sqlx::
     )
     .fetch_all(pool)
     .await?;
+    let due: Vec<(String, Due)> = rows
+        .into_iter()
+        .filter(|(_, _, frequency, send_time, tz, _, last)| {
+            let local = now.with_timezone(&tz.parse::<Tz>().unwrap_or(Tz::UTC));
+            let day = local.date_naive();
+            let time = format!("{:02}:{:02}", local.hour(), local.minute());
+            *last != Some(day) && time >= *send_time && sends_on(frequency, day)
+        })
+        .map(|row| (row.0.clone(), row))
+        .collect();
+    // Fair across tenants: several users at once, so one slow account never delays the rest.
+    let pool = pool.clone();
+    let results = crate::jobs::per_user(due, move |row| {
+        let pool = pool.clone();
+        async move { send_one(&pool, now, row).await }
+    })
+    .await;
     let mut sent = 0;
-    for (user, email, frequency, send_time, tz_name, token, last) in rows {
-        let tz: Tz = tz_name.parse().unwrap_or(Tz::UTC);
-        let local = now.with_timezone(&tz);
-        let day = local.date_naive();
-        let time = format!("{:02}:{:02}", local.hour(), local.minute());
-        if last == Some(day) || time < send_time || !sends_on(&frequency, day) {
-            continue;
-        }
-        // Claim the day first: at most one email a day, even with two API instances.
-        let claimed = sqlx::query(
-            "update email_reminders set last_sent_day = $2
-             where user_id = $1 and last_sent_day is distinct from $2",
-        )
-        .bind(&user)
-        .bind(day)
-        .execute(pool)
-        .await?
-        .rows_affected();
-        if claimed == 0 {
-            continue;
-        }
-        match build(pool, &user, &tz_name, frequency == "weekly", &token).await {
-            Ok(Some(mail)) => match mailer::send(mail.to_email(&email)).await {
-                Ok(()) => sent += 1,
-                Err(e) => {
-                    tracing::error!("reminder email for {user}: {e}");
-                    // Not sent: try again at the next check.
-                    sqlx::query("update email_reminders set last_sent_day = $2 where user_id = $1")
-                        .bind(&user)
-                        .bind(last)
-                        .execute(pool)
-                        .await?;
-                }
-            },
-            Ok(None) => {}
-            Err(e) => tracing::error!("reminder email for {user}: {e:?}"),
+    for r in results {
+        match r {
+            Ok(true) => sent += 1,
+            Ok(false) => {}
+            Err(e) => tracing::error!("reminder email: {e}"),
         }
     }
     Ok(sent)
+}
+
+/// Claims the user's day, then builds and sends the email. True when one was sent.
+async fn send_one(pool: &PgPool, now: DateTime<Utc>, row: Due) -> Result<bool, sqlx::Error> {
+    let (user, email, frequency, _, tz_name, token, last) = row;
+    let tz: Tz = tz_name.parse().unwrap_or(Tz::UTC);
+    let day = now.with_timezone(&tz).date_naive();
+    // Claim the day first: at most one email a day, even with two API instances.
+    let claimed = sqlx::query(
+        "update email_reminders set last_sent_day = $2
+         where user_id = $1 and last_sent_day is distinct from $2",
+    )
+    .bind(&user)
+    .bind(day)
+    .execute(pool)
+    .await?
+    .rows_affected();
+    if claimed == 0 {
+        return Ok(false);
+    }
+    let built = tokio::time::timeout(
+        BUILD_TIMEOUT,
+        build(pool, &user, &tz_name, frequency == "weekly", &token),
+    )
+    .await;
+    let mail = match built {
+        Ok(Ok(Some(mail))) => mail,
+        Ok(Ok(None)) => return Ok(false),
+        Ok(Err(e)) => {
+            tracing::error!("reminder email for {user}: {e:?}");
+            return Ok(false);
+        }
+        Err(_) => {
+            tracing::error!("reminder email for {user}: building it took too long");
+            return Ok(false);
+        }
+    };
+    match mailer::send(mail.to_email(&email)).await {
+        Ok(()) => Ok(true),
+        Err(e) => {
+            tracing::error!("reminder email for {user}: {e}");
+            // Not sent: try again at the next check.
+            sqlx::query("update email_reminders set last_sent_day = $2 where user_id = $1")
+                .bind(&user)
+                .bind(last)
+                .execute(pool)
+                .await?;
+            Ok(false)
+        }
+    }
 }
 
 /// A built reminder, before it has an address.

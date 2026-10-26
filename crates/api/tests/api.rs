@@ -2071,3 +2071,81 @@ async fn exness_history_becomes_trades_and_cash_flows() {
     let (_, imports) = t.get(&format!("/api/accounts/{id}/imports")).await;
     assert_eq!(imports[0]["fileName"], "Exness sync");
 }
+
+#[tokio::test]
+async fn new_routes_are_scoped_to_the_tenant() {
+    let t = setup().await;
+    t.set_plan("u_alice", "espresso").await;
+    t.set_plan("u_bob", "espresso").await;
+    let id = t.new_account().await;
+    t.import_winning(&id).await;
+    let (s, plan) = t
+        .post(
+            &format!("/api/accounts/{id}/playbook"),
+            json!({ "symbol": "XAUUSD", "side": "buy", "entry": 2400.5, "stopLoss": 2399.5, "size": { "by": "lots", "value": 0.1 } }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{plan}");
+    let pid = plan["id"].as_str().unwrap();
+    let calc = json!({ "symbol": "XAUUSD", "side": "buy", "entry": 1, "stopLoss": 0.5, "size": { "by": "lots", "value": 0.1 } });
+    let keys = json!({ "accountId": "1", "apiKey": "k", "privateKey": "11".repeat(32) });
+    let tries = [
+        (Method::GET, format!("/api/accounts/{id}/today"), None),
+        (Method::GET, format!("/api/accounts/{id}/playbook"), None),
+        (
+            Method::POST,
+            format!("/api/accounts/{id}/playbook"),
+            Some(calc.clone()),
+        ),
+        (
+            Method::POST,
+            format!("/api/accounts/{id}/playbook/calc"),
+            Some(calc),
+        ),
+        (
+            Method::PATCH,
+            format!("/api/accounts/{id}/playbook/{pid}"),
+            Some(json!({ "status": "skipped" })),
+        ),
+        (
+            Method::DELETE,
+            format!("/api/accounts/{id}/playbook/{pid}"),
+            None,
+        ),
+        (
+            Method::PUT,
+            format!("/api/accounts/{id}/playbook/symbols/XAUUSD"),
+            Some(json!({ "point": 0.01, "valuePerPoint": 1 })),
+        ),
+        (
+            Method::DELETE,
+            format!("/api/accounts/{id}/playbook/symbols/XAUUSD"),
+            None,
+        ),
+        (Method::GET, format!("/api/accounts/{id}/exness"), None),
+        (
+            Method::PUT,
+            format!("/api/accounts/{id}/exness"),
+            Some(keys),
+        ),
+        (Method::DELETE, format!("/api/accounts/{id}/exness"), None),
+        (
+            Method::POST,
+            format!("/api/accounts/{id}/exness/sync"),
+            None,
+        ),
+    ];
+    for (method, path, body) in tries {
+        let (s, v) = t.send(method.clone(), &path, Some(BOB_COOKIE), body).await;
+        assert_eq!(s, StatusCode::NOT_FOUND, "{method} {path}: {v}");
+    }
+    // Alice's plan is untouched, and Bob's email settings are his own.
+    let (_, list) = t.get(&format!("/api/accounts/{id}/playbook")).await;
+    assert_eq!(list["plans"][0]["status"], "planned");
+    t.patch("/api/email", json!({ "email": "alice@example.com" }))
+        .await;
+    let (_, bob) = t
+        .send(Method::GET, "/api/email", Some(BOB_COOKIE), None)
+        .await;
+    assert_eq!(bob["email"], Value::Null);
+}

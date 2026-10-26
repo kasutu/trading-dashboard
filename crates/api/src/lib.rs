@@ -8,6 +8,7 @@ pub mod db;
 pub mod error;
 pub mod exness_sync;
 pub mod extract;
+pub mod jobs;
 pub mod mailer;
 pub mod plan;
 pub mod reminders;

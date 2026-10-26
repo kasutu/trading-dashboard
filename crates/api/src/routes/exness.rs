@@ -158,7 +158,7 @@ pub async fn connect(
     }
     let private_key = b.private_key.trim().to_string();
     // Check the server key before calling Exness, so a missing key fails fast.
-    crypto::seal(id, "")?;
+    crypto::seal(&user, id, "")?;
     let signer = Signer::from_key_text(api_key.clone(), &private_key)
         .map_err(|e| ApiError::bad_request(explain(&e)))?;
 
@@ -195,8 +195,8 @@ pub async fn connect(
     .bind(id)
     .bind(&ex)
     .bind(client.base_url())
-    .bind(crypto::seal(id, &api_key)?)
-    .bind(crypto::seal(id, &private_key)?)
+    .bind(crypto::seal(&user, id, &api_key)?)
+    .bind(crypto::seal(&user, id, &private_key)?)
     .execute(&pool)
     .await?;
     let currency = details.settings.as_ref().map(|s| s.currency.clone());
@@ -255,12 +255,22 @@ pub async fn sync_now(
             "Syncing with Exness is on Espresso and Latte.".into(),
         ));
     }
-    let paused: Option<String> =
-        sqlx::query_scalar("select status from exness_connections where account_id = $1")
+    let row: Option<(String, Option<DateTime<Utc>>)> =
+        sqlx::query_as("select status, last_sync_at from exness_connections where account_id = $1")
             .bind(id)
             .fetch_optional(&pool)
             .await?;
-    match paused.as_deref() {
+    // A tenant's syncs share the Exness rate limits of their own key: one a minute is plenty.
+    if row
+        .as_ref()
+        .and_then(|r| r.1)
+        .is_some_and(|t| Utc::now() - t < chrono::Duration::minutes(1))
+    {
+        return Err(ApiError::Conflict(
+            "Synced less than a minute ago. Try again in a minute.".into(),
+        ));
+    }
+    match row.as_ref().map(|r| r.0.as_str()) {
         None => {
             return Err(ApiError::NotFound(
                 "This account is not connected to Exness.",

@@ -32,6 +32,10 @@ pub const EVERY: StdDuration = StdDuration::from_secs(10 * 60);
 const OVERLAP: i64 = 60 * 60;
 /// Failed syncs in a row before the connection is paused.
 pub const MAX_FAILURES: i32 = 3;
+/// One account's sync is stopped (and counted as a failure) after this long.
+pub const SYNC_TIMEOUT: StdDuration = StdDuration::from_secs(5 * 60);
+/// Each request to Exness gives up after this long.
+const HTTP_TIMEOUT: StdDuration = StdDuration::from_secs(30);
 const PAGE: u32 = 200;
 
 /// Host discovery runs on these. Account calls need the account's own host.
@@ -43,9 +47,11 @@ pub async fn run(pool: PgPool) {
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     loop {
         tick.tick().await;
-        let due: Vec<Uuid> = match sqlx::query_scalar(
-            "select account_id from exness_connections
-             where status <> 'paused' and (last_sync_at is null or last_sync_at < now() - interval '9 minutes')",
+        let due: Vec<(String, Uuid)> = match sqlx::query_as(
+            "select a.user_id, c.account_id from exness_connections c
+             join trading_accounts a on a.id = c.account_id
+             where c.status <> 'paused'
+               and (c.last_sync_at is null or c.last_sync_at < now() - interval '9 minutes')",
         )
         .fetch_all(&pool)
         .await
@@ -56,11 +62,17 @@ pub async fn run(pool: PgPool) {
                 continue;
             }
         };
-        for account in due {
-            if let Err(e) = sync(&pool, account).await {
-                tracing::warn!("exness sync for {account}: {e:?}");
+        // Fair across tenants: each user's accounts in turn, several users at once.
+        let pool = pool.clone();
+        crate::jobs::per_user(due, move |account| {
+            let pool = pool.clone();
+            async move {
+                if let Err(e) = sync(&pool, account).await {
+                    tracing::warn!("exness sync for {account}: {e:?}");
+                }
             }
-        }
+        })
+        .await;
     }
 }
 
@@ -101,6 +113,20 @@ pub fn explain(e: &exness::Error) -> String {
     }
 }
 
+/// HTTP for Exness: the SDK's user agent (Cloudflare blocks requests without one) and a timeout,
+/// so a slow broker host never hangs a sync.
+fn http() -> reqwest::Client {
+    reqwest::Client::builder()
+        .user_agent(concat!("jurno/", env!("CARGO_PKG_VERSION"), " exness-rs"))
+        .timeout(HTTP_TIMEOUT)
+        .build()
+        .expect("HTTP client")
+}
+
+fn client(host: &str, signer: Signer) -> Client {
+    Client::new(host, signer).with_http(http())
+}
+
 /// Builds the client for an account's own host. `host` None: finds it with host discovery.
 pub async fn connect_client(
     signer: Signer,
@@ -108,11 +134,11 @@ pub async fn connect_client(
     host: Option<&str>,
 ) -> Result<Client, exness::Error> {
     if let Some(h) = host.map(str::trim).filter(|h| !h.is_empty()) {
-        return Ok(Client::new(h, signer));
+        return Ok(client(h, signer));
     }
     let mut last = None;
     for h in DISCOVERY_HOSTS {
-        let c = Client::new(h, signer.clone());
+        let c = client(h, signer.clone());
         match c.discover_access_point(exness_account).await {
             Ok(ap) => return Ok(c.with_access_point(&ap)),
             Err(e) => last = Some(e),
@@ -199,6 +225,7 @@ pub struct Synced {
 
 #[derive(sqlx::FromRow)]
 struct Conn {
+    user_id: String,
     exness_account_id: String,
     host: String,
     api_key: Vec<u8>,
@@ -216,7 +243,13 @@ pub async fn sync(pool: &PgPool, account: Uuid) -> Result<Synced, ApiError> {
     }
     let _guard = Running(account);
     let started = Utc::now();
-    let result = fetch_and_store(pool, account, started).await;
+    let result = tokio::time::timeout(SYNC_TIMEOUT, fetch_and_store(pool, account, started))
+        .await
+        .unwrap_or_else(|_| {
+            Err(ApiError::Unprocessable(
+                "Exness took too long to answer. Jurno tries again later.".into(),
+            ))
+        });
     match &result {
         Ok(s) => {
             sqlx::query(
@@ -265,8 +298,9 @@ async fn fetch_and_store(
     now: DateTime<Utc>,
 ) -> Result<Synced, ApiError> {
     let c: Conn = sqlx::query_as(
-        "select exness_account_id, host, api_key, private_key, synced_until
-         from exness_connections where account_id = $1",
+        "select a.user_id, c.exness_account_id, c.host, c.api_key, c.private_key, c.synced_until
+         from exness_connections c join trading_accounts a on a.id = c.account_id
+         where c.account_id = $1",
     )
     .bind(account)
     .fetch_optional(pool)
@@ -274,12 +308,12 @@ async fn fetch_and_store(
     .ok_or(ApiError::NotFound(
         "This account is not connected to Exness.",
     ))?;
-    let api_key = crypto::open(account, &c.api_key)?;
-    let private_key = crypto::open(account, &c.private_key)?;
+    let api_key = crypto::open(&c.user_id, account, &c.api_key)?;
+    let private_key = crypto::open(&c.user_id, account, &c.private_key)?;
     let signer = Signer::from_key_text(api_key, &private_key)
         .map_err(|e| ApiError::Unprocessable(explain(&e)))?;
     drop(private_key);
-    let client = Client::new(&c.host, signer);
+    let client = client(&c.host, signer);
     let ex = c.exness_account_id.as_str();
     let fail = |e: exness::Error| ApiError::Unprocessable(explain(&e));
 

@@ -38,7 +38,10 @@ pub async fn send(email: Email<'_>) -> Result<(), String> {
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
         });
     }
-    let resp = reqwest::Client::new()
+    let resp = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("email client: {e}"))?
         .post("https://api.resend.com/emails")
         .bearer_auth(key)
         .json(&body)
