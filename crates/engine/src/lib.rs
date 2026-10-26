@@ -14,12 +14,15 @@ use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 
 mod cash;
+pub mod deals;
 pub mod journal;
 pub mod mt5;
 mod optimize;
 mod overtrade;
 mod parse;
+pub mod playbook;
 mod stats;
+pub mod today;
 
 // ---------------------------------------------------------------------------
 // Column mapping (the "universal mapper")

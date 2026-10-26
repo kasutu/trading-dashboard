@@ -4,51 +4,9 @@ Requested features, newest last. Move an item to "Done" with the PR link when it
 
 ## Open
 
-### Journal: what is left
-
-- Move the check-in setting from the browser to `profiles`.
-- Inline rename and archive for setups and mistake tags (adding is inline; rename and archive are in Settings).
-
 ### MT4 detailed report import
 
 - Needs a sample MT4 "Detailed Statement" file. The MT5 report import (`crates/engine/src/mt5.rs`) is the model.
-
-### Email the daily reminder
-
-Send the Today card's plan (kind of day, trades left, loss limit, best and skip hours) by email, so it arrives when Jurno is not open. The browser notification only works with Jurno open in a tab.
-
-- **Settings:** an "Email me" switch (off by default) and a frequency: every trading day (Mon–Fri), every day, or weekly (Monday, with the week's best days). Plus a send time in the user's timezone. These must be saved on the server (a column on `profiles`), not in the browser like the current reminder settings, because the server sends the email.
-- **Email address first:** accounts have no real email. Sign-up sets `<username>@users.jurno.invalid` (`apps/auth/src/server.ts`). Settings needs a field to add an address and verify it before the first send. Better Auth's email verification can do this.
-- **Sending:** a scheduled job in the API (every 15 minutes, for example) finds the users whose send time has passed today and who have not been sent yet, builds the plan from `optimization` with the same rules as `today-card.tsx`, and sends through a provider such as Resend or Postmark. Record the last send day so each user gets at most one email a day.
-- **Rules to share:** move the "kind of day" and "trades left" logic out of `today-card.tsx` into the engine, so the card and the email always say the same thing.
-- **Unsubscribe:** every email needs a one-click unsubscribe link that turns "Email me" off, plus the `List-Unsubscribe` header.
-- **Plans:** a Free account gets only today's trades and P&L, the same as the card.
-
-### Playbook: plan trades before you take them
-
-A place to plan trades with numbers only: symbol, side, entry, stop loss (SL), take profit (TP) and lots. No chart drawing. Jurno works out the rest, so you know the risk before you place the order.
-
-- **Inputs:** symbol, buy or sell, entry, SL, TP and lots. An optional setup (from the journal setups) and a note.
-- **Computed:** risk and reward in dollars, risk-to-reward ratio (R:R), risk as a % of the account balance, and the distance to SL and TP in points. Also lots from risk: enter a dollar risk or a % of the balance instead of lots, and Jurno works out the lot size.
-- **Value per point:** the dollar value of one point per lot for each symbol. Work it out from the account's own trades (profit ÷ (price move × lots)), and let the user enter or correct it for symbols with no history.
-- **Checks against the plan:** warn when the trade breaks the Today card's plan. For example: no trades left today, the risk is more than the loss-limit room, it is a skip hour or rest day, or the R:R is below the user's minimum.
-- **Status:** each planned trade is planned, taken or skipped. After an import, match a taken trade to the actual trade (same symbol and side, opened near the planned entry on the same day). Then show plan against result: entry slippage, SL and TP moved, and lots changed. The review's `initialStop` and `initialTarget` can be filled from the plan.
-- **Storage:** a new `planned_trades` table per trading account, with routes under `/api/accounts/:id/playbook`. The R:R and risk math goes in the engine, so the web app and any later email or alert use the same numbers.
-- **Plans:** to decide which plans get it. One option: the calculator is free, and saving plans and comparing plan against result are paid.
-
-### Connect an Exness account and sync trades automatically
-
-Today trades come in only by file: a CSV or the MT5 report (`crates/engine/src/mt5.rs`, `crates/api/src/routes/mt5_import.rs`). With our Exness Rust SDK (link: TODO), Jurno can connect to the account and fetch closed trades, deposits and withdrawals itself. The Today card, the plan and the journal then stay current without an export.
-
-- **First, check the SDK:** which login it needs (read-only investor password, or OAuth/API token), whether it returns closed deals with ticket, open and close time, side, lots, prices, SL, TP, commission, swap and profit, and whether it returns balance operations (deposits, withdrawals, internal transfers). Note the rate limits and whether it works from a Linux server or needs the MT5 terminal.
-- **Connect:** a "Connect Exness" button on the trading account. Ask only for read access: an investor (read-only) password, never the trading password. Fill `trading_accounts.mt_login` from the connection. A "Disconnect" button deletes the stored login.
-- **Store credentials safely:** encrypt them at rest with a key from the environment (not in the database), never return them to the browser, and never write them to logs. Store only what the SDK needs to refresh access.
-- **Sync:** a scheduled job in the API (every 5–15 minutes for connected accounts, plus a "Sync now" button). Fetch deals since the last synced time, with a small overlap. Map them with the same rules as the MT5 import, so partial closes and internal transfers behave the same. Trades already skip duplicates by `(account_id, ticket)`, and cash flows by `source_id`, so a re-sync adds nothing twice.
-- **Status:** show last sync time, trades added, and errors (wrong password, expired access, broker down) on the account. After 3 failed syncs in a row, stop and ask the user to reconnect.
-- **After a sync:** refresh the analytics, so the Today card's trades left and loss-limit room update during the day. This also lets the daily reminder email (above) use same-day data.
-- **Keep file import:** for other brokers and for history older than the SDK returns.
-- **Plans:** to decide which plans get it. Auto sync is a good fit for a paid plan; manual import stays free.
-- **Risk:** depending on an unofficial broker interface can break without warning. Keep the sync behind a feature flag, and fall back to file import when it fails.
 
 ## Done
 
@@ -65,3 +23,7 @@ Today trades come in only by file: a CSV or the MT5 report (`crates/engine/src/m
 - **Internal transfers in MT5 imports.** Balance deals whose comment has an `INT` part (Exness wallet and account moves) are flagged `internal` (`0006_internal_transfers.sql`, which also marks flows already imported). They still count as deposits and withdrawals; the Funding tab and the import preview show them as transfers, with an "Of which internal" total.
 - **Bulk actions on deposits and withdrawals.** Tick entries (or all) to delete them or mark them internal or external at once: `POST /api/accounts/:id/cash-flows/bulk` with `{ ids, action }`. Adjustments are never marked internal.
 - **Clearer advice: Today card, Notes and Plan.** The Today card leads with an action ("Good day to trade", "Rest today", "Stop trading") and one reason, then "Your rules today" as statements and "Before each trade" as questions. It warns when a % limit on a small balance comes out under $1, hides a per-trade risk under $1, shows the meter only for caps of 10 or less, and no longer stretches beside Net P&L. Every Notes title is an action ("Avoid 8 PM to 11 PM", "Wait 10 min after a loss"), and the date-only Best and Worst day notes are gone. The Plan tab says "What works", "Your rules" and "Did it hold up?". [#31](https://github.com/kasutu/trading-dashboard/pull/31)
+- **Journal leftovers.** The check-in setting is saved in `profiles.settings` (`PATCH /api/me/settings`), so it follows the user; a check-in turned off in a browser before is carried over once. Setups and mistake tags can be renamed and archived in the chips: the pencil chip turns each into a field with an archive button.
+- **Today card in the engine, and the reminder email.** `engine::today` builds the card's plan and wording (`GET /api/accounts/:id/today`); checked against the old TypeScript card on 21 cases, the same text. Settings has "Email me": address with a verification link, Mon to Fri, every day or Mondays (with the week's best days), a time in the browser's timezone, "Send me one now". A job every 15 minutes sends at most one email a day through Resend (`RESEND_API_KEY`), with one-click unsubscribe and `List-Unsubscribe`. The address is verified by the API, not Better Auth.
+- **Playbook.** A Playbook tab: entry, SL, TP and lots, or lots from a dollar risk or a % of the balance. Risk, reward, R:R, risk % and points, with the value per point from the account's trades or entered by hand. Warnings when the trade breaks today's plan or the minimum R:R. Saved plans (Espresso and Latte; the calculator is free) are matched to the trade after an import or sync, fill the review's setup, starting stop and target, and show plan against result.
+- **Exness account sync.** Connect in Configuration with the account number, API key and private key; they are checked with Exness, then stored encrypted (AES-256-GCM, `CREDENTIALS_KEY`) and never sent back. Syncs every 10 minutes and on "Sync now", same mapping and duplicate rules as the MT5 import, pauses after 3 failures, behind `EXNESS_SYNC`. Paid plans. The SDK is copied into `crates/exness`. Not tried against a live account with history yet; internal transfers are not flagged (the API sends no deal comment).

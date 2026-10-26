@@ -149,7 +149,16 @@ export type Analytics = FullAnalytics | (CoreAnalytics & { locked: true })
 
 export type AnalyticsResponse = Analytics | { empty: true }
 
-export type Me = { id: string; username: string; plan: "free" | "espresso" | "latte" | "owner" }
+/** Settings that follow the user to every device. */
+export type ServerSettings = { checkIn: boolean; minRr: number | null }
+/** `exness`: account connection is on. `email`: the server can send email. */
+export type Me = {
+  id: string
+  username: string
+  plan: "free" | "espresso" | "latte" | "owner"
+  settings: ServerSettings
+  features: { exness: boolean; email: boolean }
+}
 /** `mtLogin`: the MetaTrader login, set by the first MT5 report import. */
 /** Configuration of a trading account. `daily` and `perTrade` are a % of the balance or dollars, by `kind`. Null: no
  *  limit. `maxTrades` is no longer set (the Frequency best cap is used). `weekends`: trade on Saturdays and Sundays. */
@@ -297,3 +306,122 @@ export type Timeframe = "1m" | "5m" | "15m" | "1h" | "4h" | "1d"
 export type Candle = { time: number; open: number; high: number; low: number; close: number }
 /** GET /accounts/:id/candles (planned; the prototype generates them). Candles oldest first. */
 export type Candles = { symbol: string; tf: Timeframe; candles: Candle[] }
+
+// ---------------------------------------------------------------------------
+// Today card (engine::today)
+// ---------------------------------------------------------------------------
+
+export type Tone = "profit" | "loss" | null
+export type TodayRule = { text: string; note: string | null; warn: string | null; tone: Tone }
+export type TodayPlan = {
+  day: string
+  /** "Monday, October 26" */
+  date: string
+  weekday: number
+  trades: number
+  dayNet: number
+  limits: { daily: number | null; from: "account" | "plan" | null; perTrade: number | null; trades: number | null }
+  /** Trades left today. Null without a trade cap. */
+  left: number | null
+  rest: boolean
+  stop: boolean
+  verdict: { label: string; tone: Tone; why: string }
+  rules: TodayRule[]
+  questions: string[]
+  bestWeekdays: string[]
+  skipWeekdays: string[]
+  hour: number
+  bestHours: number[]
+  skipHours: number[]
+  locked: boolean
+}
+export type TodayResponse = TodayPlan | { empty: true }
+
+// ---------------------------------------------------------------------------
+// Reminder email
+// ---------------------------------------------------------------------------
+
+export type EmailFrequency = "weekdays" | "daily" | "weekly"
+export type EmailSettings = {
+  email: string | null
+  verified: boolean
+  enabled: boolean
+  frequency: EmailFrequency
+  /** "HH:MM" in `tz`. */
+  time: string
+  tz: string
+  /** False: the server has no email provider, so emails only reach its log. */
+  canSend: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Playbook (engine::playbook)
+// ---------------------------------------------------------------------------
+
+export type PlanSize = { by: "lots" | "risk" | "percent"; value: number }
+export type SymbolValue = { symbol: string; point: number; valuePerPoint: number | null; trades: number; source: "trades" | "user" | null }
+export type PlanMath = {
+  lots: number | null
+  slPoints: number
+  tpPoints: number | null
+  risk: number | null
+  reward: number | null
+  rr: number | null
+  riskPercent: number | null
+  errors: string[]
+}
+export type PlanCheck = { rule: "trades" | "lossLimit" | "perTrade" | "hour" | "rest" | "rr"; text: string }
+export type PlanCalc = { math: PlanMath; value: SymbolValue; checks: PlanCheck[]; balance: number | null }
+export type PlanStatus = "planned" | "taken" | "skipped"
+export type PlanResult = {
+  ticket: string
+  open: string
+  openPrice: number
+  closePrice: number
+  lots: number
+  net: number
+  slippagePoints: number
+  slMoved: number | null
+  tpMoved: number | null
+  lotsChanged: boolean
+  r: number | null
+}
+export type PlannedTrade = {
+  id: string
+  symbol: string
+  side: Side
+  entry: number
+  stopLoss: number
+  takeProfit: number | null
+  lots: number
+  setupId: string | null
+  note: string | null
+  status: PlanStatus
+  ticket: string | null
+  createdAt: string
+  updatedAt: string
+  math: PlanMath
+  result: PlanResult | null
+}
+export type Playbook = { plans: PlannedTrade[]; symbols: SymbolValue[]; balance: number | null; minRr: number | null; locked: boolean }
+
+// ---------------------------------------------------------------------------
+// Exness connection
+// ---------------------------------------------------------------------------
+
+export type ExnessConnection = {
+  enabled: boolean
+  canConnect: boolean
+  locked: boolean
+  connected: boolean
+  exnessAccountId: string | null
+  host: string | null
+  status: "ok" | "failing" | "paused" | null
+  failures: number
+  lastError: string | null
+  lastSyncAt: string | null
+  lastSyncTrades: number | null
+  lastSyncFlows: number | null
+  syncedUntil: string | null
+  connectedAt: string | null
+}

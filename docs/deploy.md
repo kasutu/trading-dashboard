@@ -20,6 +20,9 @@ You set these values by hand. Railway fills in the rest with references.
 | --- | --- | --- |
 | `BETTER_AUTH_SECRET` | auth | `openssl rand -base64 32`. Keep it secret. Changing it signs everyone out. |
 | `BETTER_AUTH_URL` | auth | The public web address, for example `https://jurno.up.railway.app` |
+| `CREDENTIALS_KEY` | api | `openssl rand -base64 32`. Encrypts the Exness keys users store. Keep it secret and never change it: the stored keys can only be read with it. |
+| `RESEND_API_KEY`, `EMAIL_FROM` | api | From [Resend](https://resend.com), with a verified sending domain. Without them the reminder emails are only logged. |
+| `PUBLIC_URL` | api | The public web address, for the links in emails, for example `https://jurno.up.railway.app` |
 
 Deploy from the `main` branch.
 
@@ -52,6 +55,7 @@ The api build needs the whole Cargo workspace, so its root directory is the repo
 14. In **Settings**, set the Dockerfile path, watch paths and health check from the table above.
 15. In **Variables**, add `DATABASE_URL` with the value `${{Postgres.DATABASE_URL}}`.
 16. Add `PORT` with the value `8080`.
+16a. Add `CREDENTIALS_KEY`, `PUBLIC_URL`, and for email `RESEND_API_KEY` and `EMAIL_FROM` (see the table above). Exness API keys can be limited by IP; Railway has no fixed outbound IP unless you turn on Static Outbound IPs, so tell users to leave the key unrestricted or allow that IP.
 
 ### Web service
 

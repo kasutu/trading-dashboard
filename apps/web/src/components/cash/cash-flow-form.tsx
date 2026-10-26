@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { cashFlowsPath, invalidate } from "@/hooks/use-api"
+import { cashFlowsPath, invalidate, todayPath } from "@/hooks/use-api"
 import { api } from "@/lib/api/client"
 import type { CashFlow, FlowKind } from "@/lib/api/types"
 import { FLOW_LABELS } from "@/lib/format"
@@ -43,6 +43,8 @@ export function CashFlowForm({ accountId, onAdded }: { accountId: string; onAdde
         },
       })
       invalidate(cashFlowsPath(accountId))
+      // The balance changed: the Today card limits follow it.
+      invalidate(todayPath(accountId))
       form.reset()
       setWhen(nowLocal())
       onAdded?.(flow)

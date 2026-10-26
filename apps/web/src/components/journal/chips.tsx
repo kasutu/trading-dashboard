@@ -1,10 +1,16 @@
 import * as React from "react"
-import { Plus } from "lucide-react"
+import { Archive, Check, Pencil, Plus } from "lucide-react"
 import { NAME_MAX } from "@/lib/journal"
 import { cn } from "@/lib/utils"
 
 /** `title` is also the accessible name, for chips whose label is short (like "A"). */
 export type ChipOption = { value: string; label: React.ReactNode; title?: string }
+
+/** Rename and archive the tags in place. The chips get an edit mode: each one becomes a field with an archive button. */
+export type ManageTags = {
+  rename: (id: string, name: string) => Promise<unknown>
+  archive: (id: string) => Promise<unknown>
+}
 
 const chipClass = (on: boolean, size: "sm" | "md" = "md") =>
   cn(
@@ -35,6 +41,8 @@ type SingleProps = {
   onChange: (value: string | null) => void
   /** Shows a "+" chip that turns into a field. Called with the typed name. */
   onAdd?: (name: string) => Promise<unknown>
+  /** Shows an edit chip to rename and archive the options. */
+  manage?: ManageTags
   size?: "sm" | "md"
   /** Chips share the row equally, as wide buttons (for a short list such as Yes and No). */
   wide?: boolean
@@ -42,8 +50,10 @@ type SingleProps = {
 }
 
 /** Pick one, as a radio group. */
-export function ChoiceChips({ label, options, value, onChange, onAdd, size, wide, className }: SingleProps) {
+export function ChoiceChips({ label, options, value, onChange, onAdd, manage, size, wide, className }: SingleProps) {
+  const [editing, setEditing] = React.useState(false)
   const focusable = options.some((o) => o.value === value) ? value : options[0]?.value
+  if (editing && manage) return <EditChips label={label} options={options} manage={manage} size={size} onDone={() => setEditing(false)} className={className} />
   return (
     <div role="radiogroup" aria-label={label} className={cn("flex flex-wrap gap-1.5", wide && "grid grid-cols-2 gap-2", className)}>
       {options.map((o) => {
@@ -66,6 +76,7 @@ export function ChoiceChips({ label, options, value, onChange, onAdd, size, wide
         )
       })}
       {onAdd && <AddChip label={label} onAdd={onAdd} size={size} />}
+      {manage && options.length > 0 && <EditToggle label={label} size={size} onClick={() => setEditing(true)} />}
     </div>
   )
 }
@@ -79,12 +90,16 @@ type MultiProps = {
   none?: { checked: boolean; onChange: (checked: boolean) => void; label?: string }
   /** Shows a "+" chip that turns into a field. Called with the typed name. */
   onAdd?: (name: string) => Promise<unknown>
+  /** Shows an edit chip to rename and archive the options. */
+  manage?: ManageTags
   size?: "sm" | "md"
   className?: string
 }
 
 /** Pick any number, as checkboxes. */
-export function MultiChips({ label, options, value, onChange, none, onAdd, size, className }: MultiProps) {
+export function MultiChips({ label, options, value, onChange, none, onAdd, manage, size, className }: MultiProps) {
+  const [editing, setEditing] = React.useState(false)
+  if (editing && manage) return <EditChips label={label} options={options} manage={manage} size={size} onDone={() => setEditing(false)} className={className} />
   return (
     <div role="group" aria-label={label} className={cn("flex flex-wrap gap-1.5", className)}>
       {options.map((o) => {
@@ -118,7 +133,105 @@ export function MultiChips({ label, options, value, onChange, none, onAdd, size,
         </button>
       )}
       {onAdd && <AddChip label={label} onAdd={onAdd} size={size} />}
+      {manage && options.length > 0 && <EditToggle label={label} size={size} onClick={() => setEditing(true)} />}
     </div>
+  )
+}
+
+const roundChip = (size: "sm" | "md" = "md") =>
+  cn(
+    "inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-95",
+    size === "sm" ? "size-11 sm:size-7" : "size-11 sm:size-8"
+  )
+
+function EditToggle({ label, size, onClick }: { label: string; size?: "sm" | "md"; onClick: () => void }) {
+  return (
+    <button type="button" aria-label={`Rename or archive ${label}`} title="Rename or archive" onClick={onClick} className={roundChip(size)}>
+      <Pencil className="size-3.5" />
+    </button>
+  )
+}
+
+/** Edit mode: each tag is a field (Enter or leaving it saves the new name) with an archive button. Escape or Done
+ *  ends it. Archived tags drop out of the list; Settings can restore them. */
+function EditChips({ label, options, manage, size = "md", onDone, className }: { label: string; options: ChipOption[]; manage: ManageTags; size?: "sm" | "md"; onDone: () => void; className?: string }) {
+  const [error, setError] = React.useState<string | null>(null)
+  const run = async (fn: () => Promise<unknown>) => {
+    setError(null)
+    try {
+      await fn()
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+  // Escape ends edit mode, not the dialog or sheet around it (see AddChip).
+  const group = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || !group.current?.contains(e.target as Node)) return
+      e.stopPropagation()
+      onDone()
+    }
+    window.addEventListener("keydown", onKey, true)
+    return () => window.removeEventListener("keydown", onKey, true)
+  }, [onDone])
+  const h = size === "sm" ? "h-11 sm:h-7 text-xs" : "h-11 sm:h-8 text-sm"
+  return (
+    <div ref={group} role="group" aria-label={`Edit ${label}`} className={cn("flex flex-wrap items-center gap-1.5", className)}>
+      {options.map((o) => (
+        <span key={o.value} className={cn("inline-flex items-center overflow-hidden rounded-full border border-foreground/30 bg-card pl-3", h)}>
+          <TagField
+            name={typeof o.label === "string" ? o.label : (o.title ?? "")}
+            onSave={(name) => run(() => manage.rename(o.value, name))}
+          />
+          <button
+            type="button"
+            aria-label={`Archive ${typeof o.label === "string" ? o.label : (o.title ?? "")}`}
+            title="Archive"
+            onClick={() => run(() => manage.archive(o.value))}
+            className="flex h-full cursor-pointer items-center px-2 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:outline-none"
+          >
+            <Archive className="size-3.5" />
+          </button>
+        </span>
+      ))}
+      <button type="button" onClick={onDone} className={cn(chipClass(true, size), "gap-1")}>
+        <Check className="size-3.5" /> Done
+      </button>
+      {error && <span role="alert" className="text-xs text-destructive">{error}</span>}
+    </div>
+  )
+}
+
+function TagField({ name, onSave }: { name: string; onSave: (name: string) => Promise<unknown> }) {
+  const [text, setText] = React.useState(name)
+  // A rename from elsewhere (or a refused one) shows the stored name again.
+  const [last, setLast] = React.useState(name)
+  if (name !== last) {
+    setLast(name)
+    setText(name)
+  }
+  const save = () => {
+    const t = text.trim()
+    if (!t) setText(name)
+    else if (t !== name) onSave(t)
+  }
+  return (
+    <input
+      value={text}
+      maxLength={NAME_MAX}
+      aria-label={`New name for ${name}`}
+      size={Math.max(4, Math.min(text.length, 24))}
+      onChange={(e) => setText(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault()
+          save()
+        }
+      }}
+      onBlur={save}
+      className="min-w-0 bg-transparent outline-none"
+    />
   )
 }
 

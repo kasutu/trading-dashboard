@@ -39,6 +39,11 @@ browser ──► web (Caddy: static files + reverse proxy)
 | auth | `PORT` | `3001` |
 | api | `DATABASE_URL` | same database |
 | api | `PORT` | `8080` |
+| api | `CREDENTIALS_KEY` | 32 bytes, base64 (`openssl rand -base64 32`). Encrypts broker keys. Without it, Exness cannot be connected. Do not change it: stored keys need the same one. |
+| api | `RESEND_API_KEY` | Sends the reminder email through Resend. Without it, emails go to the api log. |
+| api | `EMAIL_FROM` | `Jurno <reminders@jurno.app>` |
+| api | `PUBLIC_URL` | Origin for links in emails. Defaults to `BETTER_AUTH_URL`. |
+| api | `EXNESS_SYNC` | `off` hides the Exness connection and stops the sync job. On by default. |
 | web (Caddy) | `AUTH_UPSTREAM` | `auth.railway.internal:3001` |
 | web (Caddy) | `API_UPSTREAM` | `api.railway.internal:8080` |
 
@@ -158,7 +163,9 @@ All routes are under `/api`, take and return JSON (camelCase), and need a sessio
 | Method and path | Request | Response |
 | --- | --- | --- |
 | `GET /api/health` (public) | | `{ "ok": true }` |
-| `GET /api/me` | | `{ id, username, plan }`. `username` is the form the user typed (`displayUsername`). Creates the `profiles` row on first call. |
+| `GET /api/me` | | `{ id, username, plan, settings: { checkIn, minRr }, features: { exness, email } }`. `username` is the form the user typed (`displayUsername`). Creates the `profiles` row on first call. |
+| `PATCH /api/me/settings` | `{ checkIn?, minRr? }` | The settings (`profiles.settings`). `minRr: null` clears it. `400` for another key or value. |
+| `GET /api/accounts/:id/today` | query: `tz` | `TodayPlan` (`crates/engine/src/today.rs`), or `{ "empty": true }`. The Today card and the reminder email both use it. On Free the paid parts are left out (`locked: true`). |
 | `GET /api/accounts` | | `Account[]` |
 | `POST /api/accounts` | `{ name, broker?, currency? }` | `Account` |
 | `PATCH /api/accounts/:id` | `{ name?, broker?, currency? }` | `Account` |
@@ -246,7 +253,7 @@ types and the rules (when to ask for the starting stop, result in R, validation,
 | `PATCH /api/accounts/:id/journal/days/:day` | `DayReview`, or `204` |
 | `GET /api/accounts/:id/journal/summary` | `JournalSummary`; `{ locked: true }` on Free |
 
-The before-trading check-in setting is kept in the browser for now. Planned: a column on `profiles`.
+The before-trading check-in setting is saved in `profiles.settings` (`PATCH /api/me/settings`). Setups and mistake tags can be renamed and archived from the chips themselves (the pencil chip), as well as in Settings.
 
 ## Trade chart
 
@@ -267,6 +274,60 @@ Candle = { time, open, high, low, close }  // time: the bar's start, unix second
 - Yahoo Finance and Dukascopy were tried as free sources for forex and gold; both refused server requests (429, 503).
 - The websocket protocol is not a public TradingView API; TradingView-API is an independent, unofficial project. It can break when TradingView changes its site, and TradingView's terms and market-data licenses apply to how the data is shown. Check them before charging for the chart.
 
+## Today card and reminder email
+
+`engine::today` (`crates/engine/src/today.rs`) works out the Today card: the kind of day (`verdict`), trades left, the loss limit and risk per trade (`limits`, the stricter of the account's own and the plan's), today's rules and the questions before each trade. The wording (money, 12-hour times) is built there, so the card and the email say the same thing. Inputs: analytics of all the account's trades in `tz`, the balance (net deposited + adjustments + trading net, null without cash flows) and the account's `risk`.
+
+The reminder email (`crates/api/src/reminders.rs`, table `email_reminders`):
+
+| Method and path | Request | Response |
+| --- | --- | --- |
+| `GET /api/email` | | `{ email, verified, enabled, frequency, time, tz, canSend }` |
+| `PATCH /api/email` | `{ email?, enabled?, frequency?: "weekdays" \| "daily" \| "weekly", time?: "HH:MM", tz? }` | Same. A new address is unverified and gets a link. `400` for a bad value or a `.invalid` address. |
+| `POST /api/email/verify` | | Sends the link again. `409` within a minute of the last one. |
+| `POST /api/email/test` | | Sends today's email now. `400` when the address is not verified. |
+| `GET /api/email/verify?token=` (public) | | HTML page. Links work once, for 7 days. |
+| `GET\|POST /api/email/unsubscribe?token=` (public) | | HTML page; turns the email off. Every email has the link and `List-Unsubscribe` / `List-Unsubscribe-Post`. |
+
+- Accounts have no real email (`<username>@users.jurno.invalid`), so the address is entered and verified here, in the API, not in Better Auth.
+- A job in the api process runs every 15 minutes: for each enabled, verified user whose send time has passed in their `tz` today, on a sending day (weekdays Mon to Fri, daily, weekly on Mondays), it claims the day (`last_sent_day`) and sends one email with a section per trading account with trades. Weekly emails add the plan's best and skipped weekdays. A failed send gives the day back, so the next run tries again.
+- On Free the email has what the Free card has.
+
+## Playbook
+
+Plan a trade with numbers only (`crates/engine/src/playbook.rs`, `crates/api/src/routes/playbook.rs`, table `planned_trades`).
+
+- A point is the symbol's smallest price step (the most decimals in its trade prices). The value per point (dollars per point for 1 lot) is the median of |profit| ÷ (points moved × lots) over the account's trades, or the user's own value (`symbol_values`).
+- Risk, reward, R:R, risk % of balance and SL/TP distance in points. Size by lots, a dollar risk or a % of the balance (lots rounded down to 0.01).
+- Checks against today's plan: rest day, no trades left, risk above the room left before the loss limit or above the per-trade risk, a skipped hour, R:R below the user's `minRr`.
+- After each import or sync, a planned trade is matched to the trade it became: same symbol and side, opened from 1 hour before the plan to 24 hours after, the open price nearest the entry. It turns `taken`, and the trade's review gets the plan's setup, starting stop and target when empty. The result shows the entry slippage in points, a moved SL or TP, changed lots and the result in R.
+
+| Method and path | Request | Response |
+| --- | --- | --- |
+| `POST /api/accounts/:id/playbook/calc` | `{ symbol, side, entry, stopLoss, takeProfit?, size: { by: "lots" \| "risk" \| "percent", value }, tz? }` | `{ math, value, checks, balance }`. Every plan. |
+| `GET /api/accounts/:id/playbook` | query: `tz` | `{ plans, symbols, balance, minRr, locked }`. `plans` is empty on Free. |
+| `POST /api/accounts/:id/playbook` | calc body plus `setupId?`, `note?` | `201` with the plan. `400` when the numbers do not work. `403` on Free. |
+| `PATCH /api/accounts/:id/playbook/:plan` | `{ status?, note?, setupId? }` | The plan. `planned` or `skipped` clears the matched trade. `403` on Free. |
+| `DELETE /api/accounts/:id/playbook/:plan` | | `204` |
+| `PUT`, `DELETE /api/accounts/:id/playbook/symbols/:symbol` | `{ point, valuePerPoint }` | The user's value per point, or back to the one from trades. |
+
+## Exness sync
+
+Trades, deposits and withdrawals come from the Exness Trader API (`crates/exness`, a copy of the hermes `exness_rs` SDK; `crates/api/src/exness_sync.rs`).
+
+- **Keys.** The user enters the account number, the API key and the Ed25519 private key (PEM or 128 hex characters) from Exness Key Management. The API builds a signer (a bad key is `400`), finds the account's host with host discovery (or uses the one given), and reads the account details. Only then are both keys stored, each encrypted with AES-256-GCM under `CREDENTIALS_KEY` with the account id as associated data (`crypto.rs`). They are never returned or logged. Disconnecting deletes them and the stored history; trades stay.
+- **Account rule.** Like the MT5 import: the account number becomes `mt_login`; an account holding another login is `409`.
+- **Sync.** A job every 10 minutes, plus "Sync now". It fetches deals and orders from 1 hour before the last synced time (the first time: as far back as `limits` allows), in windows of the allowed range, page by page. Raw items go to `exness_history`; positions are rebuilt from all of them (`engine::deals`), so a position opened in an earlier sync still closes. A trade is one fully closed position (ticket = position id, the same as the MT5 report); close reason from the closing order (`sl`, `tp`, `so`), SL/TP from the position's last order with them, swap from its `swap_fee` deals. `balance` deals are deposits or withdrawals, `null_compensation` is an adjustment. The API sends no deal comment, so internal transfers are not flagged. Stored tickets and deals are skipped, as in the MT5 import. Each sync that adds something writes an `imports` row named "Exness sync".
+- **Status.** Last sync time, trades and cash flows added, the last error. After 3 failures in a row the status is `paused` until the user connects again.
+- **Plans.** Connecting and syncing are on paid plans; file import stays free. `EXNESS_SYNC=off` turns it all off.
+
+| Method and path | Request | Response |
+| --- | --- | --- |
+| `GET /api/accounts/:id/exness` | | `{ enabled, canConnect, locked, connected, exnessAccountId, host, status, failures, lastError, lastSyncAt, lastSyncTrades, lastSyncFlows, syncedUntil, connectedAt }` |
+| `PUT /api/accounts/:id/exness` | `{ accountId, apiKey, privateKey, host? }` | The status; the first sync starts in the background. `403` on Free or with the flag off, `409` for another login, `422` when Exness refuses or `CREDENTIALS_KEY` is not set. |
+| `DELETE /api/accounts/:id/exness` | | `204` |
+| `POST /api/accounts/:id/exness/sync` | | The status after the sync. `404` when not connected, `409` when paused or already syncing. |
+
 ## Analytics split
 
 - **Engine (Rust):** parsing (CSV and MT5 reports), normalizing, grouping, simulations, the optimizer, the deposit and withdrawal totals (`cash_report`). All numbers.
@@ -279,8 +340,8 @@ Billing (a payment provider) is not built yet. Every new user is on `free`. To p
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Free | $0 | 1 trading account. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list, deposits and withdrawals, the journal (trade and day reviews, setups and mistake tags). Share images of the stats, the calendar month and single trades, with the site address, a QR code to it and a "Track your trades free" line. |
-| Espresso | $9 / month | Everything in Free. Notes (the automatic insights and what the journal says: P&L by setup, grade, mistake, plan and mood), Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
+| Free | $0 | 1 trading account. The Today card and its email, the playbook calculator. Summary and equity curve, trading calendar, weekly and monthly P&L, results by symbol, side, position size and close reason, best lot size per symbol, trade list, deposits and withdrawals, the journal (trade and day reviews, setups and mistake tags). Share images of the stats, the calendar month and single trades, with the site address, a QR code to it and a "Track your trades free" line. |
+| Espresso | $9 / month | Everything in Free. Saved playbook plans compared with the trades, Exness sync. Notes (the automatic insights and what the journal says: P&L by setup, grade, mistake, plan and mood), Plan, Timing, Frequency, and the Risk simulations (daily loss limit, trades after a loss). Saved column mappings. |
 | Latte | $15 / month | Everything in Espresso. Up to 5 trading accounts. Share images without the "Track your trades free" line (the address and QR code stay). |
 
 Yearly billing: 10 months' price for 12 months.
@@ -292,6 +353,7 @@ The API enforces the limits (`crates/api/src/plan.rs`):
 - Analytics on Free: the server removes `byHour`, `byWeekday`, `heatmap`, `byDuration`, `nthTrade`, `dayBuckets`, `capSim`, `lossLimitSim`, `afterLoss`, `overtrading` and `optimization`, and adds `locked: true`. The web app shows a locked panel for those views. Everything else stays, including `byWeek`, `byMonth` and `bestLots`.
 - `POST /api/accounts` returns 403 when the user has reached the plan's account limit.
 - `POST /api/mappings` returns 403 on Free.
+- Saving playbook plans and connecting or syncing Exness return 403 on Free.
 - `GET /api/accounts/:id/journal/summary` returns `{ "locked": true }` on Free (see [Journal](#journal)). The journal itself is on every plan.
 
 The plan list for the web app is in `apps/web/src/lib/plans.ts`. Keep it, `plan.rs` and this table in step.

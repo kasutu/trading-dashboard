@@ -127,7 +127,11 @@ enum RiskKind {
 }
 
 fn check_risk(r: &Risk) -> ApiResult<()> {
-    let max = if r.kind == RiskKind::Percent { 100.0 } else { 1e9 };
+    let max = if r.kind == RiskKind::Percent {
+        100.0
+    } else {
+        1e9
+    };
     for v in [r.daily, r.per_trade].into_iter().flatten() {
         if !v.is_finite() || v <= 0.0 || v > max {
             return Err(ApiError::bad_request(if max == 100.0 {
@@ -156,7 +160,9 @@ pub struct AccountPatch {
 }
 
 /// Tells a field set to `null` apart from a missing one.
-fn present<'de, T: Deserialize<'de>, D: Deserializer<'de>>(d: D) -> Result<Option<Option<T>>, D::Error> {
+fn present<'de, T: Deserialize<'de>, D: Deserializer<'de>>(
+    d: D,
+) -> Result<Option<Option<T>>, D::Error> {
     Option::<T>::deserialize(d).map(Some)
 }
 

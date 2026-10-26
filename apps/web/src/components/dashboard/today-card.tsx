@@ -1,157 +1,70 @@
 import * as React from "react"
+import { useToday } from "@/hooks/use-api"
 import { useSettings } from "@/hooks/use-settings"
-import type { AccountRisk, Analytics } from "@/lib/api/types"
-import { LONG_WEEKDAYS, WEEKDAYS, hourLabel, hourList, money, plural, pnlClass } from "@/lib/format"
-import { DEFAULT_RISK, limits } from "@/lib/risk"
+import type { TodayPlan } from "@/lib/api/types"
+import { money, plural, pnlClass } from "@/lib/format"
 import { storage } from "@/lib/storage"
-import { best, cn } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 const seenKey = (accountId: string) => `jurno:today-seen:${accountId}`
 const notifiedKey = (accountId: string) => `jurno:today-notified:${accountId}`
 /** The trades meter shows one segment per trade up to this cap. More segments are noise. */
 const METER_MAX = 10
+/** The plan changes with the hour (good and bad hours), so fetch it again this often. */
+const REFRESH_MS = 5 * 60_000
 
-/** The time now, updated every minute. */
-function useNow() {
-  const [now, setNow] = React.useState(() => new Date())
-  React.useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 60_000)
-    return () => window.clearInterval(id)
-  }, [])
-  return now
-}
-
-/** Today's day, weekday (0 = Monday), hour and "HH:MM" in the dashboard timezone. */
-function clock(now: Date, tz: string) {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(now)
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ""
-  const hour = Number(get("hour")) % 24
-  return {
-    day: now.toLocaleDateString("en-CA", { timeZone: tz }),
-    weekday: WEEKDAYS.indexOf(get("weekday")),
-    hour,
-    time: `${String(hour).padStart(2, "0")}:${get("minute")}`,
-  }
-}
-
-type Tone = "profit" | "loss" | undefined
-type Verdict = { label: string; tone: Tone; why: string }
-/** One rule for today: an action, an optional note on the right, and an optional warning under it. */
-type Rule = { text: string; note?: string; warn?: string; tone?: Tone }
-
-/** Everything the card and the notification say about today. */
-function plan(a: Analytics, now: Date, tz: string, balance: number | null, risk: AccountRisk) {
-  const { day, weekday, hour } = clock(now, tz)
-  const done = a.daily.find((d) => d.key === day)
-  const n = done?.trades ?? 0
-  const dayNet = done?.net ?? 0
-  const date = now.toLocaleDateString("en-US", { timeZone: tz, weekday: "long", month: "long", day: "numeric" })
-  const longDay = LONG_WEEKDAYS[weekday] ?? "Today"
-  const full = a.locked ? null : a
-  const opt = full?.optimization ?? null
-  const r = opt?.rules ?? null
-  // Trades a day: the best cap on Frequency, so both pages agree.
-  const cap = full ? (best(full.capSim)?.cap ?? null) : null
-  const L = limits(risk, balance, { lossLimit: opt?.rules.lossLimit ?? null, cap })
-  const weekendOff = weekday >= 5 && !risk.weekends
-  const rest = weekendOff || !!r?.skipWeekdays.includes(weekday)
-  const lossHit = L.daily !== null && dayNet <= -L.daily
-  // A rest day or a hit loss limit leaves no trades, whatever the cap says.
-  const left = rest || lossHit ? 0 : L.trades !== null ? Math.max(L.trades - n, 0) : null
-
-  const keys = (kind: string) => opt?.focus.find((f) => f.kind === kind)?.keys ?? []
-  const bestHours = keys("hour").map(Number)
-  const wd = full?.byWeekday.find((g) => g.key === WEEKDAYS[weekday])
-  const record = !wd?.trades
-    ? `You have no ${longDay} trades yet.`
-    : wd.net >= 0
-      ? `${longDay}s made you ${money(wd.net, true)}.`
-      : `${longDay}s lost you ${money(-wd.net)}.`
-
-  const verdict: Verdict =
-    L.trades !== null && !rest && n >= L.trades
-      ? { label: "Stop trading", tone: "loss", why: `You took all ${plural(L.trades, "trade")} for today.` }
-      : lossHit
-        ? { label: "Stop trading", tone: "loss", why: `You lost ${money(-dayNet)}. Your limit was ${money(L.daily!)}.` }
-        : rest
-          ? weekendOff
-            ? { label: "Rest today", tone: "loss", why: "Weekends are off. Turn them on in Configuration." }
-            : { label: "Rest today", tone: "loss", why: `Your plan skips ${longDay}s.${wd?.trades && wd.net < 0 ? ` They lost you ${money(-wd.net)}.` : ""}` }
-          : keys("weekday").includes(WEEKDAYS[weekday])
-            ? { label: "Good day to trade", tone: "profit", why: record }
-            : {
-                label: "Trade your plan",
-                tone: undefined,
-                why: opt ? record : a.locked ? "Upgrade to see your best days and hours." : "Your plan needs 30 trades over 10 days.",
-              }
-
-  // The rules, as actions. A % limit on a tiny balance gives limits too small to use: say so.
-  const rules: Rule[] = []
-  if (L.daily !== null) {
-    const pctOf = L.from === "account" && risk.kind === "percent" && balance !== null
-    rules.push({
-      text: `Stop if you lose ${money(L.daily)}`,
-      note: L.from === "plan" ? "From your history" : pctOf ? `${risk.daily}% of ${money(balance!)}` : "Your limit",
-      warn: pctOf && L.daily < 1 ? `Is ${money(balance!)} your balance? Check Funding, or set dollar limits in Configuration.` : undefined,
-    })
-  } else if (risk.kind === "percent" && risk.daily) {
-    rules.push({ text: "Add your deposits to set a loss limit", note: `${risk.daily}% of balance` })
-  }
-  if (L.perTrade !== null && L.perTrade >= 1) rules.push({ text: `Risk up to ${money(L.perTrade)} a trade` })
-  if (bestHours.length)
-    rules.push({ text: `Trade at ${hourList(bestHours)}`, ...(bestHours.includes(hour) && { warn: `It is ${hourLabel(hour)}. Good time.`, tone: "profit" as const }) })
-  if (r?.skipHours.length)
-    rules.push({ text: `Avoid ${hourList(r.skipHours)}`, ...(r.skipHours.includes(hour) && { warn: `It is ${hourLabel(hour)}. Wait.`, tone: "loss" as const }) })
-  const symbol = keys("symbol")[0]
-  const hold = keys("duration")[0]
-  if (symbol || hold) rules.push({ text: [symbol && `Trade ${symbol}`, hold && `${symbol ? "hold" : "Hold"} ${hold}`].filter(Boolean).join(" and ") })
-
-  // Questions to answer before each trade.
-  const al = full?.afterLoss
-  const questions = [
-    bestHours.length > 0 && "Is it a good hour?",
-    L.perTrade !== null && L.perTrade >= 1 && `Does this trade risk ${money(L.perTrade)} or less?`,
-    al && al.after.trades >= 5 && al.after.avg < al.other.avg && `Did ${al.windowMin} min pass since your last loss?`,
-  ].filter((q): q is string => !!q)
-
-  return { day, date, n, dayNet, L, left, rest, stop: verdict.label === "Stop trading", verdict, rules, questions }
+/** "HH:MM" now in the timezone. */
+function timeIn(tz: string) {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date())
 }
 
 /** One browser notification a day at the time set in Settings, while Jurno is open in a tab. */
-function useDailyNotification(accountId: string, p: ReturnType<typeof plan> | null, now: Date, tz: string) {
+function useDailyNotification(accountId: string, p: TodayPlan | null, tz: string) {
   const { settings } = useSettings()
+  const [tick, setTick] = React.useState(0)
+  React.useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
   React.useEffect(() => {
     if (!p || !settings.reminderNotify || typeof Notification === "undefined" || Notification.permission !== "granted") return
-    const { day, time } = clock(now, tz)
-    if (time < settings.reminderTime || storage.get(notifiedKey(accountId)) === day) return
-    storage.set(notifiedKey(accountId), day)
+    if (timeIn(tz) < settings.reminderTime || storage.get(notifiedKey(accountId)) === p.day) return
+    storage.set(notifiedKey(accountId), p.day)
     const body = [p.verdict.why, ...p.rules.slice(0, 2).map((r) => `${r.text}.`)].join(" ")
     try {
       new Notification(p.verdict.label, { body, tag: `jurno-today-${accountId}`, icon: "/favicon.svg" })
     } catch {
       // Some mobile browsers allow notifications only from a service worker.
     }
-  }, [accountId, p, now, tz, settings.reminderNotify, settings.reminderTime])
+  }, [accountId, p, tz, tick, settings.reminderNotify, settings.reminderTime])
 }
 
-/** The daily reminder: what to do today, the rules for today, and questions to ask before each trade.
- *  `a`: analytics on all trades. `balance`: null when the account has no deposits. `risk`: the account's limits. */
-/** `preview`: sample data on the landing page. Always shown, and never sends a notification. */
-export function TodayCard({ accountId, a, balance, risk, tz, className, preview }: { accountId: string; a: Analytics | null; balance: number | null; risk: AccountRisk | null; tz: string; className?: string; preview?: boolean }) {
+/** The daily reminder for a trading account: what to do today, today's rules, and questions to ask before each
+ *  trade. The server works it out (engine::today), so the card and the reminder email say the same thing. */
+export function TodayCard({ accountId, tz, className }: { accountId: string; tz: string; className?: string }) {
   const { settings } = useSettings()
-  const now = useNow()
-  const p = React.useMemo(() => (a ? plan(a, now, tz, balance, risk ?? DEFAULT_RISK) : null), [a, now, tz, balance, risk])
-  useDailyNotification(accountId, preview ? null : p, now, tz)
+  const { data, refetch } = useToday(accountId, tz)
+  React.useEffect(() => {
+    const id = window.setInterval(refetch, REFRESH_MS)
+    return () => window.clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountId, tz])
+  const p = data && !("empty" in data) ? data : null
+  useDailyNotification(accountId, p, tz)
   // "Daily": show on the first visit of the day only. Decided once per visit, so the card never disappears while
   // you read it.
   const [seen, setSeen] = React.useState<boolean | null>(null)
   if (p && seen === null) setSeen(storage.get(seenKey(accountId)) === p.day)
   const day = p?.day
   React.useEffect(() => {
-    if (!preview && day && seen === false && settings.reminder === "daily") storage.set(seenKey(accountId), day)
-  }, [accountId, day, seen, settings.reminder, preview])
-  if (!p || (!preview && (settings.reminder === "off" || (settings.reminder === "daily" && seen)))) return null
+    if (day && seen === false && settings.reminder === "daily") storage.set(seenKey(accountId), day)
+  }, [accountId, day, seen, settings.reminder])
+  if (!p || settings.reminder === "off" || (settings.reminder === "daily" && seen)) return null
+  return <TodayView p={p} className={className} />
+}
 
+/** The card itself. Also shown on the landing page with a sample plan. */
+export function TodayView({ p, className }: { p: TodayPlan; className?: string }) {
   return (
     <Shell date={p.date} verdict={p.verdict} className={className}>
       <Trades p={p} />
@@ -184,8 +97,8 @@ export function TodayCard({ accountId, a, balance, risk, tz, className, preview 
 }
 
 /** The big number: trades left today. A meter for small caps, one segment per trade. */
-function Trades({ p }: { p: ReturnType<typeof plan> }) {
-  const cap = p.L.trades
+function Trades({ p }: { p: TodayPlan }) {
+  const cap = p.limits.trades
   const big = "font-display text-5xl font-bold tracking-tight tabular-nums"
   if (p.rest)
     return (
@@ -197,8 +110,8 @@ function Trades({ p }: { p: ReturnType<typeof plan> }) {
   if (cap === null || p.left === null)
     return (
       <p className="flex items-baseline gap-2">
-        <span className={big}>{p.n}</span>
-        <span className="text-sm text-muted-foreground">{p.n === 1 ? "trade" : "trades"} today, no trade limit</span>
+        <span className={big}>{p.trades}</span>
+        <span className="text-sm text-muted-foreground">{p.trades === 1 ? "trade" : "trades"} today, no trade limit</span>
       </p>
     )
   const left = p.left
@@ -207,7 +120,7 @@ function Trades({ p }: { p: ReturnType<typeof plan> }) {
       <p className="flex flex-wrap items-baseline gap-x-2">
         <span className={cn(big, left === 0 && "text-loss")}>{left}</span>
         <span className="text-sm text-muted-foreground">of {plural(cap, "trade")} left</span>
-        {p.n > 0 && <span className={cn("text-sm tabular-nums", pnlClass(p.dayNet))}>{money(p.dayNet, true)} today</span>}
+        {p.trades > 0 && <span className={cn("text-sm tabular-nums", pnlClass(p.dayNet))}>{money(p.dayNet, true)} today</span>}
       </p>
       {cap <= METER_MAX && (
         <div className="mt-3 flex gap-1" aria-hidden>
@@ -227,7 +140,7 @@ const TONE = {
   normal: { wash: "from-brand/20", edge: "border-brand/50", text: "" },
 }
 
-function Shell({ date, verdict, className, children }: { date: string; verdict: Verdict; className?: string; children: React.ReactNode }) {
+function Shell({ date, verdict, className, children }: { date: string; verdict: TodayPlan["verdict"]; className?: string; children: React.ReactNode }) {
   const tone = TONE[verdict.tone ?? "normal"]
   return (
     <section

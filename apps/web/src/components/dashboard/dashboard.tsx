@@ -23,6 +23,7 @@ import { Journal } from "./views/journal"
 import { Notes } from "./views/notes"
 import { Overview } from "./views/overview"
 import { Plan } from "./views/plan"
+import { Playbook } from "./views/playbook"
 import { Risk } from "./views/risk"
 import { Timing } from "./views/timing"
 
@@ -108,7 +109,7 @@ export function Dashboard({ accountId, risk }: { accountId: string; risk: Accoun
             {/* From xl: Net P&L takes 60% and the Today card the rest, both the same height. Below xl they stack. */}
             <div className="flex flex-col gap-4 sm:gap-5 xl:flex-row">
               <SummaryCard a={a} tz={filters.tz} className="xl:flex-[3]" />
-              <TodayCard accountId={accountId} a={allTime} balance={balance} risk={risk} tz={filters.tz} className="xl:flex-[2]" />
+              <TodayCard accountId={accountId} tz={filters.tz} className="xl:flex-[2]" />
             </div>
             <KpiStrip a={a} />
             <Tabs value={tabValue} onValueChange={setTab} className="gap-4 sm:gap-5">
@@ -122,6 +123,7 @@ export function Dashboard({ accountId, risk }: { accountId: string; risk: Accoun
                   )}
                 </>)}
                 {trigger("plan", <>Plan{lock}</>)}
+                {trigger("playbook", "Playbook")}
                 {trigger("timing", <>Timing{lock}</>)}
                 {trigger("frequency", <>Frequency{lock}</>)}
                 {trigger("risk", "Risk")}
@@ -138,7 +140,7 @@ export function Dashboard({ accountId, risk }: { accountId: string; risk: Accoun
 }
 
 /** The tabs in the order they are built in the background: the likeliest next ones first. */
-const TAB_ORDER = ["overview", "trades", "journal", "notes", "risk", "timing", "frequency", "plan", "funding"]
+const TAB_ORDER = ["overview", "trades", "journal", "notes", "risk", "timing", "frequency", "plan", "playbook", "funding"]
 
 // Safari has no requestIdleCallback; a short timeout stands in.
 const hasIdle = typeof window.requestIdleCallback === "function"
@@ -204,6 +206,7 @@ function Views({ tab, warm, a, full, insights, accountId, filters, flows, balanc
       journal: <Journal />,
       notes: <Notes insights={insights} locked={!full} />,
       plan: full ? <Plan opt={full.optimization} /> : <LockedPanel title="Plan" items={LOCKED.plan} />,
+      playbook: <Playbook accountId={accountId} tz={filters.tz} />,
       timing: full ? <Timing a={full} /> : <LockedPanel title="Timing" items={LOCKED.timing} />,
       frequency: full ? <Frequency a={full} accountId={accountId} filters={filters} /> : <LockedPanel title="Frequency" items={LOCKED.frequency} />,
       risk: <Risk a={a} />,
